@@ -656,6 +656,70 @@ textarea {
     color: #ffffff;
   }
 
+  .home-account-panel {
+    display: grid;
+    gap: 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(111, 207, 151, 0.2);
+    background:
+      radial-gradient(circle at 100% 0%, rgba(226, 180, 87, 0.18), transparent 28%),
+      linear-gradient(135deg, rgba(16, 36, 22, 0.96), rgba(35, 84, 62, 0.92));
+    padding: 1rem;
+    color: #f2f7f4;
+    box-shadow: 0 22px 52px rgba(0, 0, 0, 0.24);
+  }
+
+  .home-account-panel h2 {
+    margin-top: 0.65rem;
+    color: #ffffff;
+    font-size: 1.28rem;
+    font-weight: 950;
+    line-height: 1.12;
+  }
+
+  .home-account-panel p,
+  .home-account-actions span {
+    margin-top: 0.5rem;
+    color: rgba(242, 247, 244, 0.78);
+    font-size: 0.86rem;
+    font-weight: 750;
+    line-height: 1.45;
+  }
+
+  .home-account-form,
+  .home-account-actions {
+    display: grid;
+    gap: 0.6rem;
+    align-content: center;
+  }
+
+  .home-account-form .form-control {
+    min-width: 0;
+    background: rgba(255, 255, 255, 0.96);
+  }
+
+  .home-account-form p {
+    margin-top: 0;
+    font-size: 0.74rem;
+    font-weight: 850;
+  }
+
+  @media (min-width: 768px) {
+    .home-account-panel {
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 0.74fr);
+      align-items: center;
+      padding: 1.1rem;
+    }
+
+    .home-account-form {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .home-account-form p {
+      grid-column: 1 / -1;
+    }
+  }
+
   .grow-mini-plant,
   .grow-event-row {
     display: flex;

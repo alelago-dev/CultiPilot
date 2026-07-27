@@ -820,9 +820,13 @@ export function AppShell({
 
       {!shouldShowFirstCultivation && currentSection === "today" ? (
         <TodaySection
+          accountStatus={accountStatus}
           agendaItems={agendaItems}
           careScore={careScore}
           dictionary={dictionary}
+          onSaveRemoteSnapshot={() => saveRemoteSnapshot()}
+          onSendMagicLink={handleSendMagicLink}
+          onSignOut={handleSignOut}
           onToggleTask={handleToggleTask}
           openTasks={openTasks}
           calendarEvents={eventState}
@@ -1082,10 +1086,14 @@ function FirstCultivationScreen({
 }
 
 function TodaySection({
+  accountStatus,
   agendaItems,
   careScore,
   calendarEvents,
   dictionary,
+  onSaveRemoteSnapshot,
+  onSendMagicLink,
+  onSignOut,
   onUseDeviceWeather,
   onToggleTask,
   openTasks,
@@ -1095,10 +1103,14 @@ function TodaySection({
   weather,
   weatherStatus
 }: {
+  accountStatus: AccountStatus;
   agendaItems: AgendaItem[];
   careScore: number;
   calendarEvents: CalendarEvent[];
   dictionary: Dictionary;
+  onSaveRemoteSnapshot: () => void;
+  onSendMagicLink: (email: string) => void;
+  onSignOut: () => void;
   onUseDeviceWeather: () => void;
   onToggleTask: (item: AgendaItem) => void;
   openTasks: number;
@@ -1130,6 +1142,15 @@ function TodaySection({
 
       <section className="mx-auto max-w-7xl px-4 pb-5 sm:px-6 lg:px-8">
         <GrowCommandPanel calendarEvents={calendarEvents} plants={plants} />
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 pb-5 sm:px-6 lg:px-8">
+        <HomeAccountPanel
+          accountStatus={accountStatus}
+          onSaveRemoteSnapshot={onSaveRemoteSnapshot}
+          onSendMagicLink={onSendMagicLink}
+          onSignOut={onSignOut}
+        />
       </section>
 
       <section className="mx-auto grid max-w-7xl gap-5 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
@@ -1282,6 +1303,74 @@ function GrowCommandPanel({
           </div>
         </div>
       </div>
+    </section>
+  );
+}
+
+function HomeAccountPanel({
+  accountStatus,
+  onSaveRemoteSnapshot,
+  onSendMagicLink,
+  onSignOut
+}: {
+  accountStatus: AccountStatus;
+  onSaveRemoteSnapshot: () => void;
+  onSendMagicLink: (email: string) => void;
+  onSignOut: () => void;
+}) {
+  const [email, setEmail] = useState(accountStatus.email);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const nextEmail = email.trim();
+
+    if (!nextEmail) return;
+
+    onSendMagicLink(nextEmail);
+  }
+
+  return (
+    <section className="home-account-panel" aria-labelledby="home-account-title">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={accountStatus.isSignedIn ? "pill pill-green" : "pill pill-amber"}>
+            {accountStatus.isSignedIn ? "Cuenta conectada" : accountStatus.isConfigured ? "Iniciar sesion" : "Demo local"}
+          </span>
+          <span className="pill pill-soft">Guardado por usuario</span>
+        </div>
+        <h2 id="home-account-title">Tus cultivos en cualquier navegador</h2>
+        <p>
+          Entra con email para que la informacion no dependa del celular o la compu. Cada usuario conserva sus espacios,
+          macetas, calendario y bitacora.
+        </p>
+      </div>
+
+      {accountStatus.isSignedIn ? (
+        <div className="home-account-actions">
+          <span>{accountStatus.email}</span>
+          <button className="primary-button" onClick={onSaveRemoteSnapshot} type="button">
+            Guardar ahora
+          </button>
+          <button className="secondary-button" onClick={onSignOut} type="button">
+            Cerrar sesion
+          </button>
+        </div>
+      ) : (
+        <form className="home-account-form" onSubmit={handleSubmit}>
+          <input
+            aria-label="Email para iniciar sesion"
+            className="form-control"
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="tu@email.com"
+            type="email"
+            value={email}
+          />
+          <button className="primary-button" disabled={!accountStatus.isConfigured} type="submit">
+            Iniciar sesion
+          </button>
+          <p>{accountStatus.message}</p>
+        </form>
+      )}
     </section>
   );
 }
