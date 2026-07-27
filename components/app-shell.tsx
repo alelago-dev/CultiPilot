@@ -802,6 +802,9 @@ export function AppShell({
 
           <div className="flex items-center gap-2">
             <InstallAppButton />
+            <a className="secondary-button account-header-link" href={`${getSectionHref(locale, "privacy")}#cuenta`}>
+              Cuenta
+            </a>
             <LegalInfoSummary />
             <div className="hidden items-center gap-2 rounded-lg border border-emerald-700/15 bg-white/88 px-3 py-2 text-sm font-bold text-moss-900 shadow-sm sm:flex">
               <span className="status-dot" aria-hidden="true" />
@@ -2387,15 +2390,15 @@ function UserDataPanel({
   }
 
   return (
-    <section className="account-sync-panel mt-5" aria-labelledby="account-sync-title">
+    <section className="account-sync-panel mt-5 scroll-mt-28" id="cuenta" aria-labelledby="account-sync-title">
       <div className="min-w-0">
-        <p className="eyebrow text-emerald-800">Guardado por usuario</p>
+        <p className="eyebrow text-emerald-800">Login y guardado por usuario</p>
         <h3 className="mt-1 text-xl font-black tracking-tight text-moss-950" id="account-sync-title">
-          Cuenta y sincronizacion
+          Iniciar sesion para ver tus datos en otros navegadores
         </h3>
         <p className="mt-2 max-w-3xl text-sm font-bold leading-6 text-stone-700">
-          Para que otro navegador vea la misma informacion hace falta iniciar sesion y guardar en Supabase. Si Supabase no
-          esta configurado, la app sigue como demo local en este dispositivo.
+          Para que Nico abra el link desde otro celular o navegador y vea los mismos cultivos, cada usuario tiene que
+          entrar con su email. Si Supabase no esta configurado, la app sigue guardando solo en este dispositivo.
         </p>
       </div>
 
@@ -2424,7 +2427,7 @@ function UserDataPanel({
               value={email}
             />
             <button className="primary-button self-end" disabled={!accountStatus.isConfigured} type="submit">
-              Enviar acceso
+              Iniciar sesion
             </button>
           </form>
         )}

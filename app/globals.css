@@ -238,6 +238,16 @@ textarea {
     white-space: nowrap;
   }
 
+  .account-header-link {
+    white-space: nowrap;
+  }
+
+  @media (max-width: 520px) {
+    .account-header-link {
+      display: none;
+    }
+  }
+
   .install-app-status {
     position: absolute;
     right: 0;
