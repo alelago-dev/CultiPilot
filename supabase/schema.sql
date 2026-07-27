@@ -86,6 +86,14 @@ create table if not exists public.photos (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.user_app_snapshots (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  key text not null default 'primary',
+  payload jsonb not null,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, key)
+);
+
 alter table public.profiles enable row level security;
 alter table public.grow_spaces enable row level security;
 alter table public.plants enable row level security;
@@ -93,6 +101,7 @@ alter table public.tasks enable row level security;
 alter table public.calendar_events enable row level security;
 alter table public.care_entries enable row level security;
 alter table public.photos enable row level security;
+alter table public.user_app_snapshots enable row level security;
 
 create policy "profiles own rows" on public.profiles
   for all using (auth.uid() = id) with check (auth.uid() = id);
@@ -113,6 +122,9 @@ create policy "care entries own rows" on public.care_entries
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 create policy "photos own rows" on public.photos
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create policy "app snapshots own rows" on public.user_app_snapshots
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 insert into storage.buckets (id, name, public)

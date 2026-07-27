@@ -125,6 +125,32 @@ textarea {
       rgba(255, 255, 255, 0.78);
   }
 
+  .account-sync-panel {
+    display: grid;
+    gap: 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(35, 84, 62, 0.14);
+    background:
+      radial-gradient(circle at 100% 0%, rgba(111, 207, 151, 0.16), transparent 28%),
+      linear-gradient(145deg, rgba(255, 255, 255, 0.86), rgba(232, 243, 223, 0.74));
+    padding: 1rem;
+    box-shadow: 0 18px 40px rgba(28, 54, 38, 0.1);
+  }
+
+  .account-sync-card {
+    border-radius: 8px;
+    border: 1px solid rgba(22, 32, 21, 0.08);
+    background: rgba(255, 255, 255, 0.78);
+    padding: 0.85rem;
+  }
+
+  @media (min-width: 1024px) {
+    .account-sync-panel {
+      grid-template-columns: minmax(0, 1fr) minmax(360px, 0.72fr);
+      align-items: start;
+    }
+  }
+
   .desktop-nav-item {
     border-radius: 6px;
     padding: 0.55rem 0.75rem;
@@ -201,6 +227,38 @@ textarea {
 
   .legal-popover {
     position: relative;
+  }
+
+  .install-app-wrapper {
+    position: relative;
+    display: none;
+  }
+
+  .install-app-button {
+    white-space: nowrap;
+  }
+
+  .install-app-status {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.45rem);
+    z-index: 30;
+    width: min(260px, 76vw);
+    border-radius: 8px;
+    border: 1px solid rgba(22, 32, 21, 0.1);
+    background: #ffffff;
+    padding: 0.65rem;
+    color: #52604d;
+    font-size: 0.76rem;
+    font-weight: 850;
+    line-height: 1.35;
+    box-shadow: 0 18px 36px rgba(28, 54, 38, 0.16);
+  }
+
+  @media (min-width: 640px) {
+    .install-app-wrapper {
+      display: inline-flex;
+    }
   }
 
   .legal-popover summary {
@@ -1493,6 +1551,33 @@ textarea {
     border-color: rgba(35, 84, 62, 0.26);
     box-shadow: 0 8px 18px rgba(35, 84, 62, 0.1);
     transform: translateY(-1px);
+  }
+
+  .calendar-plant-picker {
+    display: inline-grid;
+    min-width: min(260px, 100%);
+    gap: 0.22rem;
+    border-radius: 8px;
+    border: 1px solid rgba(35, 84, 62, 0.16);
+    background: rgba(255, 255, 255, 0.76);
+    padding: 0.35rem;
+  }
+
+  .calendar-plant-picker span {
+    color: #52604d;
+    font-size: 0.66rem;
+    font-weight: 950;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .calendar-plant-picker select {
+    min-height: 34px;
+    border: 0;
+    background: transparent;
+    color: #162015;
+    font-size: 0.82rem;
+    font-weight: 950;
   }
 
   .calendar-event {

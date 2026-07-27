@@ -7,5 +7,13 @@
   "background_color": "#f8faf5",
   "theme_color": "#4f8f38",
   "orientation": "portrait-primary",
-  "categories": ["productivity", "lifestyle"]
+  "categories": ["productivity", "lifestyle"],
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }

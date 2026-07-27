@@ -109,6 +109,21 @@ export type Database = {
         };
         Update: Partial<Database["public"]["Tables"]["calendar_events"]["Insert"]>;
       };
+      user_app_snapshots: {
+        Row: {
+          user_id: string;
+          key: string;
+          payload: Json;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          key?: string;
+          payload: Json;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["user_app_snapshots"]["Insert"]>;
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

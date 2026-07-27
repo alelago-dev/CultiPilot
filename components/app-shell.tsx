@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { CopyValueButton } from "@/components/copy-button";
 import { GeneticFinderWizard } from "@/components/genetic-finder-wizard";
@@ -19,6 +19,8 @@ import { getSectionHref, navigationByLocale, type AppSection, type NavigationIte
 import { getGeneticsCatalogAlphabetically, type GeneticReferenceEntry } from "@/lib/genetics-catalog";
 import { requestReminderNotification } from "@/lib/notifications";
 import { seedCatalog } from "@/lib/seed-catalog";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import type { Json } from "@/lib/supabase/database.types";
 import type {
   CalendarEvent,
   CalendarEventKind,
@@ -63,6 +65,7 @@ type QuickPlantInput = {
   region: string;
   mode: Plant["mode"];
   pot: string;
+  potCount: number;
   substrate: string;
   reminderOffset: number;
   recurrenceDays: number;
@@ -76,11 +79,47 @@ type FirstCultivationInput = {
   mode: Plant["mode"];
   nickname: string;
   pot: string;
+  potCount: number;
   setup: string;
   startDate: string;
   substrate: string;
   humidityReminderOffset: number;
   photoReminderOffset: number;
+};
+
+type AppSnapshot = {
+  entries: CareEntry[];
+  events: CalendarEvent[];
+  habitDates: string[];
+  plants: Plant[];
+  savedAt: string;
+  tasks: Task[];
+};
+
+type AccountStatus = {
+  email: string;
+  isConfigured: boolean;
+  isSignedIn: boolean;
+  message: string;
+  userId: string;
+};
+
+type SnapshotRow = {
+  payload: Json;
+};
+
+type SnapshotTableClient = {
+  from: (table: "user_app_snapshots") => {
+    select: (columns: "payload") => {
+      eq: (column: "user_id" | "key", value: string) => {
+        eq: (column: "user_id" | "key", value: string) => {
+          maybeSingle: () => Promise<{ data: SnapshotRow | null; error: unknown }>;
+        };
+        maybeSingle: () => Promise<{ data: SnapshotRow | null; error: unknown }>;
+      };
+    };
+    upsert: (value: { key: string; payload: Json; user_id: string }) => Promise<{ error: unknown }>;
+  };
 };
 
 const careScore = 86;
@@ -172,6 +211,8 @@ const storageKeys = {
   weatherConsent: "plantcare-weather-consent"
 };
 
+const remoteSnapshotKey = "primary";
+
 export function AppShell({
   calendarEvents,
   currentSection,
@@ -189,6 +230,16 @@ export function AppShell({
   const [habitDates, setHabitDates] = useStoredState<string[]>(storageKeys.habitDates, []);
   const [weather, setWeather] = useState<WeatherReadiness>(() => getWeatherReadiness("Ubicacion sin conectar"));
   const [weatherStatus, setWeatherStatus] = useState("");
+  const [accountStatus, setAccountStatus] = useState<AccountStatus>(() => ({
+    email: "",
+    isConfigured: isSupabaseConfigured(),
+    isSignedIn: false,
+    message: isSupabaseConfigured()
+      ? "Conecta una cuenta para guardar datos por usuario."
+      : "Demo local: falta configurar Supabase para sincronizar entre navegadores.",
+    userId: ""
+  }));
+  const [remoteSyncReady, setRemoteSyncReady] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(
     () => typeof window !== "undefined" && window.localStorage.getItem(storageKeys.onboarding) !== "true"
   );
@@ -224,6 +275,167 @@ export function AppShell({
       )
     );
     rememberHabitDate(todayIso);
+  }
+
+  function getCurrentSnapshot(): AppSnapshot {
+    return {
+      entries: entryState,
+      events: eventState,
+      habitDates,
+      plants: plantState,
+      savedAt: new Date().toISOString(),
+      tasks: taskState
+    };
+  }
+
+  function applySnapshot(snapshot: Partial<AppSnapshot>) {
+    if (snapshot.plants) {
+      setPlantState(snapshot.plants);
+      persistStoredState(storageKeys.plants, snapshot.plants);
+    }
+    if (snapshot.tasks) {
+      setTaskState(snapshot.tasks);
+      persistStoredState(storageKeys.tasks, snapshot.tasks);
+    }
+    if (snapshot.events) {
+      setEventState(snapshot.events);
+      persistStoredState(storageKeys.events, snapshot.events);
+    }
+    if (snapshot.entries) {
+      setEntryState(snapshot.entries);
+      persistStoredState(storageKeys.entries, snapshot.entries);
+    }
+    if (snapshot.habitDates) {
+      setHabitDates(snapshot.habitDates);
+      persistStoredState(storageKeys.habitDates, snapshot.habitDates);
+    }
+  }
+
+  async function saveRemoteSnapshot(nextSnapshot = getCurrentSnapshot()) {
+    if (!accountStatus.userId || !isSupabaseConfigured()) return;
+
+    try {
+      const supabase = getSupabaseBrowserClient() as unknown as SnapshotTableClient;
+      const { error } = await supabase.from("user_app_snapshots").upsert({
+        key: remoteSnapshotKey,
+        payload: nextSnapshot as unknown as Json,
+        user_id: accountStatus.userId
+      });
+
+      if (error) throw error;
+
+      setAccountStatus((currentStatus) => ({
+        ...currentStatus,
+        message: "Datos guardados por usuario."
+      }));
+    } catch {
+      setAccountStatus((currentStatus) => ({
+        ...currentStatus,
+        message: "No se pudo guardar online. Revisa Supabase o la conexion."
+      }));
+    }
+  }
+
+  async function loadRemoteSnapshot(userId: string, email: string) {
+    try {
+      const supabase = getSupabaseBrowserClient() as unknown as SnapshotTableClient;
+      const { data, error } = await supabase
+        .from("user_app_snapshots")
+        .select("payload")
+        .eq("user_id", userId)
+        .eq("key", remoteSnapshotKey)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data?.payload) {
+        applySnapshot(data.payload as Partial<AppSnapshot>);
+        setAccountStatus({
+          email,
+          isConfigured: true,
+          isSignedIn: true,
+          message: "Datos cargados desde tu cuenta.",
+          userId
+        });
+      } else {
+        const firstSnapshot = getCurrentSnapshot();
+        const { error: insertError } = await supabase.from("user_app_snapshots").upsert({
+          key: remoteSnapshotKey,
+          payload: firstSnapshot as unknown as Json,
+          user_id: userId
+        });
+
+        if (insertError) throw insertError;
+
+        setAccountStatus({
+          email,
+          isConfigured: true,
+          isSignedIn: true,
+          message: "Cuenta conectada. Se guardara una copia online.",
+          userId
+        });
+      }
+      setRemoteSyncReady(true);
+    } catch {
+      setAccountStatus({
+        email,
+        isConfigured: true,
+        isSignedIn: true,
+        message: "Cuenta conectada, pero falta aplicar la tabla user_app_snapshots en Supabase.",
+        userId
+      });
+    }
+  }
+
+  async function handleSendMagicLink(email: string) {
+    if (!isSupabaseConfigured()) {
+      setAccountStatus((currentStatus) => ({
+        ...currentStatus,
+        message: "Falta configurar NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY."
+      }));
+      return;
+    }
+
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: window.location.href
+        }
+      });
+
+      if (error) throw error;
+
+      setAccountStatus((currentStatus) => ({
+        ...currentStatus,
+        email,
+        message: "Te enviamos un enlace de acceso. Abrilo para conectar tu cuenta."
+      }));
+    } catch {
+      setAccountStatus((currentStatus) => ({
+        ...currentStatus,
+        message: "No se pudo enviar el enlace de acceso."
+      }));
+    }
+  }
+
+  async function handleSignOut() {
+    if (!isSupabaseConfigured()) return;
+
+    try {
+      const supabase = getSupabaseBrowserClient();
+      await supabase.auth.signOut();
+    } finally {
+      setRemoteSyncReady(false);
+      setAccountStatus({
+        email: "",
+        isConfigured: true,
+        isSignedIn: false,
+        message: "Sesion cerrada. Los datos locales siguen en este navegador.",
+        userId: ""
+      });
+    }
   }
 
   function rememberHabitDate(isoDate: string) {
@@ -266,40 +478,44 @@ export function AppShell({
 
   function handleCreateQuickPlant(input: QuickPlantInput) {
     const selectedSeed = seedCatalog.find((seed) => seed.id === input.seedId);
-    const plantId = createEventId("plant");
     const plantName = input.name.trim() || selectedSeed?.crop || "Nueva planta";
-    const nextPlant: Plant = {
-      id: plantId,
-      lighting: "Definida por usuario",
-      mode: input.mode,
-      name: plantName,
-      pot: input.pot,
-      spaceId: spaces[0]?.id ?? "space-patio",
-      stage: "Inicio",
-      startedAt: input.startDate,
-      substrate: input.substrate,
-      variety: selectedSeed?.name ?? "Semilla horticola"
-    };
-    const nextEvents: CalendarEvent[] = [
-      {
+    const potCount = Math.max(1, input.potCount);
+    const nextPlants: Plant[] = Array.from({ length: potCount }, (_, index) => {
+      const plantNumber = index + 1;
+
+      return {
+        id: createEventId("plant"),
+        lighting: "Definida por usuario",
+        mode: input.mode,
+        name: potCount > 1 ? `${plantName} #${plantNumber}` : plantName,
+        pot: input.pot,
+        setup: `Maceta ${plantNumber} de ${potCount}`,
+        spaceId: spaces[0]?.id ?? "space-patio",
+        stage: "Inicio",
+        startedAt: input.startDate,
+        substrate: input.substrate,
+        variety: selectedSeed?.name ?? "Semilla horticola"
+      };
+    });
+    const nextEvents: CalendarEvent[] = nextPlants.flatMap((plant) => {
+      const plantEvents: CalendarEvent[] = [{
         completedDates: [],
-        description: "Evento creado desde el alta rapida de planta.",
+        description: `Evento creado desde el alta rapida de planta para ${plant.name}.`,
         id: createEventId("event-review"),
         kind: "review",
-        plantId,
+        plantId: plant.id,
         source: "horticultural",
         startDate: input.startDate,
         title: "Revision inicial"
-      }
-    ];
+      }];
 
-    if (input.reminderOffset > 0) {
-      nextEvents.push({
+      if (input.reminderOffset > 0) {
+        plantEvents.push({
         completedDates: [],
-        description: "Recordatorio horticola declarado en el alta rapida.",
+        description: `Recordatorio horticola declarado en el alta rapida para ${plant.name}.`,
         id: createEventId("event-water"),
         kind: "watering",
-        plantId,
+        plantId: plant.id,
         recurrence:
           input.recurrenceDays > 0
             ? {
@@ -311,9 +527,12 @@ export function AppShell({
         startDate: offsetDate(input.startDate, input.reminderOffset),
         title: "Revisar riego"
       });
-    }
+      }
 
-    const nextPlantState = [nextPlant, ...plantState];
+      return plantEvents;
+    });
+
+    const nextPlantState = [...nextPlants, ...plantState];
     const nextEventState = [...nextEvents, ...eventState];
 
     setPlantState(nextPlantState);
@@ -329,63 +548,69 @@ export function AppShell({
   }
 
   function handleCreateFirstCultivation(input: FirstCultivationInput) {
-    const plantId = createEventId("plant-manual");
     const plantName = input.nickname.trim() || input.geneticName.trim() || "Cultivo legal";
-    const nextPlant: Plant = {
-      bank: input.bank,
-      id: plantId,
-      legalRecordStatus: input.legalRecordStatus,
-      lighting: input.light,
-      mode: input.mode,
-      name: plantName,
-      pot: input.pot,
-      setup: input.setup,
-      spaceId: spaces[0]?.id ?? "space-patio",
-      stage: "Inicio declarado",
-      startedAt: input.startDate,
-      substrate: input.substrate,
-      variety: input.geneticName.trim() || "Genetica declarada por usuario"
-    };
-    const nextEvents: CalendarEvent[] = [
-      {
+    const potCount = Math.max(1, input.potCount);
+    const nextPlants: Plant[] = Array.from({ length: potCount }, (_, index) => {
+      const plantNumber = index + 1;
+
+      return {
+        bank: input.bank,
+        id: createEventId("plant-manual"),
+        legalRecordStatus: input.legalRecordStatus,
+        lighting: input.light,
+        mode: input.mode,
+        name: potCount > 1 ? `${plantName} #${plantNumber}` : plantName,
+        pot: input.pot,
+        setup: `${input.setup} - Maceta ${plantNumber} de ${potCount}`,
+        spaceId: spaces[0]?.id ?? "space-patio",
+        stage: "Inicio declarado",
+        startedAt: input.startDate,
+        substrate: input.substrate,
+        variety: input.geneticName.trim() || "Genetica declarada por usuario"
+      };
+    });
+    const nextEvents: CalendarEvent[] = nextPlants.flatMap((plant) => {
+      const plantEvents: CalendarEvent[] = [{
         completedDates: [],
-        description: `Alta manual del cultivo. Banco: ${input.bank}. Registro legal: ${input.legalRecordStatus}.`,
+        description: `Alta manual de ${plant.name}. Banco: ${input.bank}. Registro legal: ${input.legalRecordStatus}.`,
         id: createEventId("event-review"),
         kind: "review",
-        plantId,
+        plantId: plant.id,
         source: "manual",
         startDate: input.startDate,
         title: "Inicio de cultivo declarado"
-      }
-    ];
+      }];
 
-    if (input.humidityReminderOffset > 0) {
-      nextEvents.push({
+      if (input.humidityReminderOffset > 0) {
+        plantEvents.push({
         completedDates: [],
-        description: "Recordatorio manual para revisar humedad antes de decidir riego.",
+        description: `Recordatorio manual para revisar humedad de ${plant.name} antes de decidir riego.`,
         id: createEventId("event-water"),
         kind: "watering",
-        plantId,
+        plantId: plant.id,
         source: "manual",
         startDate: offsetDate(input.startDate, input.humidityReminderOffset),
         title: "Revision de humedad"
       });
-    }
+      }
 
-    if (input.photoReminderOffset > 0) {
-      nextEvents.push({
+      if (input.photoReminderOffset > 0) {
+        plantEvents.push({
         completedDates: [],
-        description: "Recordatorio manual para sumar foto y nota a la bitacora.",
+        description: `Recordatorio manual para sumar foto y nota a la bitacora de ${plant.name}.`,
         id: createEventId("event-photo"),
         kind: "photo",
-        plantId,
+        plantId: plant.id,
         source: "manual",
         startDate: offsetDate(input.startDate, input.photoReminderOffset),
         title: "Registro fotografico"
       });
-    }
+      }
 
-    const nextPlantState = [nextPlant, ...plantState];
+      return plantEvents;
+    });
+
+    const nextPlantState = [...nextPlants, ...plantState];
     const nextEventState = [...nextEvents, ...eventState];
 
     setPlantState(nextPlantState);
@@ -482,6 +707,59 @@ export function AppShell({
     }
   }, []);
 
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+
+    let isMounted = true;
+    const supabase = getSupabaseBrowserClient();
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!isMounted) return;
+
+      const user = data.session?.user;
+      if (user?.id) {
+        void loadRemoteSnapshot(user.id, user.email ?? "Cuenta conectada");
+      }
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user;
+
+      if (user?.id) {
+        void loadRemoteSnapshot(user.id, user.email ?? "Cuenta conectada");
+        return;
+      }
+
+      setRemoteSyncReady(false);
+      setAccountStatus({
+        email: "",
+        isConfigured: true,
+        isSignedIn: false,
+        message: "Conecta una cuenta para guardar datos por usuario.",
+        userId: ""
+      });
+    });
+
+    return () => {
+      isMounted = false;
+      listener.subscription.unsubscribe();
+    };
+    // Runs once to attach Supabase auth listeners; loadRemoteSnapshot is intentionally invoked from auth callbacks.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!remoteSyncReady || !accountStatus.userId) return;
+
+    const timeoutId = window.setTimeout(() => {
+      void saveRemoteSnapshot();
+    }, 900);
+
+    return () => window.clearTimeout(timeoutId);
+    // saveRemoteSnapshot reads the current snapshot from state; these dependencies are the autosave trigger surface.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountStatus.userId, entryState, eventState, habitDates, plantState, remoteSyncReady, taskState]);
+
   function handleClearCultivationData() {
     setPlantState([]);
     setTaskState([]);
@@ -523,6 +801,7 @@ export function AppShell({
           </nav>
 
           <div className="flex items-center gap-2">
+            <InstallAppButton />
             <LegalInfoSummary />
             <div className="hidden items-center gap-2 rounded-lg border border-emerald-700/15 bg-white/88 px-3 py-2 text-sm font-bold text-moss-900 shadow-sm sm:flex">
               <span className="status-dot" aria-hidden="true" />
@@ -577,7 +856,15 @@ export function AppShell({
         />
       ) : null}
       {!shouldShowFirstCultivation && currentSection === "journal" ? <JournalSection entries={entryState} onCreateQuickPlant={handleCreateQuickPlant} plants={plantState} /> : null}
-      {currentSection === "privacy" ? <PrivacySection onClearCultivationData={handleClearCultivationData} /> : null}
+      {currentSection === "privacy" ? (
+        <PrivacySection
+          accountStatus={accountStatus}
+          onClearCultivationData={handleClearCultivationData}
+          onSaveRemoteSnapshot={() => saveRemoteSnapshot()}
+          onSendMagicLink={handleSendMagicLink}
+          onSignOut={handleSignOut}
+        />
+      ) : null}
 
       {showOnboarding && !shouldShowFirstCultivation ? (
         <OnboardingFlow
@@ -632,6 +919,7 @@ function FirstCultivationScreen({
   const [setup, setSetup] = useState("80 x 80 cm");
   const [light, setLight] = useState("LED");
   const [pot, setPot] = useState("10 L");
+  const [potCount, setPotCount] = useState(4);
   const [substrate, setSubstrate] = useState("No declarado");
   const [startDate, setStartDate] = useState(todayIso);
   const [humidityReminderOffset, setHumidityReminderOffset] = useState(7);
@@ -650,6 +938,7 @@ function FirstCultivationScreen({
       nickname,
       photoReminderOffset,
       pot,
+      potCount,
       setup,
       startDate,
       substrate
@@ -725,7 +1014,18 @@ function FirstCultivationScreen({
                   <FormSelect label="Tamano/lugar" onChange={setSetup} options={legalSetupOptions} value={setup} />
                   <FormSelect label="Tipo de luz" onChange={setLight} options={legalLightOptions} value={light} />
                   <FormSelect label="Maceta" onChange={setPot} options={legalPotOptions} value={pot} />
+                  <FormSelect
+                    label="Cantidad de macetas"
+                    onChange={(value) => setPotCount(Number(value))}
+                    options={["1", "2", "3", "4", "5", "6", "8", "9", "12"]}
+                    value={String(potCount)}
+                    valueLabels={buildPotCountLabels([1, 2, 3, 4, 5, 6, 8, 9, 12])}
+                  />
                   <FormSelect label="Sustrato" onChange={setSubstrate} options={legalSubstrateOptions} value={substrate} />
+                </div>
+                <div className="rounded-lg border border-emerald-700/20 bg-emerald-50/80 p-3 text-sm font-bold leading-6 text-emerald-950">
+                  Cada maceta se guarda como planta independiente. Si son 4 semillas iguales, quedan como #1, #2, #3 y #4
+                  para asignar tareas y bitacora por separado.
                 </div>
               </div>
             ) : null}
@@ -1509,6 +1809,9 @@ function CalendarSection({
   const selectedEntries = entries.filter((entry) => entry.createdAt === selectedDate);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [quickEventStatus, setQuickEventStatus] = useState("");
+  const [quickEventPlantId, setQuickEventPlantId] = useState(plants[0]?.id ?? manualPlantId);
+  const quickEventPlant = plants.find((plant) => plant.id === quickEventPlantId);
+  const quickEventPlantValue = quickEventPlant?.id ?? plants[0]?.id ?? manualPlantId;
 
   function handleQuickEvent(action: (typeof calendarQuickActions)[number]) {
     if (hasDuplicateCalendarAction(selectedOccurrences, action.label)) {
@@ -1527,11 +1830,11 @@ function CalendarSection({
       return;
     }
 
-    const plantId = plants[0]?.id ?? manualPlantId;
+    const plantId = quickEventPlantValue;
 
     onAddCalendarEvent({
       completedDates: [],
-      description: action.description,
+      description: quickEventPlant ? `${action.description} Planta/maceta: ${quickEventPlant.name}.` : action.description,
       id: createEventId(`event-${action.kind}`),
       kind: action.kind,
       plantId,
@@ -1547,7 +1850,7 @@ function CalendarSection({
 
     if (!file) return;
 
-    const plantId = plants[0]?.id ?? manualPlantId;
+    const plantId = quickEventPlantValue;
     let photoDataUrl = "";
 
     if (hasDuplicateCalendarAction(selectedOccurrences, "Foto")) {
@@ -1564,7 +1867,9 @@ function CalendarSection({
 
     onAddCalendarEvent({
       completedDates: [],
-      description: "Foto tomada o elegida manualmente para registrar el ultimo estado visual.",
+      description: quickEventPlant
+        ? `Foto tomada o elegida manualmente para registrar el ultimo estado visual de ${quickEventPlant.name}.`
+        : "Foto tomada o elegida manualmente para registrar el ultimo estado visual.",
       id: createEventId("event-photo"),
       kind: "photo",
       plantId,
@@ -1575,7 +1880,7 @@ function CalendarSection({
     onAddJournalEntry({
       createdAt: selectedDate,
       id: createEventId("entry-photo"),
-      note: "Registro fotografico del ultimo estado.",
+      note: quickEventPlant ? `Registro fotografico del ultimo estado de ${quickEventPlant.name}.` : "Registro fotografico del ultimo estado.",
       photoDataUrl,
       plantId,
       tags: ["Foto"],
@@ -1641,6 +1946,24 @@ function CalendarSection({
         </div>
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-black text-stone-600">
+        <label className="calendar-plant-picker">
+          <span>Maceta</span>
+          <select
+            aria-label="Elegir planta o maceta para agregar tarea"
+            value={quickEventPlantValue}
+            onChange={(event) => setQuickEventPlantId(event.target.value)}
+          >
+            {plants.length > 0 ? (
+              plants.map((plant) => (
+                <option key={plant.id} value={plant.id}>
+                  {plant.name}
+                </option>
+              ))
+            ) : (
+              <option value={manualPlantId}>Cultivo manual</option>
+            )}
+          </select>
+        </label>
         {calendarQuickActions.map((action) => (
           <button
             className={`event-legend event-action ${getEventClass(action.kind)}`}
@@ -1970,8 +2293,21 @@ function JournalSection({
   );
 }
 
-function PrivacySection({ onClearCultivationData }: { onClearCultivationData: () => void }) {
+function PrivacySection({
+  accountStatus,
+  onClearCultivationData,
+  onSaveRemoteSnapshot,
+  onSendMagicLink,
+  onSignOut
+}: {
+  accountStatus: AccountStatus;
+  onClearCultivationData: () => void;
+  onSaveRemoteSnapshot: () => void;
+  onSendMagicLink: (email: string) => void;
+  onSignOut: () => void;
+}) {
   const [cleared, setCleared] = useState(false);
+  const [email, setEmail] = useState(accountStatus.email);
 
   function handleClearClick() {
     const confirmed = window.confirm(
@@ -2001,6 +2337,14 @@ function PrivacySection({ onClearCultivationData }: { onClearCultivationData: ()
           body="El contenido se limita a seguimiento horticola general, mantenimiento y registro. No incluye guias para maximizar sustancias controladas ni evadir controles."
         />
       </div>
+      <UserDataPanel
+        accountStatus={accountStatus}
+        email={email}
+        onEmailChange={setEmail}
+        onSaveRemoteSnapshot={onSaveRemoteSnapshot}
+        onSendMagicLink={onSendMagicLink}
+        onSignOut={onSignOut}
+      />
       <div className="mt-5 flex flex-wrap gap-3">
         <button className="secondary-button" type="button">
           Exportar mis datos
@@ -2014,6 +2358,77 @@ function PrivacySection({ onClearCultivationData }: { onClearCultivationData: ()
           Cultivos, tareas y eventos eliminados de esta demo.
         </p>
       ) : null}
+    </section>
+  );
+}
+
+function UserDataPanel({
+  accountStatus,
+  email,
+  onEmailChange,
+  onSaveRemoteSnapshot,
+  onSendMagicLink,
+  onSignOut
+}: {
+  accountStatus: AccountStatus;
+  email: string;
+  onEmailChange: (value: string) => void;
+  onSaveRemoteSnapshot: () => void;
+  onSendMagicLink: (email: string) => void;
+  onSignOut: () => void;
+}) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const nextEmail = email.trim();
+
+    if (!nextEmail) return;
+
+    onSendMagicLink(nextEmail);
+  }
+
+  return (
+    <section className="account-sync-panel mt-5" aria-labelledby="account-sync-title">
+      <div className="min-w-0">
+        <p className="eyebrow text-emerald-800">Guardado por usuario</p>
+        <h3 className="mt-1 text-xl font-black tracking-tight text-moss-950" id="account-sync-title">
+          Cuenta y sincronizacion
+        </h3>
+        <p className="mt-2 max-w-3xl text-sm font-bold leading-6 text-stone-700">
+          Para que otro navegador vea la misma informacion hace falta iniciar sesion y guardar en Supabase. Si Supabase no
+          esta configurado, la app sigue como demo local en este dispositivo.
+        </p>
+      </div>
+
+      <div className="account-sync-card">
+        <span className={accountStatus.isSignedIn ? "pill pill-green" : "pill pill-amber"}>
+          {accountStatus.isSignedIn ? "Cuenta conectada" : accountStatus.isConfigured ? "Sin sesion" : "Demo local"}
+        </span>
+        <p className="mt-3 text-sm font-bold leading-6 text-stone-700">{accountStatus.message}</p>
+        {accountStatus.isSignedIn ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button className="primary-button" onClick={onSaveRemoteSnapshot} type="button">
+              Guardar ahora
+            </button>
+            <button className="secondary-button" onClick={onSignOut} type="button">
+              Cerrar sesion
+            </button>
+            <span className="pill pill-soft">{accountStatus.email}</span>
+          </div>
+        ) : (
+          <form className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]" onSubmit={handleSubmit}>
+            <FormField
+              label="Email de usuario"
+              onChange={onEmailChange}
+              placeholder="nico@email.com"
+              type="email"
+              value={email}
+            />
+            <button className="primary-button self-end" disabled={!accountStatus.isConfigured} type="submit">
+              Enviar acceso
+            </button>
+          </form>
+        )}
+      </div>
     </section>
   );
 }
@@ -2085,6 +2500,7 @@ function QuickPlantForm({
   const [region, setRegion] = useState("Buenos Aires, AR");
   const [mode, setMode] = useState<Plant["mode"]>("Exterior");
   const [pot, setPot] = useState("10 L");
+  const [potCount, setPotCount] = useState(1);
   const [substrate, setSubstrate] = useState("Organico liviano");
   const [reminderOffset, setReminderOffset] = useState(3);
   const [recurrenceDays, setRecurrenceDays] = useState(0);
@@ -2094,7 +2510,7 @@ function QuickPlantForm({
       className={className}
       onSubmit={(event) => {
         event.preventDefault();
-        onCreateQuickPlant({ name, seedId, startDate, region, mode, pot, substrate, reminderOffset, recurrenceDays });
+        onCreateQuickPlant({ name, seedId, startDate, region, mode, pot, potCount, substrate, reminderOffset, recurrenceDays });
       }}
     >
       <FormField label="Nombre" onChange={setName} placeholder="Ej. Tomate patio" value={name} />
@@ -2103,6 +2519,13 @@ function QuickPlantForm({
       <FormSelect label="Region aproximada" onChange={setRegion} options={["Buenos Aires, AR", "Region metropolitana", "Otra region"]} value={region} />
       <div className="grid gap-3 sm:grid-cols-2">
         <FormSelect label="Maceta" onChange={setPot} options={["5 L", "10 L", "15 L", "20 L", "25 L"]} value={pot} />
+        <FormSelect
+          label="Cantidad"
+          onChange={(value) => setPotCount(Number(value))}
+          options={["1", "2", "3", "4", "6", "8"]}
+          value={String(potCount)}
+          valueLabels={buildPotCountLabels([1, 2, 3, 4, 6, 8])}
+        />
         <FormSelect
           label="Sustrato"
           onChange={setSubstrate}
@@ -2146,6 +2569,50 @@ function LegalInfoSummary() {
         </p>
       </div>
     </details>
+  );
+}
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
+
+function InstallAppButton() {
+  const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [status, setStatus] = useState("");
+
+  useEffect(() => {
+    function handleBeforeInstallPrompt(event: Event) {
+      event.preventDefault();
+      setInstallEvent(event as BeforeInstallPromptEvent);
+      setStatus("");
+    }
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+  }, []);
+
+  async function handleInstall() {
+    if (!installEvent) {
+      setStatus("En el celu: menu del navegador > Agregar a pantalla de inicio.");
+      return;
+    }
+
+    await installEvent.prompt();
+    const choice = await installEvent.userChoice;
+
+    setStatus(choice.outcome === "accepted" ? "Acceso directo creado." : "Instalacion cancelada.");
+    setInstallEvent(null);
+  }
+
+  return (
+    <span className="install-app-wrapper">
+      <button className="secondary-button install-app-button" onClick={handleInstall} type="button">
+        Instalar app
+      </button>
+      {status ? <span className="install-app-status">{status}</span> : null}
+    </span>
   );
 }
 
@@ -2396,7 +2863,7 @@ function FormField({
   label: string;
   onChange: (value: string) => void;
   placeholder: string;
-  type?: "date" | "text";
+  type?: "date" | "email" | "text";
   value: string;
 }) {
   return (
@@ -2668,6 +3135,14 @@ function formatRange([min, max]: [number, number], unit: string) {
 function formatThcRange([min, max]: [number, number]) {
   if (min === 0 && max === 0) return "No declarado";
   return min === max ? `${min}%` : `${min}-${max}%`;
+}
+
+function buildPotCountLabels(counts: number[]) {
+  return Object.fromEntries(counts.map((count) => [String(count), `${count} maceta${count === 1 ? "" : "s"}`]));
+}
+
+function isSupabaseConfigured() {
+  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 }
 
 function getReferenceTargetLabel(label: string) {

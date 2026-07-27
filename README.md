@@ -5,7 +5,8 @@ PlantCare Calendar es una PWA mobile-first para seguimiento de cultivos horticol
 ## Incluye
 
 - Registro e inicio de sesion preparado para Supabase Auth.
-- Espacios de cultivo y plantas asociadas.
+- Guardado por usuario con Supabase Auth y snapshot `user_app_snapshots` cuando las variables de entorno estan configuradas.
+- Espacios de cultivo, plantas asociadas y macetas numeradas como unidades independientes.
 - Campos para variedad o semilla, fecha de inicio, modalidad, region aproximada, maceta, sustrato e iluminacion.
 - Selector de semillas con categorias horticultoras y categorias cannabicas legales para registro manual.
 - Calculadora horticola no regulada por semilla, maceta, luz y espacio, con estimaciones orientativas de riego, agua y sustrato.
@@ -70,7 +71,8 @@ NEXT_PUBLIC_WEATHER_API_KEY=
 2. Ejecutar `supabase/schema.sql` en el SQL editor.
 3. Configurar el bucket privado `plant-photos` si no se creo automaticamente.
 4. Completar las variables de entorno.
-5. Reemplazar los datos demo por llamadas a Supabase usando `lib/supabase/client.ts`.
+5. La pantalla Privacidad permite conectar una cuenta por magic link y guardar/cargar el snapshot de la app por usuario.
+6. Reemplazar gradualmente el snapshot por tablas normalizadas si se necesita operacion multiusuario avanzada.
 
 ## Fase 1: timeline local
 
