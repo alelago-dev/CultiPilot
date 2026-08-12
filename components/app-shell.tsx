@@ -10,10 +10,17 @@ import {
   buildMonthGrid,
   buildWeekGrid,
   addDays,
+  addMonths,
+  addYears,
   createEventId,
   expandEventOccurrences,
+  fromYearMonthValue,
   getEventKindLabel,
-  getTodayIso
+  getMonthStartIso,
+  getYearMonthValue,
+  getTodayIso,
+  parseIsoDate,
+  toIsoDate
 } from "@/lib/calendar-events";
 import { getSectionHref, navigationByLocale, type AppSection, type NavigationItem } from "@/lib/navigation";
 import { getGeneticsCatalogAlphabetically, type GeneticReferenceEntry } from "@/lib/genetics-catalog";
@@ -1884,11 +1891,13 @@ function CalendarSection({
   plants: Plant[];
 }) {
   const todayIso = getTodayIso();
-  const [anchorDate] = useState(() => getStoredCalendarDate(todayIso));
+  const [anchorDate, setAnchorDate] = useState(() => getStoredCalendarDate(todayIso));
   const [viewMode, setViewMode] = useState<"month" | "week">(() =>
     typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? "week" : "month"
   );
   const [selectedDate, setSelectedDate] = useState(() => getStoredCalendarDate(todayIso));
+  const calendarPeriodLabel =
+    viewMode === "month" ? formatMonthPeriod(anchorDate) : `${formatDisplayDate(firstVisibleWeekDate(anchorDate))} - ${formatDisplayDate(addDays(firstVisibleWeekDate(anchorDate), 6))}`;
 
   const days = useMemo(
     () => (viewMode === "month" ? buildMonthGrid(anchorDate) : buildWeekGrid(anchorDate)),
@@ -1904,6 +1913,36 @@ function CalendarSection({
   const [quickEventPlantId, setQuickEventPlantId] = useState(plants[0]?.id ?? manualPlantId);
   const quickEventPlant = plants.find((plant) => plant.id === quickEventPlantId);
   const quickEventPlantValue = quickEventPlant?.id ?? plants[0]?.id ?? manualPlantId;
+
+  function navigateCalendar(direction: -1 | 1) {
+    const nextAnchorDate = viewMode === "month" ? addMonths(anchorDate, direction) : addDays(anchorDate, direction * 7);
+
+    setAnchorDate(nextAnchorDate);
+    setSelectedDate(nextAnchorDate);
+    persistCalendarDate(nextAnchorDate);
+  }
+
+  function navigateYear(direction: -1 | 1) {
+    const nextAnchorDate = addYears(anchorDate, direction);
+
+    setAnchorDate(nextAnchorDate);
+    setSelectedDate(nextAnchorDate);
+    persistCalendarDate(nextAnchorDate);
+  }
+
+  function goToToday() {
+    setAnchorDate(todayIso);
+    setSelectedDate(todayIso);
+    persistCalendarDate(todayIso);
+  }
+
+  function handleMonthPickerChange(value: string) {
+    const nextAnchorDate = fromYearMonthValue(value);
+
+    setAnchorDate(nextAnchorDate);
+    setSelectedDate(nextAnchorDate);
+    persistCalendarDate(nextAnchorDate);
+  }
 
   function handleQuickEvent(action: (typeof calendarQuickActions)[number]) {
     if (hasDuplicateCalendarAction(selectedOccurrences, action.label)) {
@@ -2027,14 +2066,42 @@ function CalendarSection({
   return (
     <section className="mx-auto mt-7 max-w-7xl px-4 sm:px-6 lg:px-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <SectionHeader eyebrow="Agenda" title={viewMode === "month" ? "Calendario mensual" : "Calendario semanal"} />
-        <div className="view-toggle" aria-label="Vista de calendario">
-          <button className={viewMode === "month" ? "active" : ""} onClick={() => setViewMode("month")} type="button">
-            Mes
-          </button>
-          <button className={viewMode === "week" ? "active" : ""} onClick={() => setViewMode("week")} type="button">
-            Semana
-          </button>
+        <SectionHeader eyebrow="Agenda historica" title={calendarPeriodLabel} />
+        <div className="calendar-toolbar" aria-label="Navegacion del calendario">
+          <div className="calendar-history-controls">
+            <button aria-label="Un ano atras" onClick={() => navigateYear(-1)} type="button">
+              -1 ano
+            </button>
+            <button aria-label={viewMode === "month" ? "Mes anterior" : "Semana anterior"} onClick={() => navigateCalendar(-1)} type="button">
+              Anterior
+            </button>
+            <button className="today-control" onClick={goToToday} type="button">
+              Hoy
+            </button>
+            <button aria-label={viewMode === "month" ? "Mes siguiente" : "Semana siguiente"} onClick={() => navigateCalendar(1)} type="button">
+              Siguiente
+            </button>
+            <button aria-label="Un ano adelante" onClick={() => navigateYear(1)} type="button">
+              +1 ano
+            </button>
+          </div>
+          <label className="calendar-month-picker">
+            <span>Mes / ano</span>
+            <input
+              aria-label="Elegir mes y ano"
+              onChange={(event) => handleMonthPickerChange(event.target.value)}
+              type="month"
+              value={getYearMonthValue(anchorDate)}
+            />
+          </label>
+          <div className="view-toggle" aria-label="Vista de calendario">
+            <button className={viewMode === "month" ? "active" : ""} onClick={() => setViewMode("month")} type="button">
+              Mes
+            </button>
+            <button className={viewMode === "week" ? "active" : ""} onClick={() => setViewMode("week")} type="button">
+              Semana
+            </button>
+          </div>
         </div>
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-black text-stone-600">
@@ -2095,7 +2162,13 @@ function CalendarSection({
                 <button
                   className={`${day.isCurrentMonth ? "day-cell" : "day-cell muted"} ${selectedDate === day.isoDate ? "selected" : ""}`}
                   key={day.isoDate}
-                  onClick={() => setSelectedDate(day.isoDate)}
+                  onClick={() => {
+                    setSelectedDate(day.isoDate);
+                    if (viewMode === "month" && !day.isCurrentMonth) {
+                      setAnchorDate(getMonthStartIso(day.isoDate));
+                    }
+                    persistCalendarDate(day.isoDate);
+                  }}
                   type="button"
                 >
                   <div className="flex items-center justify-between gap-1">
@@ -3119,6 +3192,21 @@ function formatDisplayDate(isoDate: string) {
     month: "long",
     year: "numeric"
   }).format(new Date(`${isoDate}T00:00:00`));
+}
+
+function formatMonthPeriod(isoDate: string) {
+  return new Intl.DateTimeFormat("es-AR", {
+    month: "long",
+    year: "numeric"
+  }).format(parseIsoDate(getMonthStartIso(isoDate)));
+}
+
+function firstVisibleWeekDate(anchorIsoDate: string) {
+  const date = parseIsoDate(anchorIsoDate);
+  const mondayOffset = (date.getDay() + 6) % 7;
+  date.setDate(date.getDate() - mondayOffset);
+
+  return toIsoDate(date);
 }
 
 function buildGoogleCalendarUrl(occurrence: CalendarEventOccurrence, plant?: Plant) {

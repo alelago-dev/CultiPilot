@@ -26,6 +26,21 @@ export function addDays(isoDate: string, days: number) {
   return toIsoDate(date);
 }
 
+export function addMonths(isoDate: string, months: number) {
+  const date = parseIsoDate(isoDate);
+  const currentDay = date.getDate();
+  date.setDate(1);
+  date.setMonth(date.getMonth() + months);
+  const lastDayOfTargetMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  date.setDate(Math.min(currentDay, lastDayOfTargetMonth));
+
+  return toIsoDate(date);
+}
+
+export function addYears(isoDate: string, years: number) {
+  return addMonths(isoDate, years * 12);
+}
+
 export function getTodayIso() {
   return toIsoDate(new Date());
 }
@@ -34,6 +49,20 @@ export function parseIsoDate(isoDate: string) {
   const [year, month, day] = isoDate.split("-").map(Number);
 
   return new Date(year, month - 1, day);
+}
+
+export function getMonthStartIso(isoDate: string) {
+  const date = parseIsoDate(isoDate);
+
+  return toIsoDate(new Date(date.getFullYear(), date.getMonth(), 1));
+}
+
+export function getYearMonthValue(isoDate: string) {
+  return isoDate.slice(0, 7);
+}
+
+export function fromYearMonthValue(yearMonth: string) {
+  return `${yearMonth}-01`;
 }
 
 export function buildMonthGrid(anchorIsoDate: string) {
