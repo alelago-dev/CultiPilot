@@ -2065,24 +2065,37 @@ function CalendarSection({
 
   return (
     <section className="mx-auto mt-7 max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <SectionHeader eyebrow="Agenda historica" title={calendarPeriodLabel} />
+      <div className="calendar-header">
+        <div className="calendar-title-block">
+          <p className="eyebrow text-emerald-800">Agenda historica</p>
+          <h1>{calendarPeriodLabel}</h1>
+        </div>
         <div className="calendar-toolbar" aria-label="Navegacion del calendario">
           <div className="calendar-history-controls">
-            <button aria-label="Un ano atras" onClick={() => navigateYear(-1)} type="button">
-              -1 ano
+            <button className="calendar-icon-button" aria-label="Un ano atras" onClick={() => navigateYear(-1)} type="button">
+              <span aria-hidden="true">«</span>
             </button>
-            <button aria-label={viewMode === "month" ? "Mes anterior" : "Semana anterior"} onClick={() => navigateCalendar(-1)} type="button">
-              Anterior
+            <button
+              className="calendar-icon-button"
+              aria-label={viewMode === "month" ? "Mes anterior" : "Semana anterior"}
+              onClick={() => navigateCalendar(-1)}
+              type="button"
+            >
+              <span aria-hidden="true">‹</span>
             </button>
             <button className="today-control" onClick={goToToday} type="button">
               Hoy
             </button>
-            <button aria-label={viewMode === "month" ? "Mes siguiente" : "Semana siguiente"} onClick={() => navigateCalendar(1)} type="button">
-              Siguiente
+            <button
+              className="calendar-icon-button"
+              aria-label={viewMode === "month" ? "Mes siguiente" : "Semana siguiente"}
+              onClick={() => navigateCalendar(1)}
+              type="button"
+            >
+              <span aria-hidden="true">›</span>
             </button>
-            <button aria-label="Un ano adelante" onClick={() => navigateYear(1)} type="button">
-              +1 ano
+            <button className="calendar-icon-button" aria-label="Un ano adelante" onClick={() => navigateYear(1)} type="button">
+              <span aria-hidden="true">»</span>
             </button>
           </div>
           <label className="calendar-month-picker">
