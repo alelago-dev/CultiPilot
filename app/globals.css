@@ -4632,4 +4632,358 @@ textarea {
   .executive-overview .home-account-actions span {
     color: #66746a;
   }
+
+  /* Executive typography system: less naive, more product-like. */
+  body {
+    background:
+      radial-gradient(circle at 12% -12%, rgba(35, 84, 62, 0.08), transparent 30%),
+      linear-gradient(180deg, #f6f7f5 0%, #eef2ef 52%, #f8f9f7 100%);
+    color: #18221d;
+    font-family:
+      "Inter",
+      "SF Pro Text",
+      "Segoe UI",
+      Roboto,
+      Arial,
+      sans-serif;
+    font-size: 14px;
+    font-feature-settings: "cv02" on, "cv03" on, "cv04" on;
+  }
+
+  body::before {
+    display: none;
+  }
+
+  main [class*="tracking-"],
+  header [class*="tracking-"] {
+    letter-spacing: 0 !important;
+  }
+
+  main .font-black,
+  main .font-extrabold,
+  main .font-bold,
+  header .font-black,
+  header .font-extrabold,
+  header .font-bold,
+  .app-header .font-black,
+  .app-header .font-extrabold,
+  .app-header .font-bold {
+    font-weight: 650 !important;
+  }
+
+  main h1,
+  main h2,
+  main h3,
+  main h4,
+  .executive-hero-copy h1,
+  .executive-overview .grow-command-copy h2,
+  .intro-copy h1,
+  .grow-command-copy h2 {
+    color: #111a16;
+    font-weight: 720 !important;
+    letter-spacing: 0;
+    line-height: 1.06;
+  }
+
+  main h1,
+  .executive-hero-copy h1,
+  .intro-copy h1 {
+    font-size: clamp(2rem, 3.4vw, 3.25rem);
+  }
+
+  main h2,
+  .executive-overview .grow-command-copy h2,
+  .grow-command-copy h2 {
+    font-size: clamp(1.35rem, 2vw, 2rem);
+  }
+
+  main p,
+  main li,
+  main dd,
+  main label,
+  main span,
+  main small {
+    letter-spacing: 0;
+  }
+
+  .eyebrow,
+  main .uppercase,
+  .calendar-title-block .eyebrow,
+  .intro-copy .eyebrow,
+  .grow-command-copy .eyebrow,
+  .genetics-reference-panel .eyebrow,
+  .plant-genetic-eyebrow,
+  .genetic-popup-panel .eyebrow {
+    color: #647068 !important;
+    font-size: 0.72rem !important;
+    font-weight: 650 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+  }
+
+  .app-header,
+  header.sticky {
+    background: rgba(255, 255, 255, 0.94);
+    border-bottom: 1px solid #dce3df;
+    box-shadow: 0 6px 18px rgba(17, 26, 22, 0.06);
+  }
+
+  .brand-logo {
+    height: 40px;
+    width: 40px;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 8px 18px rgba(17, 26, 22, 0.08);
+  }
+
+  .brand-logo img {
+    height: 78%;
+    width: 78%;
+  }
+
+  .app-header nav,
+  header.sticky nav {
+    border-color: #dce3df;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: none;
+  }
+
+  .desktop-nav-item,
+  .app-header .desktop-nav-item {
+    border-radius: 6px;
+    color: #59655e;
+    font-size: 0.88rem;
+    font-weight: 600 !important;
+  }
+
+  .desktop-nav-item.active,
+  .app-header .desktop-nav-item.active {
+    background: #10251c;
+    color: #ffffff;
+    box-shadow: none;
+  }
+
+  .executive-home {
+    gap: 1.1rem;
+  }
+
+  .executive-hero,
+  .executive-overview .grow-command,
+  .executive-overview .home-account-panel,
+  .intro-panel,
+  .grow-command,
+  .surface,
+  .weather-panel,
+  .coach-panel,
+  .account-sync-panel,
+  .manual-form-group,
+  .genetic-entry-card,
+  .genetics-reference-panel,
+  .manual-reference-card,
+  .calendar-layout,
+  .calendar-detail-card,
+  .calendar-journal-card,
+  .journal-photo-card,
+  .plant-timeline-card,
+  .plant-genetic-summary,
+  .genetic-popup-panel {
+    border-radius: 8px !important;
+    border-color: #d8e0dc;
+    box-shadow: 0 10px 28px rgba(17, 26, 22, 0.07);
+  }
+
+  .executive-hero {
+    border-left: 4px solid #10251c;
+    background: #ffffff;
+    padding: 1.25rem;
+  }
+
+  .executive-hero::after,
+  .intro-panel::after,
+  .grow-command::after {
+    display: none;
+  }
+
+  .executive-hero-copy p:not(.eyebrow),
+  .intro-copy p:not(.eyebrow),
+  .grow-command-copy p:not(.eyebrow),
+  .home-account-panel p,
+  .surface p,
+  .weather-panel p {
+    color: #56615b;
+    font-weight: 500 !important;
+    line-height: 1.62;
+  }
+
+  .executive-status-strip {
+    gap: 0.4rem;
+  }
+
+  .executive-status-strip span,
+  .pill,
+  .badge,
+  .event-legend,
+  .calendar-event {
+    border-radius: 6px !important;
+    font-size: 0.72rem;
+    font-weight: 600 !important;
+    letter-spacing: 0;
+  }
+
+  .executive-metrics {
+    gap: 0.6rem;
+  }
+
+  .executive-metrics .metric-card,
+  .metric-card,
+  .metric-tile,
+  .grow-phase-step,
+  .grow-command-card,
+  .grow-command-card.accent,
+  .task-row,
+  .setup-card,
+  .finder-result-card,
+  .seed-card,
+  .seed-result,
+  .info-card,
+  .simple-list-row {
+    border-radius: 8px !important;
+    box-shadow: none;
+  }
+
+  .executive-metrics .metric-card {
+    min-height: 82px;
+    border: 1px solid #dce3df;
+    background: #ffffff;
+  }
+
+  .executive-metrics .metric-card.featured,
+  .metric-card.featured,
+  .task-priority {
+    border-color: #b8cac1;
+    background: #f7faf8;
+    box-shadow: inset 3px 0 0 #1c5b44;
+  }
+
+  .metric-card p:first-child,
+  .metric-tile p:first-child {
+    color: #111a16;
+    font-weight: 720 !important;
+  }
+
+  .executive-overview .grow-command,
+  .executive-overview .home-account-panel {
+    background: #ffffff;
+  }
+
+  .executive-overview .grow-command-board {
+    border: 1px solid #dce3df;
+    background: #f7faf8;
+    padding: 0.75rem;
+  }
+
+  .executive-overview .grow-phase-step,
+  .executive-overview .grow-command-card,
+  .executive-overview .grow-command-card.accent {
+    border-color: #dce3df;
+    background: #ffffff;
+  }
+
+  .primary-button,
+  .secondary-button,
+  .danger-button,
+  .dark-button,
+  .calendar-create-button,
+  .finder-use-button,
+  .legal-popover summary,
+  .form-control {
+    border-radius: 7px !important;
+    font-weight: 600 !important;
+  }
+
+  .primary-button,
+  .finder-use-button {
+    background: #10251c;
+  }
+
+  .primary-button:hover,
+  .finder-use-button:hover {
+    background: #183c2d;
+  }
+
+  .secondary-button,
+  .legal-popover summary,
+  .form-control {
+    border-color: #cdd8d2;
+    background: #ffffff;
+    color: #18221d;
+    box-shadow: none;
+  }
+
+  .weather-panel,
+  .surface,
+  .home-account-panel,
+  .account-sync-panel,
+  .setup-builder,
+  .setup-cheatsheet,
+  .manual-task-template,
+  .finder-results {
+    background: #ffffff;
+  }
+
+  .surface::before {
+    display: none;
+  }
+
+  .manual-form-group,
+  .genetic-entry-card,
+  .manual-reference-card,
+  .genetics-reference-panel,
+  .plant-genetic-summary,
+  .genetic-popup-panel {
+    background: #14251e;
+    color: #f6f8f6;
+  }
+
+  .manual-form-group h3,
+  .manual-form-group h4,
+  .manual-form-group label,
+  .genetic-entry-card h3,
+  .genetic-entry-card h4,
+  .genetic-entry-card label,
+  .manual-reference-card h4,
+  .genetics-reference-panel h2,
+  .genetics-reference-panel h3,
+  .plant-genetic-summary,
+  .genetic-popup-panel h2 {
+    color: #f6f8f6 !important;
+  }
+
+  .manual-form-group p,
+  .genetic-entry-card p,
+  .manual-reference-card p,
+  .genetics-reference-panel p,
+  .plant-genetic-summary p,
+  .genetic-popup-panel p {
+    color: #b7c4bd !important;
+  }
+
+  .manual-form-group .form-control,
+  .genetic-entry-card .form-control,
+  .genetics-reference-panel .form-control {
+    border-color: rgba(255, 255, 255, 0.16);
+    background: #f7faf8;
+    color: #111a16;
+  }
+
+  .mobile-tab-bar {
+    border-radius: 8px !important;
+    background: rgba(16, 37, 28, 0.96);
+  }
+
+  .mobile-tab {
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+  }
 }
