@@ -111,6 +111,8 @@ type AccountStatus = {
   userId: string;
 };
 
+type JournalEntryUpdates = Partial<Pick<CareEntry, "createdAt" | "note" | "photoDataUrl" | "plantId" | "tags" | "title">>;
+
 type SnapshotRow = {
   payload: Json;
 };
@@ -640,6 +642,20 @@ export function AppShell({
     persistStoredState(storageKeys.entries, nextEntries);
   }
 
+  function handleUpdateJournalEntry(entryId: string, updates: JournalEntryUpdates) {
+    const nextEntries = entryState.map((entry) => (entry.id === entryId ? { ...entry, ...updates } : entry));
+
+    setEntryState(nextEntries);
+    persistStoredState(storageKeys.entries, nextEntries);
+  }
+
+  function handleDeleteJournalEntry(entryId: string) {
+    const nextEntries = entryState.filter((entry) => entry.id !== entryId);
+
+    setEntryState(nextEntries);
+    persistStoredState(storageKeys.entries, nextEntries);
+  }
+
   function handleAddCalendarEvent(event: CalendarEvent) {
     const nextEvents = [event, ...eventState];
 
@@ -864,12 +880,22 @@ export function AppShell({
           onAddCalendarEvent={handleAddCalendarEvent}
           onAddJournalEntry={handleAddJournalEntry}
           onDeleteCalendarEvent={handleDeleteCalendarEvent}
+          onDeleteJournalEntry={handleDeleteJournalEntry}
           onToggleOccurrence={(eventId, date) => setEventState((events) => toggleEventCompletion(events, eventId, date))}
           onUpdateCalendarEvent={handleUpdateCalendarEvent}
+          onUpdateJournalEntry={handleUpdateJournalEntry}
           plants={plantState}
         />
       ) : null}
-      {!shouldShowFirstCultivation && currentSection === "journal" ? <JournalSection entries={entryState} onCreateQuickPlant={handleCreateQuickPlant} plants={plantState} /> : null}
+      {!shouldShowFirstCultivation && currentSection === "journal" ? (
+        <JournalSection
+          entries={entryState}
+          onCreateQuickPlant={handleCreateQuickPlant}
+          onDeleteJournalEntry={handleDeleteJournalEntry}
+          onUpdateJournalEntry={handleUpdateJournalEntry}
+          plants={plantState}
+        />
+      ) : null}
       {currentSection === "privacy" ? (
         <PrivacySection
           accountStatus={accountStatus}
@@ -1873,8 +1899,10 @@ function CalendarSection({
   onAddCalendarEvent,
   onAddJournalEntry,
   onDeleteCalendarEvent,
+  onDeleteJournalEntry,
   onToggleOccurrence,
   onUpdateCalendarEvent,
+  onUpdateJournalEntry,
   plants
 }: {
   entries: CareEntry[];
@@ -1883,11 +1911,13 @@ function CalendarSection({
   onAddCalendarEvent: (event: CalendarEvent) => void;
   onAddJournalEntry: (entry: CareEntry) => void;
   onDeleteCalendarEvent: (eventId: string) => void;
+  onDeleteJournalEntry: (entryId: string) => void;
   onToggleOccurrence: (eventId: string, date: string) => void;
   onUpdateCalendarEvent: (
     eventId: string,
     updates: Partial<Pick<CalendarEvent, "description" | "startDate" | "title">>
   ) => void;
+  onUpdateJournalEntry: (entryId: string, updates: JournalEntryUpdates) => void;
   plants: Plant[];
 }) {
   const todayIso = getTodayIso();
@@ -2227,6 +2257,8 @@ function CalendarSection({
           <CalendarDayJournal
             entries={selectedEntries}
             onAddJournalEntry={onAddJournalEntry}
+            onDeleteJournalEntry={onDeleteJournalEntry}
+            onUpdateJournalEntry={onUpdateJournalEntry}
             plants={plants}
             selectedDate={selectedDate}
           />
@@ -2239,11 +2271,15 @@ function CalendarSection({
 function CalendarDayJournal({
   entries,
   onAddJournalEntry,
+  onDeleteJournalEntry,
+  onUpdateJournalEntry,
   plants,
   selectedDate
 }: {
   entries: CareEntry[];
   onAddJournalEntry: (entry: CareEntry) => void;
+  onDeleteJournalEntry: (entryId: string) => void;
+  onUpdateJournalEntry: (entryId: string, updates: JournalEntryUpdates) => void;
   plants: Plant[];
   selectedDate: string;
 }) {
@@ -2313,26 +2349,16 @@ function CalendarDayJournal({
 
       <div className="mt-4 grid gap-2">
         {entries.length > 0 ? (
-          entries.map((entry) => {
-            const plant = plants.find((candidate) => candidate.id === entry.plantId);
-
-            return (
-              <article className="calendar-journal-entry" key={entry.id}>
-                {entry.photoDataUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img className="calendar-journal-photo" src={entry.photoDataUrl} alt={`Foto de ${entry.title}`} />
-                ) : null}
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[11px] font-black uppercase text-stone-500">{plant?.name ?? "Sin planta"}</p>
-                    <h5 className="mt-1 font-black text-moss-950">{entry.title}</h5>
-                  </div>
-                  <span className="pill pill-blue">{entry.tags[0] ?? "Nota"}</span>
-                </div>
-                <p className="mt-2 text-sm font-bold leading-6 text-stone-700">{entry.note}</p>
-              </article>
-            );
-          })
+          entries.map((entry) => (
+            <JournalEntryCard
+              entry={entry}
+              key={entry.id}
+              onDelete={onDeleteJournalEntry}
+              onUpdate={onUpdateJournalEntry}
+              plants={plants}
+              variant="compact"
+            />
+          ))
         ) : (
           <p className="rounded-lg border border-moss-950/10 bg-white/70 p-3 text-sm font-bold text-stone-600">
             Todavia no hay notas guardadas para este dia.
@@ -2340,6 +2366,191 @@ function CalendarDayJournal({
         )}
       </div>
     </section>
+  );
+}
+
+function JournalEntryCard({
+  entry,
+  onDelete,
+  onUpdate,
+  plants,
+  variant = "timeline"
+}: {
+  entry: CareEntry;
+  onDelete: (entryId: string) => void;
+  onUpdate: (entryId: string, updates: JournalEntryUpdates) => void;
+  plants: Plant[];
+  variant?: "compact" | "timeline";
+}) {
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftDate, setDraftDate] = useState(entry.createdAt);
+  const [draftNote, setDraftNote] = useState(entry.note);
+  const [draftPlantId, setDraftPlantId] = useState(entry.plantId ?? "");
+  const [draftTag, setDraftTag] = useState(entry.tags[0] ?? "Revision");
+  const [draftTitle, setDraftTitle] = useState(entry.title);
+  const plant = plants.find((candidate) => candidate.id === entry.plantId);
+  const articleClassName = variant === "compact" ? "calendar-journal-entry" : "journal-photo-card";
+  const imageClassName = variant === "compact" ? "calendar-journal-photo" : "journal-photo";
+
+  function resetDrafts() {
+    setDraftDate(entry.createdAt);
+    setDraftNote(entry.note);
+    setDraftPlantId(entry.plantId ?? "");
+    setDraftTag(entry.tags[0] ?? "Revision");
+    setDraftTitle(entry.title);
+  }
+
+  function handleSave() {
+    const nextNote = draftNote.trim();
+
+    if (!nextNote) return;
+
+    onUpdate(entry.id, {
+      createdAt: draftDate,
+      note: nextNote,
+      plantId: draftPlantId || undefined,
+      tags: [draftTag],
+      title: draftTitle.trim() || "Revision del dia"
+    });
+    setIsEditing(false);
+  }
+
+  async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    try {
+      const photoDataUrl = await readPhotoFileAsDataUrl(file);
+      onUpdate(entry.id, { photoDataUrl });
+    } catch {
+      window.alert("No se pudo cambiar la foto. Proba elegirla desde galeria.");
+    }
+  }
+
+  function handleRemovePhoto() {
+    const confirmed = window.confirm("Quitar la foto de esta entrada?");
+
+    if (!confirmed) return;
+
+    onUpdate(entry.id, { photoDataUrl: undefined });
+  }
+
+  function handleDelete() {
+    const confirmed = window.confirm(`Eliminar la entrada "${entry.title}" de la bitacora?`);
+
+    if (!confirmed) return;
+
+    onDelete(entry.id);
+  }
+
+  return (
+    <article className={articleClassName}>
+      {entry.photoDataUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className={imageClassName} src={entry.photoDataUrl} alt={`Foto de ${entry.title}`} />
+      ) : variant === "timeline" ? (
+        <div className={imageClassName} aria-label={`Foto pendiente de ${entry.title}`} />
+      ) : null}
+      <input
+        ref={photoInputRef}
+        accept="image/*"
+        aria-label={`Cambiar foto de ${entry.title}`}
+        className="sr-only"
+        onChange={handlePhotoChange}
+        type="file"
+      />
+      <div className={variant === "compact" ? "" : "p-3"}>
+        {isEditing ? (
+          <div className="journal-edit-form">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <FormField label="Fecha" onChange={setDraftDate} placeholder="AAAA-MM-DD" type="date" value={draftDate} />
+              <FormSelect
+                label="Planta"
+                onChange={setDraftPlantId}
+                options={plants.length > 0 ? ["", ...plants.map((item) => item.id)] : [""]}
+                value={draftPlantId}
+                valueLabels={{
+                  "": "Sin planta",
+                  ...Object.fromEntries(plants.map((item) => [item.id, item.name]))
+                }}
+              />
+              <FormSelect
+                label="Tipo de registro"
+                onChange={setDraftTag}
+                options={["Revision", "Riego", "Poda", "Nutricion", "Plagas", "Limpieza", "Foto", "Otro"]}
+                value={draftTag}
+              />
+              <FormField label="Titulo" onChange={setDraftTitle} placeholder="Ej. Revision general" value={draftTitle} />
+            </div>
+            <label className="grid gap-1 text-sm font-black text-moss-950">
+              Nota
+              <textarea
+                aria-label="Editar nota de bitacora"
+                className="form-control min-h-28"
+                onChange={(event) => setDraftNote(event.target.value)}
+                value={draftNote}
+              />
+            </label>
+            <div className="journal-actions">
+              <button className="primary-button" onClick={handleSave} type="button">
+                Guardar cambios
+              </button>
+              <button
+                className="secondary-button"
+                onClick={() => {
+                  resetDrafts();
+                  setIsEditing(false);
+                }}
+                type="button"
+              >
+                Cancelar
+              </button>
+              <button className="secondary-button" onClick={() => photoInputRef.current?.click()} type="button">
+                Cambiar foto
+              </button>
+              {entry.photoDataUrl ? (
+                <button className="secondary-button" onClick={handleRemovePhoto} type="button">
+                  Quitar foto
+                </button>
+              ) : null}
+              <button className="danger-button" onClick={handleDelete} type="button">
+                Eliminar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-black uppercase text-stone-500">{plant?.name ?? "Sin planta"}</p>
+                <h5 className="mt-1 font-black text-moss-950">{entry.title}</h5>
+                <p className="mt-1 text-xs font-bold text-stone-500">{entry.createdAt}</p>
+              </div>
+              <span className="pill pill-blue">{entry.tags[0] ?? "Nota"}</span>
+            </div>
+            <p className="mt-2 text-sm font-bold leading-6 text-stone-700">{entry.note}</p>
+            <div className="journal-actions mt-3">
+              <button className="secondary-button" onClick={() => setIsEditing(true)} type="button">
+                Editar
+              </button>
+              <button className="secondary-button" onClick={() => photoInputRef.current?.click()} type="button">
+                Cambiar foto
+              </button>
+              {entry.photoDataUrl ? (
+                <button className="secondary-button" onClick={handleRemovePhoto} type="button">
+                  Quitar foto
+                </button>
+              ) : null}
+              <button className="danger-button" onClick={handleDelete} type="button">
+                Eliminar
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </article>
   );
 }
 
@@ -2402,10 +2613,14 @@ function CalendarOccurrenceCard({
 function JournalSection({
   entries,
   onCreateQuickPlant,
+  onDeleteJournalEntry,
+  onUpdateJournalEntry,
   plants
 }: {
   entries: CareEntry[];
   onCreateQuickPlant: (input: QuickPlantInput) => void;
+  onDeleteJournalEntry: (entryId: string) => void;
+  onUpdateJournalEntry: (entryId: string, updates: JournalEntryUpdates) => void;
   plants: Plant[];
 }) {
   const groupedEntries = groupEntriesByPlantAndDate(entries, plants);
@@ -2427,25 +2642,13 @@ function JournalSection({
                 </div>
                 <div className="grid gap-3">
                   {group.entries.map((entry) => (
-                    <article className="journal-photo-card" key={entry.id}>
-                      {entry.photoDataUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img className="journal-photo" src={entry.photoDataUrl} alt={`Foto de ${entry.title}`} />
-                      ) : (
-                        <div className="journal-photo" aria-label={`Foto demo de ${entry.title}`} />
-                      )}
-                      <div className="p-3">
-                        <h3 className="font-black text-moss-950">{entry.title}</h3>
-                        <p className="mt-2 text-sm leading-6 text-stone-700">{entry.note}</p>
-                        <div className="mt-3 flex flex-wrap gap-2 text-xs font-black text-moss-700">
-                          {entry.tags.map((tag) => (
-                            <span className="pill pill-soft" key={tag}>
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </article>
+                    <JournalEntryCard
+                      entry={entry}
+                      key={entry.id}
+                      onDelete={onDeleteJournalEntry}
+                      onUpdate={onUpdateJournalEntry}
+                      plants={plants}
+                    />
                   ))}
                 </div>
               </section>

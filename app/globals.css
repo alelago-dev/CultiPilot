@@ -1874,6 +1874,29 @@ textarea {
     object-fit: cover;
   }
 
+  .journal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .journal-actions .secondary-button,
+  .journal-actions .danger-button,
+  .journal-actions .primary-button {
+    min-height: 36px;
+    padding: 0.45rem 0.65rem;
+    font-size: 0.82rem;
+  }
+
+  .journal-edit-form {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .journal-edit-form .form-control {
+    background: rgba(255, 255, 255, 0.95);
+  }
+
   .pill {
     display: inline-flex;
     align-items: center;
