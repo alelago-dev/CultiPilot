@@ -2094,16 +2094,16 @@ function CalendarSection({
   }
 
   return (
-    <section className="mx-auto mt-7 max-w-7xl px-4 sm:px-6 lg:px-8">
+    <section className="calendar-page mx-auto mt-5 max-w-[1500px] px-3 sm:px-5 lg:px-6">
       <div className="calendar-header">
         <div className="calendar-title-block">
-          <p className="eyebrow text-emerald-800">Agenda historica</p>
+          <p className="eyebrow text-emerald-800">Calendario</p>
           <h1>{calendarPeriodLabel}</h1>
         </div>
         <div className="calendar-toolbar" aria-label="Navegacion del calendario">
           <div className="calendar-history-controls">
             <button className="calendar-icon-button" aria-label="Un ano atras" onClick={() => navigateYear(-1)} type="button">
-              <span aria-hidden="true">«</span>
+              <span aria-hidden="true">&laquo;</span>
             </button>
             <button
               className="calendar-icon-button"
@@ -2111,7 +2111,7 @@ function CalendarSection({
               onClick={() => navigateCalendar(-1)}
               type="button"
             >
-              <span aria-hidden="true">‹</span>
+              <span aria-hidden="true">&lsaquo;</span>
             </button>
             <button className="today-control" onClick={goToToday} type="button">
               Hoy
@@ -2122,10 +2122,10 @@ function CalendarSection({
               onClick={() => navigateCalendar(1)}
               type="button"
             >
-              <span aria-hidden="true">›</span>
+              <span aria-hidden="true">&rsaquo;</span>
             </button>
             <button className="calendar-icon-button" aria-label="Un ano adelante" onClick={() => navigateYear(1)} type="button">
-              <span aria-hidden="true">»</span>
+              <span aria-hidden="true">&raquo;</span>
             </button>
           </div>
           <label className="calendar-month-picker">
@@ -2147,57 +2147,67 @@ function CalendarSection({
           </div>
         </div>
       </div>
-      <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-black text-stone-600">
-        <label className="calendar-plant-picker">
-          <span>Maceta</span>
-          <select
-            aria-label="Elegir planta o maceta para agregar tarea"
-            value={quickEventPlantValue}
-            onChange={(event) => setQuickEventPlantId(event.target.value)}
-          >
-            {plants.length > 0 ? (
-              plants.map((plant) => (
-                <option key={plant.id} value={plant.id}>
-                  {plant.name}
-                </option>
-              ))
-            ) : (
-              <option value={manualPlantId}>Cultivo manual</option>
-            )}
-          </select>
-        </label>
-        {calendarQuickActions.map((action) => (
+      <div className="calendar-layout mt-4">
+        <aside className="calendar-sidebar">
           <button
-            className={`event-legend event-action ${getEventClass(action.kind)}`}
-            key={action.label}
-            onClick={() => handleQuickEvent(action)}
+            className="calendar-create-button"
+            onClick={() => setQuickEventStatus("Elegí una accion: Riego, Foto, Limpieza, Poda, Defoliar o Fumigar.")}
             type="button"
           >
-            <span aria-hidden="true">{action.emoji}</span>
-            <span>{action.label}</span>
+            <span aria-hidden="true">+</span>
+            Crear
           </button>
-        ))}
-        <input
-          ref={photoInputRef}
-          accept="image/*"
-          aria-label="Tomar o elegir foto del cultivo"
-          capture="environment"
-          className="sr-only"
-          onChange={handlePhotoSelected}
-          type="file"
-        />
-        {quickEventStatus ? <span className="pill pill-soft">{quickEventStatus}</span> : null}
-      </div>
-      <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_360px]">
-        <div className="surface p-3 sm:p-5">
-          <div className="grid grid-cols-7 gap-1 text-center text-xs font-black uppercase text-stone-500">
+          <label className="calendar-plant-picker">
+            <span>Maceta</span>
+            <select
+              aria-label="Elegir planta o maceta para agregar tarea"
+              value={quickEventPlantValue}
+              onChange={(event) => setQuickEventPlantId(event.target.value)}
+            >
+              {plants.length > 0 ? (
+                plants.map((plant) => (
+                  <option key={plant.id} value={plant.id}>
+                    {plant.name}
+                  </option>
+                ))
+              ) : (
+                <option value={manualPlantId}>Cultivo manual</option>
+              )}
+            </select>
+          </label>
+          <div className="calendar-action-stack" aria-label="Agregar evento rapido">
+            {calendarQuickActions.map((action) => (
+              <button
+                className={`event-legend event-action ${getEventClass(action.kind)}`}
+                key={action.label}
+                onClick={() => handleQuickEvent(action)}
+                type="button"
+              >
+                <span aria-hidden="true">{action.emoji}</span>
+                <span>{action.label}</span>
+              </button>
+            ))}
+          </div>
+          <input
+            ref={photoInputRef}
+            accept="image/*"
+            aria-label="Tomar o elegir foto del cultivo"
+            capture="environment"
+            className="sr-only"
+            onChange={handlePhotoSelected}
+            type="file"
+          />
+          {quickEventStatus ? <span className="calendar-status-pill">{quickEventStatus}</span> : null}
+        </aside>
+        <div className="calendar-main">
+          <div className="calendar-weekdays">
             {["L", "M", "M", "J", "V", "S", "D"].map((day, index) => (
-              <span className="py-2" key={`${day}-${index}`}>
+              <span key={`${day}-${index}`}>
                 {day}
               </span>
             ))}
           </div>
-          <div className="grid grid-cols-7 gap-1">
+          <div className="calendar-grid">
             {days.map((day) => {
               const dayOccurrences = occurrences.filter((occurrence) => occurrence.date === day.isoDate);
 
@@ -2215,10 +2225,10 @@ function CalendarSection({
                   type="button"
                 >
                   <div className="flex items-center justify-between gap-1">
-                    <span className="text-sm font-black">{day.label}</span>
+                    <span className="calendar-day-number">{day.label}</span>
                     {day.isToday ? <span className="today-dot" aria-label="Hoy" /> : null}
                   </div>
-                  <div className="mt-2 grid gap-1">
+                  <div className="calendar-event-list">
                     {dayOccurrences.slice(0, 3).map((occurrence) => (
                       <span className={`calendar-event ${getEventClass(occurrence.kind)}`} key={occurrence.occurrenceId}>
                         {occurrence.title}
@@ -2232,7 +2242,7 @@ function CalendarSection({
           </div>
         </div>
 
-        <aside className="surface p-4 sm:p-5" aria-live="polite">
+        <aside className="calendar-day-panel" aria-live="polite">
           <p className="eyebrow text-emerald-800">Detalle del dia</p>
           <h3 className="mt-1 text-lg font-black tracking-tight text-moss-950">{formatDisplayDate(selectedDate)}</h3>
           <div className="mt-4 grid gap-3">
