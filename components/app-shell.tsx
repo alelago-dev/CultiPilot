@@ -132,6 +132,7 @@ type SnapshotTableClient = {
 };
 
 const careScore = 86;
+const assetBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const manualPlantId = "plant-manual-regulated";
 const geneticsCatalogAlphabetically = getGeneticsCatalogAlphabetically();
 const legalBankOptions = ["Catalogo propio", "BSF", "Zig Zag", "Banco legal local", "Otro banco autorizado", "No declarado"];
@@ -3010,25 +3011,8 @@ function InstallAppButton() {
 function BrandLogo() {
   return (
     <span className="brand-logo" aria-hidden="true">
-      <svg viewBox="0 0 64 64" role="img">
-        <defs>
-          <linearGradient id="brand-logo-bg" x1="10" x2="54" y1="8" y2="58">
-            <stop stopColor="#f0c35b" />
-            <stop offset="0.46" stopColor="#24766f" />
-            <stop offset="1" stopColor="#23543e" />
-          </linearGradient>
-        </defs>
-        <rect width="64" height="64" rx="14" fill="url(#brand-logo-bg)" />
-        <path
-          d="M32 47c-2-8-2-15 0-23m0 11c-7-6-13-8-19-7 4 7 9 11 17 11m2-4c7-6 13-8 19-7-4 7-9 11-17 11m-3-9c-4-8-8-12-14-14 0 8 4 14 12 18m6-4c4-8 8-12 14-14 0 8-4 14-12 18m-5-5c-1-8 0-14 4-20 5 7 5 14 0 22"
-          fill="none"
-          stroke="#fffaf0"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="3.2"
-        />
-        <circle cx="48" cy="15" r="4" fill="#fff0c8" opacity="0.9" />
-      </svg>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={`${assetBasePath}/favicon.png`} alt="" />
     </span>
   );
 }

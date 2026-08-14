@@ -73,19 +73,21 @@ textarea {
 
   .brand-logo {
     display: grid;
-    height: 46px;
-    width: 46px;
+    height: 54px;
+    width: 54px;
     flex: 0 0 auto;
     place-items: center;
-    border-radius: 12px;
-    box-shadow: 0 14px 30px rgba(35, 84, 62, 0.24);
+    overflow: hidden;
+    border-radius: 14px;
+    background: #f4c653;
+    box-shadow: 0 14px 30px rgba(35, 84, 62, 0.2);
   }
 
-  .brand-logo svg {
+  .brand-logo img {
     display: block;
-    height: 100%;
-    width: 100%;
-    filter: drop-shadow(0 8px 14px rgba(35, 84, 62, 0.18));
+    height: 88%;
+    width: 88%;
+    object-fit: contain;
   }
 
   .status-dot,
