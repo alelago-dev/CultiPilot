@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import type { Route } from "next";
 
 import { GeneticFinderWizard } from "@/components/genetic-finder-wizard";
 import { HorticultureCalculator } from "@/components/horticulture-calculator";
@@ -184,9 +186,9 @@ export function SeedsSection({ calendarHref, locale, onCreateManualEvents }: See
         estimaciones automaticas quedan limitadas al catalogo horticola no regulado.
         <span className="mt-2 block">
           ¿Estas registrado en REPROCANN?{" "}
-          <a className="font-black text-emerald-800 underline underline-offset-4" href="../privacidad/">
+          <Link className="font-black text-emerald-800 underline underline-offset-4" href={"../privacidad/" as Route}>
             Consulta la informacion legal y de privacidad
-          </a>
+          </Link>
           .
         </span>
       </div>

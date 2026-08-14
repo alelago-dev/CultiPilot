@@ -2,6 +2,8 @@
 
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
+import Link from "next/link";
+import type { Route } from "next";
 import { addDays, createEventId, getTodayIso } from "@/lib/calendar-events";
 import { CopyValueButton } from "@/components/copy-button";
 import { getReferenceRow, type SeedType } from "@/lib/cultivation-reference";
@@ -362,9 +364,9 @@ export function ManualCannabisForm({
         </button>
         {statusMessage ? <span className="text-sm font-bold text-stone-600">{statusMessage}</span> : null}
         {showCalendarLink ? (
-          <a className="secondary-button" href={calendarHref}>
+          <Link className="secondary-button" href={calendarHref as Route}>
             Ver calendario
-          </a>
+          </Link>
         ) : null}
       </div>
 

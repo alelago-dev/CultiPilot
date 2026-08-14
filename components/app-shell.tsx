@@ -1,6 +1,8 @@
 "use client";
 
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import type { Route } from "next";
 
 import { CopyValueButton } from "@/components/copy-button";
 import { GeneticFinderWizard } from "@/components/genetic-finder-wizard";
@@ -840,31 +842,31 @@ export function AppShell({
     <main className="min-h-screen pb-28 text-moss-950 lg:pb-0">
       <header className="app-header sticky top-0 z-20 border-b border-moss-950/10 bg-paper/92 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <a className="flex items-center gap-3" href={todayHref} aria-label="PlantCare Calendar">
+          <Link className="flex items-center gap-3" href={todayHref as Route} aria-label="PlantCare Calendar">
             <BrandLogo />
             <span>
               <span className="block text-xs font-black uppercase text-moss-700">PlantCare</span>
               <span className="block text-lg font-black leading-none tracking-tight text-moss-950">Calendar</span>
             </span>
-          </a>
+          </Link>
 
           <nav className="hidden items-center gap-1 rounded-lg border border-moss-950/10 bg-white/82 p-1 shadow-sm lg:flex">
             {navItems.map((item) => (
-              <a
+              <Link
                 className={currentSection === item.key ? "desktop-nav-item active" : "desktop-nav-item"}
-                href={getSectionHref(locale, item.key)}
+                href={getSectionHref(locale, item.key) as Route}
                 key={item.key}
               >
                 {item.label}
-              </a>
+              </Link>
             ))}
           </nav>
 
           <div className="flex items-center gap-2">
             <InstallAppButton />
-            <a className="secondary-button account-header-link" href={`${getSectionHref(locale, "privacy")}#cuenta`}>
+            <Link className="secondary-button account-header-link" href={`${getSectionHref(locale, "privacy")}#cuenta` as Route}>
               Cuenta
-            </a>
+            </Link>
             <LegalInfoSummary />
             <div className="hidden items-center gap-2 rounded-lg border border-emerald-700/15 bg-white/88 px-3 py-2 text-sm font-bold text-moss-900 shadow-sm sm:flex">
               <span className="status-dot" aria-hidden="true" />
@@ -963,12 +965,12 @@ export function AppShell({
 
       <nav className="mobile-tab-bar" aria-label="Navegacion principal">
         {navItems.map((item) => (
-          <a className={currentSection === item.key ? "mobile-tab active" : "mobile-tab"} href={getSectionHref(locale, item.key)} key={item.key}>
+          <Link className={currentSection === item.key ? "mobile-tab active" : "mobile-tab"} href={getSectionHref(locale, item.key) as Route} key={item.key}>
             <span className="nav-icon" aria-hidden="true">
               {item.icon}
             </span>
             <span>{item.short}</span>
-          </a>
+          </Link>
         ))}
       </nav>
     </main>
@@ -2638,9 +2640,9 @@ function CalendarOccurrenceCard({
           Eliminar
         </button>
         {plant ? (
-          <a className="secondary-button" href={`${getSectionHref(locale, "spaces")}#${plant.id}`}>
+          <Link className="secondary-button" href={`${getSectionHref(locale, "spaces")}#${plant.id}` as Route}>
             Ver planta
-          </a>
+          </Link>
         ) : null}
         <a className="secondary-button" href={googleCalendarUrl} rel="noopener noreferrer" target="_blank">
           Agregar a Google Calendar
@@ -3082,13 +3084,13 @@ function SectionStepper({
   return (
     <nav className="section-stepper" aria-label="Avanzar entre secciones">
       {previousItem ? (
-        <a className="stepper-button secondary" href={getSectionHref(locale, previousItem.key)}>
+        <Link className="stepper-button secondary" href={getSectionHref(locale, previousItem.key) as Route}>
           <span aria-hidden="true">←</span>
           <span>
             <small>Anterior</small>
             {previousItem.label}
           </span>
-        </a>
+        </Link>
       ) : (
         <span className="stepper-button disabled" aria-disabled="true">
           <span aria-hidden="true">←</span>
@@ -3100,21 +3102,21 @@ function SectionStepper({
       )}
 
       {nextItem ? (
-        <a className="stepper-button primary" href={getSectionHref(locale, nextItem.key)}>
+        <Link className="stepper-button primary" href={getSectionHref(locale, nextItem.key) as Route}>
           <span>
             <small>Siguiente</small>
             {nextItem.label}
           </span>
           <span aria-hidden="true">→</span>
-        </a>
+        </Link>
       ) : (
-        <a className="stepper-button primary" href={getSectionHref(locale, "today")}>
+        <Link className="stepper-button primary" href={getSectionHref(locale, "today") as Route}>
           <span>
             <small>Volver</small>
             Hoy
           </span>
           <span aria-hidden="true">→</span>
-        </a>
+        </Link>
       )}
     </nav>
   );
