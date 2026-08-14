@@ -103,6 +103,20 @@ alter table public.care_entries enable row level security;
 alter table public.photos enable row level security;
 alter table public.user_app_snapshots enable row level security;
 
+-- Las politicas se borran antes de crearse para que este archivo se pueda
+-- volver a ejecutar sin el error 42710 ("policy already exists").
+drop policy if exists "profiles own rows" on public.profiles;
+drop policy if exists "grow spaces own rows" on public.grow_spaces;
+drop policy if exists "plants own rows" on public.plants;
+drop policy if exists "tasks own rows" on public.tasks;
+drop policy if exists "calendar events own rows" on public.calendar_events;
+drop policy if exists "care entries own rows" on public.care_entries;
+drop policy if exists "photos own rows" on public.photos;
+drop policy if exists "app snapshots own rows" on public.user_app_snapshots;
+drop policy if exists "plant photo owners can read" on storage.objects;
+drop policy if exists "plant photo owners can upload" on storage.objects;
+drop policy if exists "plant photo owners can delete" on storage.objects;
+
 create policy "profiles own rows" on public.profiles
   for all using (auth.uid() = id) with check (auth.uid() = id);
 
