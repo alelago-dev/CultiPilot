@@ -845,6 +845,20 @@ export function AppShell({
     removeStoredState(storageKeys.weatherSnapshot);
   }
 
+  function handleExportData() {
+    const snapshot = getCurrentSnapshot();
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `plantcare-datos-${todayIso}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <main className="min-h-screen pb-28 text-moss-950 lg:pb-0">
       <header className="app-header sticky top-0 z-20 border-b border-moss-950/10 bg-paper/92 backdrop-blur-xl">
@@ -947,6 +961,7 @@ export function AppShell({
         <PrivacySection
           accountStatus={accountStatus}
           onClearCultivationData={handleClearCultivationData}
+          onExportData={handleExportData}
           onSaveRemoteSnapshot={() => saveRemoteSnapshot()}
           onSendMagicLink={handleSendMagicLink}
           onSignOut={handleSignOut}
@@ -2788,12 +2803,14 @@ function JournalSection({
 function PrivacySection({
   accountStatus,
   onClearCultivationData,
+  onExportData,
   onSaveRemoteSnapshot,
   onSendMagicLink,
   onSignOut
 }: {
   accountStatus: AccountStatus;
   onClearCultivationData: () => void;
+  onExportData: () => void;
   onSaveRemoteSnapshot: () => void;
   onSendMagicLink: (email: string) => void;
   onSignOut: () => void;
@@ -2838,7 +2855,7 @@ function PrivacySection({
         onSignOut={onSignOut}
       />
       <div className="mt-5 flex flex-wrap gap-3">
-        <button className="secondary-button" type="button">
+        <button className="secondary-button" onClick={onExportData} type="button">
           Exportar mis datos
         </button>
         <button className="dark-button" onClick={handleClearClick} type="button">
