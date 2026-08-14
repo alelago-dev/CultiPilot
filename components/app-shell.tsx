@@ -1759,7 +1759,7 @@ function SpacesSection({
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
         {visibleSpaces.length > 0 ? (
           visibleSpaces.map((space) => (
-            <article className="surface overflow-hidden" key={space.id}>
+            <article className="surface min-w-0 overflow-hidden" key={space.id}>
               <div className="space-banner">
                 <div>
                   <h3 className="text-xl font-black tracking-tight text-white">{space.name}</h3>

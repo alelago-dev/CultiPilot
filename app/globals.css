@@ -5460,18 +5460,65 @@ textarea {
     line-height: 1;
   }
 
-  /* Ficha de genetica (popup): "Sabor / notas" y "Efecto / descripcion" usan
-     <p> internamente, asi que la regla ".genetic-popup-panel p" (parte del
-     pase de rediseno claro) les pisaba el color pensado para su tarjeta
-     oscura (.genetic-popup-text), dejando texto gris medio sobre fondo
-     oscuro translucido: casi ilegible. Restauramos los colores claros
-     originales para esas dos tarjetas puntuales. */
-  .genetic-popup-text > p:first-child {
-    color: #6fcf97 !important;
+  /* La ficha de genetica (tarjeta "Ver ficha completa" en Espacios + su
+     popup) todavia arrastraba un pase de diseno oscuro completo: fondo casi
+     negro en las sub-tarjetas (Cruza/linaje, Tipo, Sabor/notas, etc.), un
+     degrade oscuro superpuesto (::after) que oscurecia progresivamente el
+     contenido hacia abajo del popup, y textos claros pensados para ese
+     fondo oscuro. El panel exterior ya se habia pasado a un fondo claro en
+     un pase posterior, pero estas piezas internas quedaron atras: texto
+     casi invisible. Recomponemos todo el set a la misma paleta clara que
+     usa el resto de la app (igual que .genetics-reference-panel). */
+  .plant-genetic-summary::after,
+  .genetic-popup-panel::after {
+    content: none;
   }
 
+  .plant-genetic-summary dl > div,
+  .genetic-popup-fact,
+  .genetic-popup-text,
+  .genetic-raw-fields {
+    border-color: rgba(22, 32, 21, 0.08) !important;
+    background: rgba(255, 255, 255, 0.86) !important;
+    box-shadow: none !important;
+  }
+
+  .genetic-popup-fact:nth-child(2n) {
+    border-color: rgba(22, 32, 21, 0.08) !important;
+    background: rgba(243, 250, 244, 0.86) !important;
+  }
+
+  .genetic-popup-text:nth-child(2n + 1) {
+    border-color: rgba(22, 32, 21, 0.08) !important;
+  }
+
+  .plant-genetic-summary dt,
+  .genetic-popup-fact dt,
+  .genetic-popup-text > p:first-child {
+    color: #52604d !important;
+  }
+
+  .plant-genetic-summary dd,
+  .genetic-popup-fact dd,
   .genetic-popup-text > p:last-of-type {
-    color: #f2f7f4 !important;
+    color: #16281d !important;
+  }
+
+  .plant-genetic-summary .pill-green {
+    background: #e6f4e9 !important;
+    color: #1f6b4c !important;
+  }
+
+  .genetic-popup-fact .reference-target-field,
+  .genetic-popup-text .reference-target-field {
+    border-color: transparent !important;
+    background: rgba(232, 243, 223, 0.82) !important;
+    color: #23543e !important;
+  }
+
+  .genetic-popup-fact .reference-copy-row button,
+  .genetic-popup-text .reference-copy-row button {
+    color: #23543e !important;
   }
 
   /* El cartel "Solo ayuda visual..." tambien quedo con texto claro (pensado
@@ -5489,5 +5536,16 @@ textarea {
      necesita un color oscuro en vez del gris claro heredado del tema oscuro. */
   .genetic-popup-source {
     color: #56655c !important;
+  }
+
+  /* El banner de cabecera de cada espacio (".space-banner") tiene fondo
+     oscuro (degrade verde/naranja) y su subtitulo usa la clase de Tailwind
+     text-mint-50/86 para quedar claro sobre ese fondo, pero la regla generica
+     ".surface p" (pensada para tarjetas claras) tiene mas especificidad que
+     esa utilidad y le pisaba el color, dejando el subtitulo casi invisible
+     sobre el fondo oscuro. Le devolvemos el contraste claro. */
+  .space-banner p {
+    color: rgba(240, 251, 234, 0.92) !important;
+    font-weight: 600 !important;
   }
 }
