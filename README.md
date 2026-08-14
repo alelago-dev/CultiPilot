@@ -56,7 +56,7 @@ Abrir `http://localhost:3000/es`.
 
 ## Variables de entorno
 
-Copiar `.env.example` a `.env.local` y completar:
+Para desarrollo local, copiar `.env.example` a `.env.local` y completar:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=
@@ -64,6 +64,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_WEATHER_PROVIDER=
 NEXT_PUBLIC_WEATHER_API_KEY=
 ```
+
+Para el sitio publicado en GitHub Pages, las credenciales de Supabase se leen
+de `.env.production`, que esta versionado en el repo. Las dos variables
+`NEXT_PUBLIC_SUPABASE_*` son publicas por diseno (Next.js las incrusta en el
+bundle del navegador), y lo que protege los datos son las reglas de Row Level
+Security de `supabase/schema.sql`. La clave `service_role` nunca debe ir ahi.
 
 ## Supabase
 

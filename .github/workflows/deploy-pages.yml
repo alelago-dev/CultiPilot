@@ -27,12 +27,14 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
+      # Las credenciales de Supabase se leen de .env.production, que esta
+      # versionado en el repo. No se pasan por secrets porque son publicas
+      # por diseno (terminan en el bundle del navegador igual) y porque un
+      # secret vacio pisaba el valor del archivo con una cadena vacia.
       - name: Build static site
         run: npm run build
         env:
           GITHUB_PAGES: "true"
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       - name: Disable Jekyll
         run: touch out/.nojekyll
       - name: Upload artifact
