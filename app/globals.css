@@ -2028,6 +2028,32 @@ textarea {
     }
   }
 
+  /* Below 640px the grid switches to compact dot indicators (see
+     .calendar-event-dots) instead of full event-title pills, so the 7 columns
+     can fit the real screen width without forcing horizontal scroll. Tapping
+     a day still opens its full details in the day panel. */
+  @media (max-width: 639px) {
+    .calendar-main {
+      overflow-x: visible;
+    }
+
+    .calendar-weekdays,
+    .calendar-grid {
+      min-width: 0;
+    }
+
+    .day-cell {
+      min-height: 64px;
+      padding: 0.3rem 0.25rem;
+    }
+
+    .calendar-day-number {
+      min-width: 20px;
+      height: 20px;
+      font-size: 0.72rem;
+    }
+  }
+
   .calendar-detail-card {
     border-radius: 18px;
     border: 1px solid #e2e7df;
@@ -5367,5 +5393,101 @@ textarea {
   a.metric-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 14px 28px rgba(24, 35, 29, 0.12);
+  }
+
+  /* "Racha" has no destination page, so on touch devices (no hover) it needs a
+     tap target that reveals its explanation, not just a title attribute. */
+  button.metric-card {
+    width: 100%;
+    border: 0;
+    font: inherit;
+    text-align: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .stat-hint {
+    grid-column: 1 / -1;
+    margin-top: 0.6rem;
+    border-radius: 12px;
+    border: 1px solid rgba(46, 106, 85, 0.18);
+    background: #f3f8f5;
+    padding: 0.6rem 0.8rem;
+    color: #2e6a55;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  /* Compact mobile month/week grid: dots instead of full event-title pills so
+     all 7 day columns fit the real screen width (see the 639px calendar
+     breakpoint above). Full details still show in the day panel on tap. */
+  .calendar-event-dots {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 3px;
+    margin-top: 0.3rem;
+  }
+
+  .calendar-event-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: #8b9a8e;
+  }
+
+  .calendar-event-dot.event-water {
+    background: #3f8fac;
+  }
+
+  .calendar-event-dot.event-photo {
+    background: #2f9490;
+  }
+
+  .calendar-event-dot.event-clean {
+    background: #e08a2c;
+  }
+
+  .calendar-event-dot.event-review {
+    background: #8b9a8e;
+  }
+
+  .calendar-event-dot-more {
+    color: #5c6d61;
+    font-size: 0.55rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  /* Ficha de genetica (popup): "Sabor / notas" y "Efecto / descripcion" usan
+     <p> internamente, asi que la regla ".genetic-popup-panel p" (parte del
+     pase de rediseno claro) les pisaba el color pensado para su tarjeta
+     oscura (.genetic-popup-text), dejando texto gris medio sobre fondo
+     oscuro translucido: casi ilegible. Restauramos los colores claros
+     originales para esas dos tarjetas puntuales. */
+  .genetic-popup-text > p:first-child {
+    color: #6fcf97 !important;
+  }
+
+  .genetic-popup-text > p:last-of-type {
+    color: #f2f7f4 !important;
+  }
+
+  /* El cartel "Solo ayuda visual..." tambien quedo con texto claro (pensado
+     para fondo oscuro) sobre un fondo ambar casi transparente que ahora
+     se ve sobre el popup claro: texto muy tenue. Le damos su propio
+     contraste ambar/oscuro, igual al resto de la app. */
+  .genetic-popup-note {
+    border-color: rgba(224, 138, 44, 0.35) !important;
+    background: #fbedd8 !important;
+    color: #7a4a12 !important;
+  }
+
+  /* Misma causa: el subtitulo "Fuente" del popup queda directamente sobre el
+     fondo claro del panel (no sobre una tarjeta oscura), asi que tambien
+     necesita un color oscuro en vez del gris claro heredado del tema oscuro. */
+  .genetic-popup-source {
+    color: #56655c !important;
   }
 }

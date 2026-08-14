@@ -209,6 +209,13 @@ const calendarQuickActions: Array<{
     kind: "review",
     label: "Fumigar",
     title: "🐛 Fumigar"
+  },
+  {
+    description: "Evento manual agregado desde el calendario para el cambio de fotoperiodo a 12/12 (inicio de floracion).",
+    emoji: "🌗",
+    kind: "review",
+    label: "Fotoperiodo 12/12",
+    title: "🌗 Fotoperiodo 12/12"
   }
 ];
 const storageKeys = {
@@ -1195,6 +1202,9 @@ function TodaySection({
   weather: WeatherReadiness;
   weatherStatus: string;
 }) {
+  const racheDescription = "Dias seguidos marcando al menos una tarea como hecha.";
+  const [showRachaHint, setShowRachaHint] = useState(false);
+
   return (
     <>
       <section className="executive-home mx-auto max-w-7xl px-4 pb-5 pt-4 sm:px-6 lg:px-8 lg:pt-6">
@@ -1224,11 +1234,17 @@ function TodaySection({
               value={openTasks.toString()}
             />
             <MiniStat
-              description="Dias seguidos marcando al menos una tarea como hecha."
+              description={racheDescription}
               label="Racha"
+              onSelect={() => setShowRachaHint((current) => !current)}
               value={`${streakCount} dias`}
             />
           </div>
+          {showRachaHint ? (
+            <p className="stat-hint" role="status">
+              {racheDescription}
+            </p>
+          ) : null}
         </div>
 
         <div className="executive-overview">
@@ -1976,6 +1992,17 @@ function CalendarSection({
     typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? "week" : "month"
   );
   const [selectedDate, setSelectedDate] = useState(() => getStoredCalendarDate(todayIso));
+  const [isCompactGrid, setIsCompactGrid] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches
+  );
+
+  useEffect(() => {
+    const compactQuery = window.matchMedia("(max-width: 639px)");
+    const handleCompactChange = (event: MediaQueryListEvent) => setIsCompactGrid(event.matches);
+
+    compactQuery.addEventListener("change", handleCompactChange);
+    return () => compactQuery.removeEventListener("change", handleCompactChange);
+  }, []);
   const calendarPeriodLabel =
     viewMode === "month" ? formatMonthPeriod(anchorDate) : `${formatDisplayDate(firstVisibleWeekDate(anchorDate))} - ${formatDisplayDate(addDays(firstVisibleWeekDate(anchorDate), 6))}`;
 
@@ -2201,7 +2228,9 @@ function CalendarSection({
         <aside className="calendar-sidebar">
           <button
             className="calendar-create-button"
-            onClick={() => setQuickEventStatus("Elegí una accion: Riego, Foto, Limpieza, Poda, Defoliar o Fumigar.")}
+            onClick={() =>
+              setQuickEventStatus("Elegí una accion: Riego, Foto, Limpieza, Poda, Defoliar, Fumigar o Fotoperiodo 12/12.")
+            }
             type="button"
           >
             <span aria-hidden="true">+</span>
@@ -2278,14 +2307,36 @@ function CalendarSection({
                     <span className="calendar-day-number">{day.label}</span>
                     {day.isToday ? <span className="today-dot" aria-label="Hoy" /> : null}
                   </div>
-                  <div className="calendar-event-list">
-                    {dayOccurrences.slice(0, 3).map((occurrence) => (
-                      <span className={`calendar-event ${getEventClass(occurrence.kind)}`} key={occurrence.occurrenceId}>
-                        {occurrence.title}
-                      </span>
-                    ))}
-                    {dayOccurrences.length > 3 ? <span className="calendar-event event-review">+{dayOccurrences.length - 3}</span> : null}
-                  </div>
+                  {isCompactGrid ? (
+                    <div className="calendar-event-dots">
+                      {dayOccurrences.slice(0, 4).map((occurrence) => (
+                        <span
+                          aria-hidden="true"
+                          className={`calendar-event-dot ${getEventClass(occurrence.kind)}`}
+                          key={occurrence.occurrenceId}
+                        />
+                      ))}
+                      {dayOccurrences.length > 4 ? (
+                        <span aria-hidden="true" className="calendar-event-dot-more">
+                          +{dayOccurrences.length - 4}
+                        </span>
+                      ) : null}
+                      {dayOccurrences.length > 0 ? (
+                        <span className="sr-only">
+                          {dayOccurrences.length} {dayOccurrences.length === 1 ? "evento" : "eventos"}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="calendar-event-list">
+                      {dayOccurrences.slice(0, 3).map((occurrence) => (
+                        <span className={`calendar-event ${getEventClass(occurrence.kind)}`} key={occurrence.occurrenceId}>
+                          {occurrence.title}
+                        </span>
+                      ))}
+                      {dayOccurrences.length > 3 ? <span className="calendar-event event-review">+{dayOccurrences.length - 3}</span> : null}
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -3145,12 +3196,14 @@ function MiniStat({
   featured = false,
   href,
   label,
+  onSelect,
   value
 }: {
   description: string;
   featured?: boolean;
   href?: Route;
   label: string;
+  onSelect?: () => void;
   value: string;
 }) {
   const className = featured ? "metric-card featured" : "metric-card";
@@ -3166,6 +3219,20 @@ function MiniStat({
       <Link className={className} href={href} title={description} aria-label={`${label}: ${value}. ${description}`}>
         {content}
       </Link>
+    );
+  }
+
+  if (onSelect) {
+    return (
+      <button
+        aria-label={`${label}: ${value}. ${description}`}
+        className={className}
+        onClick={onSelect}
+        title={description}
+        type="button"
+      >
+        {content}
+      </button>
     );
   }
 
