@@ -5548,4 +5548,23 @@ textarea {
     color: rgba(240, 251, 234, 0.92) !important;
     font-weight: 600 !important;
   }
+
+  /* Botones deshabilitados (ej. "Iniciar sesion" cuando Supabase no esta
+     configurado) se veian identicos a los habilitados: mismo color solido,
+     sin ninguna senal de que tocarlos no hace nada. Eso hacia parecer que el
+     boton estaba roto en vez de deshabilitado a proposito. */
+  .primary-button:disabled,
+  .secondary-button:disabled,
+  .dark-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    filter: grayscale(0.3);
+  }
+
+  .primary-button:disabled:hover,
+  .secondary-button:disabled:hover,
+  .dark-button:disabled:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
 }
