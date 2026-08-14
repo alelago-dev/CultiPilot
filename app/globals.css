@@ -3959,4 +3959,271 @@ textarea {
     border-color: rgba(255, 255, 255, 0.12);
     background: rgba(242, 247, 244, 0.96);
   }
+
+  /* Corporate visual pass: calmer surfaces, tighter hierarchy, and restrained brand color. */
+  body {
+    background:
+      radial-gradient(circle at 14% 8%, rgba(35, 84, 62, 0.08), transparent 26%),
+      linear-gradient(180deg, #f7f9f6 0%, #eef3ef 46%, #f8faf7 100%);
+    color: #18231d;
+  }
+
+  .app-header,
+  header.sticky {
+    border-bottom: 1px solid rgba(24, 35, 29, 0.08);
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow: 0 10px 30px rgba(24, 35, 29, 0.08);
+  }
+
+  .app-header .text-moss-700,
+  .app-header .text-moss-950 {
+    color: #1d2b24;
+  }
+
+  .brand-logo {
+    height: 48px;
+    width: 48px;
+    border: 1px solid rgba(24, 35, 29, 0.08);
+    border-radius: 12px;
+    background: linear-gradient(145deg, #ffffff, #edf4ef);
+    box-shadow: 0 10px 24px rgba(24, 35, 29, 0.12);
+  }
+
+  .brand-logo img {
+    height: 82%;
+    width: 82%;
+  }
+
+  .app-header nav,
+  header.sticky nav {
+    border-color: rgba(24, 35, 29, 0.08);
+    background: #ffffff;
+    box-shadow: 0 8px 20px rgba(24, 35, 29, 0.06);
+  }
+
+  .desktop-nav-item,
+  .app-header .desktop-nav-item {
+    color: #66746a;
+    font-weight: 780;
+  }
+
+  .desktop-nav-item:hover,
+  .app-header .desktop-nav-item:hover {
+    background: #f1f5f2;
+    color: #1d2b24;
+  }
+
+  .desktop-nav-item.active,
+  .app-header .desktop-nav-item.active {
+    background: #19392d;
+    color: #ffffff;
+    box-shadow: 0 10px 24px rgba(25, 57, 45, 0.18);
+  }
+
+  .surface,
+  .info-card,
+  .account-sync-card,
+  .task-row,
+  .journal-row,
+  .seed-card,
+  .seed-result,
+  .simple-list-row,
+  .metric-card,
+  .metric-tile,
+  .plant-utility-card,
+  .setup-card,
+  .finder-result-card,
+  .calendar-detail-card,
+  .calendar-journal-card,
+  .journal-photo-card,
+  .plant-timeline-card {
+    border-color: rgba(24, 35, 29, 0.09);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 12px 30px rgba(24, 35, 29, 0.08);
+    backdrop-filter: none;
+  }
+
+  .surface::before {
+    height: 3px;
+    background: linear-gradient(90deg, #19392d, #2e6a55);
+  }
+
+  .intro-panel,
+  .grow-command {
+    border-color: rgba(255, 255, 255, 0.16);
+    background:
+      linear-gradient(135deg, rgba(6, 20, 15, 0.84), rgba(12, 42, 31, 0.62)),
+      linear-gradient(135deg, #0f241b 0%, #19392d 55%, #2e6a55 100%);
+    box-shadow: 0 24px 56px rgba(15, 36, 27, 0.28);
+  }
+
+  .intro-panel::after,
+  .grow-command::after {
+    background:
+      linear-gradient(135deg, transparent 0 46%, rgba(255, 255, 255, 0.08) 46% 54%, transparent 54%),
+      linear-gradient(45deg, transparent 0 56%, rgba(111, 207, 151, 0.1) 56% 66%, transparent 66%);
+  }
+
+  .intro-visual,
+  .grow-command-board,
+  .grow-command-card.accent,
+  .grow-phase-step {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.09);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .grow-command-card {
+    border-color: rgba(24, 35, 29, 0.08);
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 10px 24px rgba(6, 20, 15, 0.16);
+  }
+
+  .metric-card.featured,
+  .task-priority {
+    border-color: rgba(46, 106, 85, 0.22);
+    background: #ffffff;
+    box-shadow:
+      inset 4px 0 0 #2e6a55,
+      0 14px 30px rgba(24, 35, 29, 0.08);
+  }
+
+  .summary-grid .metric-card:nth-child(1),
+  .summary-grid .metric-card:nth-child(3),
+  .metric-tile:nth-child(2n),
+  .metric-tile:nth-child(3n) {
+    background: rgba(255, 255, 255, 0.92);
+  }
+
+  .primary-button,
+  .secondary-button,
+  .danger-button,
+  .dark-button,
+  .legal-popover summary,
+  .calendar-create-button {
+    border-radius: 10px;
+    font-weight: 820;
+    box-shadow: none;
+  }
+
+  .primary-button,
+  .finder-use-button {
+    background: #19392d;
+    color: #ffffff;
+  }
+
+  .secondary-button,
+  .legal-popover summary {
+    border-color: rgba(24, 35, 29, 0.12);
+    background: #ffffff;
+    color: #1d2b24;
+  }
+
+  .primary-button:hover,
+  .secondary-button:hover,
+  .danger-button:hover,
+  .dark-button:hover {
+    box-shadow: 0 10px 24px rgba(24, 35, 29, 0.1);
+  }
+
+  .pill,
+  .event-legend,
+  .calendar-event {
+    border-radius: 999px;
+    font-weight: 780;
+  }
+
+  .pill-green,
+  .event-photo {
+    background: #e8f3ee;
+    color: #1f5a45;
+  }
+
+  .pill-blue,
+  .event-water {
+    background: #e8f0f6;
+    color: #24526f;
+  }
+
+  .pill-amber,
+  .event-clean {
+    background: #f4eee0;
+    color: #765c20;
+  }
+
+  .pill-soft,
+  .event-review {
+    background: #eef1ee;
+    color: #52605a;
+  }
+
+  .weather-panel,
+  .account-sync-panel,
+  .seed-tabs,
+  .reference-details,
+  .setup-builder,
+  .setup-cheatsheet,
+  .manual-task-template,
+  .genetic-finder,
+  .finder-results {
+    border-color: rgba(24, 35, 29, 0.09);
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 12px 30px rgba(24, 35, 29, 0.08);
+  }
+
+  .finder-option,
+  .finder-flavor,
+  .reference-value {
+    border-color: rgba(24, 35, 29, 0.1);
+    background: #ffffff;
+    box-shadow: none;
+  }
+
+  .finder-option.active,
+  .finder-flavor.active,
+  .seed-tab.active {
+    background: #19392d;
+    color: #ffffff;
+    box-shadow: 0 10px 24px rgba(25, 57, 45, 0.18);
+  }
+
+  .mobile-tab-bar {
+    border-color: rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    background: rgba(15, 36, 27, 0.94);
+    box-shadow: 0 18px 44px rgba(15, 36, 27, 0.3);
+  }
+
+  .mobile-tab {
+    border-radius: 14px;
+    color: rgba(255, 255, 255, 0.68);
+    font-weight: 800;
+  }
+
+  .mobile-tab.active {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+  }
+
+  .manual-form-group,
+  .genetic-entry-card,
+  .manual-reference-card,
+  .genetics-reference-panel,
+  .plant-genetic-summary,
+  .genetic-popup-panel {
+    border-color: rgba(111, 207, 151, 0.18);
+    background:
+      linear-gradient(145deg, rgba(19, 35, 29, 0.98), rgba(13, 26, 21, 0.96)),
+      #101a17;
+    box-shadow: 0 18px 42px rgba(13, 26, 21, 0.22);
+  }
+
+  .manual-form-group .form-control,
+  .genetic-entry-card .form-control,
+  .genetics-reference-panel .form-control {
+    border-color: rgba(111, 207, 151, 0.18);
+    background: rgba(255, 255, 255, 0.96);
+    color: #18231d;
+    box-shadow: none;
+  }
 }
