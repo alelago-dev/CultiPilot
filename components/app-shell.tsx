@@ -218,7 +218,8 @@ const storageKeys = {
   plants: "plantcare-plants",
   quickChecks: "plantcare-quick-checks",
   tasks: "plantcare-tasks",
-  weatherConsent: "plantcare-weather-consent"
+  weatherConsent: "plantcare-weather-consent",
+  weatherSnapshot: "plantcare-weather-snapshot"
 };
 
 const remoteSnapshotKey = "primary";
@@ -238,7 +239,7 @@ export function AppShell({
   const [eventState, setEventState] = useStoredState(storageKeys.events, calendarEvents);
   const [entryState, setEntryState] = useStoredState(storageKeys.entries, entries);
   const [habitDates, setHabitDates] = useStoredState<string[]>(storageKeys.habitDates, []);
-  const [weather, setWeather] = useState<WeatherReadiness>(() => getWeatherReadiness("Ubicacion sin conectar"));
+  const [weather, setWeather] = useState<WeatherReadiness>(() => getStoredWeatherSnapshot() ?? getWeatherReadiness("Ubicacion sin conectar"));
   const [weatherStatus, setWeatherStatus] = useState("");
   const [accountStatus, setAccountStatus] = useState<AccountStatus>(() => ({
     email: "",
@@ -701,6 +702,7 @@ export function AppShell({
           .then((nextWeather) => {
             setWeather(nextWeather);
             window.localStorage.setItem(storageKeys.weatherConsent, "true");
+            persistStoredState(storageKeys.weatherSnapshot, nextWeather);
             setWeatherStatus("Clima actualizado.");
           })
           .catch(() => setWeatherStatus("No se pudo consultar Open-Meteo."));
@@ -722,13 +724,46 @@ export function AppShell({
   }
 
   useEffect(() => {
-    if (window.localStorage.getItem(storageKeys.weatherConsent) === "true") {
-      const timeoutId = window.setTimeout(() => {
-        void updateWeatherFromDevice("Actualizando clima segun tu ubicacion guardada...");
-      }, 0);
+    if (window.localStorage.getItem(storageKeys.weatherConsent) !== "true") return;
 
-      return () => window.clearTimeout(timeoutId);
-    }
+    const timeoutId = window.setTimeout(() => {
+      const storedWeather = getStoredWeatherSnapshot();
+
+      if (storedWeather) {
+        setWeather(storedWeather);
+        setWeatherStatus("Usando la ubicacion y el clima guardados.");
+      }
+
+      async function refreshWeatherIfPermissionIsAlreadyGranted() {
+        if (!("permissions" in navigator)) {
+          setWeatherStatus("Ubicacion recordada. Actualiza manualmente si el navegador vuelve a pedir permiso.");
+          return;
+        }
+
+        try {
+          const permission = await navigator.permissions.query({ name: "geolocation" });
+
+          if (permission.state === "granted") {
+            await updateWeatherFromDevice("Actualizando clima segun tu ubicacion guardada...");
+            return;
+          }
+
+          if (permission.state === "denied") {
+            window.localStorage.removeItem(storageKeys.weatherConsent);
+            setWeatherStatus("Ubicacion bloqueada en el navegador. Reactivala desde permisos del sitio.");
+            return;
+          }
+
+          setWeatherStatus("Ubicacion recordada. El navegador pedira permiso solo si tocas Actualizar clima.");
+        } catch {
+          setWeatherStatus("Ubicacion recordada. Actualiza manualmente si el navegador vuelve a pedir permiso.");
+        }
+      }
+
+      void refreshWeatherIfPermissionIsAlreadyGranted();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
   useEffect(() => {
@@ -798,6 +833,7 @@ export function AppShell({
     removeStoredState(storageKeys.calendarDate);
     removeStoredState(storageKeys.quickChecks);
     removeStoredState(storageKeys.weatherConsent);
+    removeStoredState(storageKeys.weatherSnapshot);
   }
 
   return (
@@ -3642,6 +3678,20 @@ function getStoredCalendarDate(fallbackDate: string) {
   }
 
   return window.localStorage.getItem(storageKeys.calendarDate) ?? fallbackDate;
+}
+
+function getStoredWeatherSnapshot() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const storedValue = window.localStorage.getItem(storageKeys.weatherSnapshot);
+
+    return storedValue ? (JSON.parse(storedValue) as WeatherReadiness) : null;
+  } catch {
+    return null;
+  }
 }
 
 function persistStoredState<T>(key: string, value: T) {
