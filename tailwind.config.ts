@@ -8,36 +8,51 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: [
+          '"Plus Jakarta Sans"',
+          "ui-sans-serif",
+          "system-ui",
+          "-apple-system",
+          '"Segoe UI"',
+          "Roboto",
+          "Arial",
+          "sans-serif"
+        ]
+      },
       colors: {
-        paper: "#f5f7ef",
+        paper: "#fbf9f1",
         moss: {
-          700: "#2f4f3e",
-          800: "#223a2f",
-          900: "#1a2c23",
-          950: "#162015"
+          700: "#3a6b52",
+          800: "#2c5240",
+          900: "#20392b",
+          950: "#1a2b21"
         },
         mint: {
-          50: "#effae8",
-          100: "#e4f3dc"
+          50: "#f0fbea",
+          100: "#e2f4da"
         },
         leaf: {
-          50: "#f1f8ed",
-          100: "#dff0d6",
-          500: "#4f8f38",
-          700: "#2f5f25",
-          900: "#183414"
+          50: "#f1f9ec",
+          100: "#dff2d4",
+          500: "#4f9d4e",
+          700: "#2f6e3c",
+          900: "#1d4327"
         },
         soil: {
-          100: "#f1e3d2",
-          500: "#9b6b43"
+          100: "#f6e8d6",
+          500: "#a97c4f"
         },
         sky: {
-          100: "#d9edf7",
-          500: "#3f88a8"
+          100: "#deeff6",
+          500: "#3f8fac"
         }
       },
+      borderRadius: {
+        xl2: "1.25rem"
+      },
       boxShadow: {
-        soft: "0 18px 60px rgba(24, 52, 20, 0.12)"
+        soft: "0 18px 50px rgba(40, 70, 45, 0.1)"
       }
     }
   },
