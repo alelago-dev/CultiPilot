@@ -1658,14 +1658,14 @@ function SpacesSection({
 
       <div className="genetics-reference-panel mt-5 rounded-lg border p-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="eyebrow">Referencia rapida</p>
             <h3 className="genetics-panel-title mt-1 text-lg font-black">Elegir semilla y ver caracteristicas</h3>
             <p className="genetics-panel-copy mt-1 text-sm font-bold leading-6">
               Esta ficha es solo lectura para comparar datos publicados. La cantidad de macetas la declara el usuario.
             </p>
           </div>
-          <div className="grid min-w-72 gap-2 sm:grid-cols-[1fr_140px]">
+          <div className="grid w-full min-w-0 gap-2 sm:w-auto sm:min-w-72 sm:grid-cols-[1fr_140px]">
             <label className="grid gap-1 text-sm font-black">
               Genetica de referencia
               <select

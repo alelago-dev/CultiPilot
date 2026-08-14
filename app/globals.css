@@ -2110,6 +2110,8 @@ textarea {
   }
 
   .form-control {
+    width: 100%;
+    min-width: 0;
     min-height: 40px;
     border-radius: 16px;
     border: 1.5px solid rgba(35, 84, 62, 0.28);
@@ -2475,7 +2477,7 @@ textarea {
   }
 
   .quick-plant-mobile {
-    display: none;
+    display: none !important;
   }
 
   .section-stepper,
@@ -2940,11 +2942,11 @@ textarea {
 
   @media (max-width: 639px) {
     .quick-plant-desktop {
-      display: none;
+      display: none !important;
     }
 
     .quick-plant-mobile {
-      display: grid;
+      display: grid !important;
     }
   }
 
@@ -5297,6 +5299,8 @@ textarea {
   .manual-reference-card h4,
   .genetics-reference-panel h2,
   .genetics-reference-panel h3,
+  .genetics-reference-panel label,
+  .genetics-reference-button,
   .plant-genetic-summary,
   .genetic-popup-panel h2 {
     color: #16281d !important;
