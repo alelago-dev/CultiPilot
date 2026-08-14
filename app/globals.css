@@ -1702,25 +1702,27 @@ textarea {
   }
 
   .event-action {
-    width: 100%;
+    width: fit-content;
     border: 1px solid #d8e0d6;
     cursor: pointer;
-    justify-content: flex-start;
-    padding: 0.55rem 0.65rem;
+    justify-content: center;
+    padding: 0.4rem 0.7rem;
     transition:
       background 160ms ease,
       border-color 160ms ease,
-      box-shadow 160ms ease;
+      box-shadow 160ms ease,
+      transform 160ms ease;
   }
 
   .event-action:hover {
-    border-color: rgba(36, 118, 111, 0.34);
-    background: #f8fbff;
-    box-shadow: 0 4px 12px rgba(32, 33, 36, 0.08);
+    border-color: rgba(47, 143, 95, 0.4);
+    box-shadow: 0 4px 12px rgba(30, 51, 39, 0.08);
+    transform: translateY(-1px);
   }
 
   .calendar-action-stack {
-    display: grid;
+    display: flex;
+    flex-wrap: wrap;
     gap: 0.45rem;
   }
 
