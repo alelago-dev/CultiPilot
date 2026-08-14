@@ -5346,4 +5346,26 @@ textarea {
     background: rgba(255, 255, 255, 0.22);
     color: #ffffff;
   }
+
+  /* Hero "Pendientes" stat card lost its dark card background in a later pass,
+     but the value text was still forced white for that old dark background.
+     Restore readable contrast on the current light card. */
+  .executive-metrics .metric-card.featured p:first-child {
+    color: #123024 !important;
+  }
+
+  .executive-metrics .metric-card {
+    cursor: default;
+  }
+
+  a.metric-card {
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  a.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(24, 35, 29, 0.12);
+  }
 }
