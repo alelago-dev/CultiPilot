@@ -886,6 +886,7 @@ export function AppShell({
           agendaItems={agendaItems}
           careScore={careScore}
           dictionary={dictionary}
+          locale={locale}
           onSaveRemoteSnapshot={() => saveRemoteSnapshot()}
           onSendMagicLink={handleSendMagicLink}
           onSignOut={handleSignOut}
@@ -1163,6 +1164,7 @@ function TodaySection({
   careScore,
   calendarEvents,
   dictionary,
+  locale,
   onSaveRemoteSnapshot,
   onSendMagicLink,
   onSignOut,
@@ -1180,6 +1182,7 @@ function TodaySection({
   careScore: number;
   calendarEvents: CalendarEvent[];
   dictionary: Dictionary;
+  locale: Locale;
   onSaveRemoteSnapshot: () => void;
   onSendMagicLink: (email: string) => void;
   onSignOut: () => void;
@@ -1207,9 +1210,24 @@ function TodaySection({
             </div>
           </div>
           <div className="executive-metrics">
-            <MiniStat label="Cultivos" value={plants.length.toString()} />
-            <MiniStat featured label="Pendientes" value={openTasks.toString()} />
-            <MiniStat label="Racha" value={`${streakCount} dias`} />
+            <MiniStat
+              description="Plantas activas que tenes registradas en Espacios."
+              href={getSectionHref(locale, "spaces") as Route}
+              label="Cultivos"
+              value={plants.length.toString()}
+            />
+            <MiniStat
+              description="Tareas de hoy que todavia no marcaste como hechas. Las ves en la lista de abajo."
+              featured
+              href={"#tareas-hoy" as Route}
+              label="Pendientes"
+              value={openTasks.toString()}
+            />
+            <MiniStat
+              description="Dias seguidos marcando al menos una tarea como hecha."
+              label="Racha"
+              value={`${streakCount} dias`}
+            />
           </div>
         </div>
 
@@ -1225,7 +1243,7 @@ function TodaySection({
       </section>
 
       <section className="mx-auto grid max-w-7xl gap-5 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
-        <section className="surface p-4 sm:p-5" aria-labelledby="today-title">
+        <section className="surface p-4 sm:p-5" aria-labelledby="today-title" id="tareas-hoy">
           <SectionHeader eyebrow="Panel principal" title="Tareas de hoy" />
           <div className="mt-5 grid gap-3">
             {agendaItems.length > 0 ? (
@@ -3122,11 +3140,38 @@ function SectionStepper({
   );
 }
 
-function MiniStat({ featured = false, label, value }: { featured?: boolean; label: string; value: string }) {
-  return (
-    <div className={featured ? "metric-card featured" : "metric-card"}>
+function MiniStat({
+  description,
+  featured = false,
+  href,
+  label,
+  value
+}: {
+  description: string;
+  featured?: boolean;
+  href?: Route;
+  label: string;
+  value: string;
+}) {
+  const className = featured ? "metric-card featured" : "metric-card";
+  const content = (
+    <>
       <p className="text-2xl font-black tracking-tight text-moss-950">{value}</p>
       <p className="mt-1 text-xs font-black uppercase text-stone-500">{label}</p>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link className={className} href={href} title={description} aria-label={`${label}: ${value}. ${description}`}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <div className={className} title={description} aria-label={`${label}: ${value}. ${description}`}>
+      {content}
     </div>
   );
 }
