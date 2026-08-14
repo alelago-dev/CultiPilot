@@ -4449,4 +4449,187 @@ textarea {
     background: #19392d;
     color: #ffffff;
   }
+
+  .executive-home {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .executive-hero {
+    position: relative;
+    display: grid;
+    gap: 1rem;
+    overflow: hidden;
+    border: 1px solid rgba(24, 35, 29, 0.08);
+    border-radius: 18px;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(244, 248, 245, 0.94)),
+      #ffffff;
+    padding: 1.1rem;
+    box-shadow: 0 18px 48px rgba(24, 35, 29, 0.08);
+  }
+
+  .executive-hero::after {
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: min(42%, 460px);
+    background:
+      linear-gradient(135deg, transparent 0 46%, rgba(46, 106, 85, 0.065) 46% 54%, transparent 54%),
+      linear-gradient(45deg, transparent 0 58%, rgba(46, 106, 85, 0.07) 58% 66%, transparent 66%);
+    content: "";
+  }
+
+  .executive-hero-copy,
+  .executive-metrics {
+    position: relative;
+    z-index: 1;
+  }
+
+  .executive-hero-copy .eyebrow {
+    color: #2e6a55;
+  }
+
+  .executive-hero-copy h1 {
+    margin-top: 0.3rem;
+    color: #15221b;
+    font-size: clamp(2rem, 4vw, 4.2rem);
+    font-weight: 860;
+    line-height: 0.95;
+  }
+
+  .executive-hero-copy p:not(.eyebrow) {
+    margin-top: 0.85rem;
+    max-width: 720px;
+    color: #66746a;
+    font-size: 0.98rem;
+    font-weight: 620;
+    line-height: 1.7;
+  }
+
+  .executive-status-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1.1rem;
+  }
+
+  .executive-status-strip span {
+    border-radius: 999px;
+    border: 1px solid rgba(46, 106, 85, 0.14);
+    background: #f3f8f5;
+    padding: 0.48rem 0.68rem;
+    color: #2e6a55;
+    font-size: 0.76rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .executive-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .executive-metrics .metric-card {
+    min-height: 96px;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 12px 30px rgba(24, 35, 29, 0.07);
+  }
+
+  .executive-metrics .metric-card.featured {
+    background: #19392d;
+    color: #ffffff;
+    box-shadow: 0 18px 38px rgba(25, 57, 45, 0.18);
+  }
+
+  .executive-metrics .metric-card.featured p {
+    color: #ffffff;
+  }
+
+  .executive-overview {
+    display: grid;
+    gap: 1rem;
+  }
+
+  @media (min-width: 980px) {
+    .executive-hero {
+      grid-template-columns: minmax(0, 1fr) minmax(360px, 0.44fr);
+      align-items: stretch;
+      padding: 1.45rem;
+    }
+
+    .executive-overview {
+      grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.72fr);
+    }
+  }
+
+  .executive-overview .grow-command,
+  .executive-overview .home-account-panel {
+    min-height: 100%;
+  }
+
+  .executive-overview .grow-command {
+    border-radius: 18px;
+    border-color: rgba(24, 35, 29, 0.08);
+    background: #ffffff;
+    color: #15221b;
+    box-shadow: 0 18px 48px rgba(24, 35, 29, 0.08);
+  }
+
+  .executive-overview .grow-command-copy h2 {
+    color: #15221b;
+    font-size: clamp(1.45rem, 2.2vw, 2.15rem);
+  }
+
+  .executive-overview .grow-command-copy p:not(.eyebrow) {
+    color: #66746a;
+  }
+
+  .executive-overview .grow-command-board {
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
+
+  .executive-overview .grow-phase-rail {
+    gap: 0.6rem;
+  }
+
+  .executive-overview .grow-phase-step,
+  .executive-overview .grow-command-card,
+  .executive-overview .grow-command-card.accent {
+    border-radius: 14px;
+    border-color: rgba(24, 35, 29, 0.08);
+    background: #f7faf8;
+    color: #15221b;
+  }
+
+  .executive-overview .grow-command-card.accent {
+    background: #f3f8f5;
+  }
+
+  .executive-overview .grow-command-badges span {
+    background: #eef4f0;
+    color: #2e6a55;
+  }
+
+  .executive-overview .home-account-panel {
+    border-radius: 18px;
+    border-color: rgba(24, 35, 29, 0.08);
+    background:
+      linear-gradient(180deg, #19392d 0 4px, transparent 4px),
+      #ffffff;
+    color: #15221b;
+    box-shadow: 0 18px 48px rgba(24, 35, 29, 0.08);
+  }
+
+  .executive-overview .home-account-panel h2 {
+    color: #15221b;
+  }
+
+  .executive-overview .home-account-panel p,
+  .executive-overview .home-account-actions span {
+    color: #66746a;
+  }
 }

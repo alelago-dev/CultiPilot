@@ -1192,35 +1192,34 @@ function TodaySection({
 }) {
   return (
     <>
-      <section className="mx-auto max-w-7xl px-4 pb-5 pt-4 sm:px-6 lg:px-8 lg:pt-6">
-        <div className="intro-panel">
-          <div className="intro-copy min-w-0">
-            <p className="eyebrow text-emerald-800">{dictionary.hero.kicker}</p>
-            <h1 className="mt-1 text-2xl font-black tracking-tight text-moss-950 sm:text-3xl">PlantCare Calendar</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-700">{dictionary.hero.body}</p>
+      <section className="executive-home mx-auto max-w-7xl px-4 pb-5 pt-4 sm:px-6 lg:px-8 lg:pt-6">
+        <div className="executive-hero">
+          <div className="executive-hero-copy min-w-0">
+            <p className="eyebrow">Operacion horticola legal</p>
+            <h1>PlantCare Calendar</h1>
+            <p>{dictionary.hero.body}</p>
+            <div className="executive-status-strip" aria-label="Estado de la aplicacion">
+              <span>Datos por usuario</span>
+              <span>Calendario activo</span>
+              <span>Bitacora editable</span>
+            </div>
           </div>
-          <div className="intro-visual" aria-hidden="true">
-            <LeafCluster variant="hero" />
-          </div>
-          <div className="summary-grid">
+          <div className="executive-metrics">
             <MiniStat label="Cultivos" value={plants.length.toString()} />
             <MiniStat featured label="Pendientes" value={openTasks.toString()} />
             <MiniStat label="Racha" value={`${streakCount} dias`} />
           </div>
         </div>
-      </section>
 
-      <section className="mx-auto max-w-7xl px-4 pb-5 sm:px-6 lg:px-8">
-        <GrowCommandPanel calendarEvents={calendarEvents} plants={plants} />
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 pb-5 sm:px-6 lg:px-8">
-        <HomeAccountPanel
-          accountStatus={accountStatus}
-          onSaveRemoteSnapshot={onSaveRemoteSnapshot}
-          onSendMagicLink={onSendMagicLink}
-          onSignOut={onSignOut}
-        />
+        <div className="executive-overview">
+          <GrowCommandPanel calendarEvents={calendarEvents} plants={plants} />
+          <HomeAccountPanel
+            accountStatus={accountStatus}
+            onSaveRemoteSnapshot={onSaveRemoteSnapshot}
+            onSendMagicLink={onSendMagicLink}
+            onSignOut={onSignOut}
+          />
+        </div>
       </section>
 
       <section className="mx-auto grid max-w-7xl gap-5 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
@@ -1310,20 +1309,14 @@ function GrowCommandPanel({
 
   return (
     <section className="grow-command" aria-labelledby="grow-command-title">
-      <div className="grow-command-leaves" aria-hidden="true">
-        <LeafCluster variant="soft" />
-      </div>
       <div className="grow-command-copy">
-        <p className="eyebrow text-mint-50/80">Vista tipo grow tracker</p>
-        <h2 id="grow-command-title">Tu cultivo, de un vistazo</h2>
-        <p>
-          Plantas, etapas declaradas, calendario y registro visual en una sola pantalla. Para cultivos regulados, esta
-          vista solo ordena datos manuales.
-        </p>
+        <p className="eyebrow text-mint-50/80">Centro operativo</p>
+        <h2 id="grow-command-title">Estado activo</h2>
+        <p>Resumen de plantas, etapas declaradas y proximos eventos manuales.</p>
         <div className="grow-command-badges">
-          <span>Registro manual</span>
-          <span>Sin ubicacion exacta</span>
-          <span>Demo offline</span>
+          <span>Manual</span>
+          <span>Privado</span>
+          <span>Editable</span>
         </div>
       </div>
       <div className="grow-command-board">
