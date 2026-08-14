@@ -8,6 +8,17 @@ export const metadata: Metadata = {
   title: "PlantCare Calendar",
   description: "Calendario PWA para seguimiento de cultivos horticolas legales.",
   applicationName: "PlantCare Calendar",
+  icons: {
+    apple: `${basePath}/favicon.png`,
+    icon: [
+      {
+        sizes: "512x512",
+        type: "image/png",
+        url: `${basePath}/favicon.png`
+      }
+    ],
+    shortcut: `${basePath}/favicon.png`
+  },
   manifest: `${basePath}/manifest.webmanifest`,
   appleWebApp: {
     capable: true,
