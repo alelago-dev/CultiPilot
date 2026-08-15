@@ -5446,6 +5446,87 @@ textarea {
     line-height: 1;
   }
 
+  /* La ficha de cada planta es un item de grid, y un item de grid no achica
+     por debajo del ancho natural de su contenido salvo que se le diga. Sin
+     esto la ficha abierta medía mas que la tarjeta del espacio y el texto
+     quedaba cortado a la derecha (la tarjeta recorta con overflow hidden). */
+  .plant-row-details,
+  .plant-row-details summary {
+    min-width: 0;
+  }
+
+  .plant-row-details summary > span {
+    min-width: 0;
+  }
+
+  /* Edicion y notas por maceta, dentro de la ficha de cada planta. */
+  .plant-row-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.75rem;
+  }
+
+  .plant-editor,
+  .plant-quick-note {
+    margin-top: 0.9rem;
+    padding: 0.9rem;
+    border: 1px solid rgba(22, 32, 21, 0.1);
+    border-radius: 16px;
+    background: #f7faf7;
+  }
+
+  .plant-editor-title,
+  .plant-quick-note-title {
+    color: #12301f;
+    font-size: 0.95rem;
+    font-weight: 900;
+  }
+
+  .plant-editor-hint,
+  .plant-quick-note-hint {
+    margin-top: 0.15rem;
+    color: #52604d;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .plant-editor-grid {
+    display: grid;
+    gap: 0.7rem;
+    margin-top: 0.85rem;
+  }
+
+  @media (min-width: 640px) {
+    .plant-editor-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .plant-editor-actions,
+  .plant-quick-note-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.9rem;
+  }
+
+  .plant-quick-note .form-control {
+    margin-top: 0.6rem;
+  }
+
+  .plant-quick-note textarea.form-control {
+    min-height: 4.5rem;
+    resize: vertical;
+  }
+
+  .plant-quick-note-saved {
+    color: #17603f;
+    font-size: 0.8rem;
+    font-weight: 800;
+  }
+
   /* La ficha de genetica (tarjeta "Ver ficha completa" en Espacios + su
      popup) todavia arrastraba un pase de diseno oscuro completo: fondo casi
      negro en las sub-tarjetas (Cruza/linaje, Tipo, Sabor/notas, etc.), un
