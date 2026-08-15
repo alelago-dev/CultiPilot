@@ -352,6 +352,7 @@ export function AppShell({
     userId: ""
   }));
   const [remoteSyncReady, setRemoteSyncReady] = useState(false);
+  const [showAccountDialog, setShowAccountDialog] = useState(false);
   // El guardado automatico corre en paralelo al manual y a la carga inicial de
   // sesion. Sin esta marca, su mensaje de exito pisaba el "Guardando..." del
   // boton y el "Sesion iniciada como ..." recien mostrado al entrar.
@@ -1100,13 +1101,21 @@ export function AppShell({
               <span className="status-dot" aria-hidden="true" />
               Demo seguro
             </div>
-            <AccountAvatarLink
-              accountStatus={accountStatus}
-              href={`${getInternalSectionHref(locale, "privacy")}#cuenta` as Route}
-            />
+            <AccountAvatarButton accountStatus={accountStatus} onOpen={() => setShowAccountDialog(true)} />
           </div>
         </div>
       </header>
+
+      {showAccountDialog ? (
+        <AccountDialog
+          accountStatus={accountStatus}
+          onClose={() => setShowAccountDialog(false)}
+          onSaveRemoteSnapshot={() => saveRemoteSnapshot(undefined, { manual: true })}
+          onSendMagicLink={handleSendMagicLink}
+          onSignOut={handleSignOut}
+          privacyHref={getInternalSectionHref(locale, "privacy") as Route}
+        />
+      ) : null}
 
       {shouldShowFirstCultivation ? (
         <FirstCultivationScreen onCreateFirstCultivation={handleCreateFirstCultivation} />
@@ -3325,22 +3334,29 @@ function QuickPlantForm({
   );
 }
 
-// Avatar de cuenta del encabezado. Reemplaza al popover "Info legal", que
-// ocupaba el lugar donde cualquier app pone el acceso a la cuenta y repetia
-// texto que ya esta completo en la seccion Privacidad.
-function AccountAvatarLink({ accountStatus, href }: { accountStatus: AccountStatus; href: Route }) {
+// Avatar de cuenta del encabezado. Abre la ventana de login en el momento, en
+// vez de mandar a otra pantalla y hacer bajar hasta el formulario.
+function AccountAvatarButton({
+  accountStatus,
+  onOpen
+}: {
+  accountStatus: AccountStatus;
+  onOpen: () => void;
+}) {
   const trimmedEmail = accountStatus.email.trim();
   const initial = accountStatus.isSignedIn && trimmedEmail ? trimmedEmail.charAt(0).toUpperCase() : "";
   const label = accountStatus.isSignedIn
-    ? `Cuenta conectada como ${trimmedEmail}. Ir a los datos de tu cuenta.`
+    ? `Cuenta conectada como ${trimmedEmail}. Abrir opciones de tu cuenta.`
     : "Iniciar sesion para ver tus cultivos en otros dispositivos";
 
   return (
-    <Link
+    <button
+      aria-haspopup="dialog"
       aria-label={label}
       className={accountStatus.isSignedIn ? "account-avatar is-signed-in" : "account-avatar"}
-      href={href}
+      onClick={onOpen}
       title={label}
+      type="button"
     >
       {initial ? (
         <span aria-hidden="true" className="account-avatar-initial">
@@ -3357,7 +3373,130 @@ function AccountAvatarLink({ accountStatus, href }: { accountStatus: AccountStat
           />
         </svg>
       )}
-    </Link>
+    </button>
+  );
+}
+
+// Ventana de cuenta. Antes el avatar llevaba a la seccion Privacidad y habia
+// que bajar hasta encontrar el formulario; ahora el login queda a un toque.
+function AccountDialog({
+  accountStatus,
+  onClose,
+  onSaveRemoteSnapshot,
+  onSendMagicLink,
+  onSignOut,
+  privacyHref
+}: {
+  accountStatus: AccountStatus;
+  onClose: () => void;
+  onSaveRemoteSnapshot: () => void;
+  onSendMagicLink: (email: string) => void;
+  onSignOut: () => void;
+  privacyHref: Route;
+}) {
+  const [email, setEmail] = useState(accountStatus.email);
+  const emailFieldRef = useRef<HTMLInputElement>(null);
+  const isBusy = accountStatus.tone === "pending";
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    // Se bloquea el scroll del fondo para que la pagina no se mueva detras.
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    emailFieldRef.current?.focus();
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [onClose]);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const nextEmail = email.trim();
+
+    if (!nextEmail) return;
+
+    onSendMagicLink(nextEmail);
+  }
+
+  return (
+    <div
+      className="account-dialog-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div aria-labelledby="account-dialog-title" aria-modal="true" className="account-dialog" role="dialog">
+        <button aria-label="Cerrar" className="account-dialog-close" onClick={onClose} type="button">
+          <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+            <path d="M6.5 6.5l11 11m0-11l-11 11" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+          </svg>
+        </button>
+
+        <p className="account-dialog-eyebrow">Tu cuenta</p>
+        <h2 className="account-dialog-title" id="account-dialog-title">
+          {accountStatus.isSignedIn ? "Sesion iniciada" : "Iniciar sesion"}
+        </h2>
+
+        {accountStatus.isSignedIn ? (
+          <>
+            <p className="account-dialog-text">
+              Tus cultivos se guardan en tu cuenta, asi los ves igual en el celular y en la computadora.
+            </p>
+            <p className="account-dialog-email">{accountStatus.email}</p>
+            <AccountFeedback status={accountStatus} />
+            <div className="account-dialog-actions">
+              <button className="primary-button" disabled={isBusy} onClick={onSaveRemoteSnapshot} type="button">
+                {isBusy ? "Guardando..." : "Guardar ahora"}
+              </button>
+              <button className="secondary-button" onClick={onSignOut} type="button">
+                Cerrar sesion
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="account-dialog-text">
+              Entra con tu email y te mandamos un enlace de acceso. No hace falta recordar ninguna contrasena.
+            </p>
+            <AccountFeedback status={accountStatus} />
+            <form className="account-dialog-form" onSubmit={handleSubmit}>
+              <label className="account-dialog-label" htmlFor="account-dialog-email">
+                Email
+              </label>
+              <input
+                autoComplete="email"
+                className="form-control"
+                id="account-dialog-email"
+                inputMode="email"
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="tu@email.com"
+                ref={emailFieldRef}
+                type="email"
+                value={email}
+              />
+              <button className="primary-button" disabled={!accountStatus.isConfigured || isBusy} type="submit">
+                {isBusy ? "Enviando..." : "Enviarme el enlace"}
+              </button>
+            </form>
+          </>
+        )}
+
+        <Link className="account-dialog-link" href={privacyHref} onClick={onClose}>
+          Ver privacidad y datos
+        </Link>
+      </div>
+    </div>
   );
 }
 
