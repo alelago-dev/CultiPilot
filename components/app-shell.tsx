@@ -137,6 +137,40 @@ function describeAuthError(errorCode: string | null, errorDescription: string | 
 }
 
 /**
+ * Traduce el error que devuelve Supabase al pedir el enlace de acceso.
+ *
+ * El motivo mas frecuente es el limite de envios: el servicio de email
+ * incorporado de Supabase manda como maximo 2 correos por hora, y exige 60
+ * segundos entre pedidos del mismo usuario. Con un mensaje generico eso era
+ * indistinguible de un email mal escrito o de un problema de conexion.
+ */
+function describeSendLinkError(error: unknown) {
+  const readable = (error instanceof Error ? error.message : typeof error === "string" ? error : "").trim();
+
+  const waitSeconds = readable.match(/after (\d+) seconds?/i)?.[1];
+
+  if (waitSeconds) {
+    return `Hay que esperar ${waitSeconds} segundos antes de pedir otro enlace: Supabase no deja pedirlos seguidos.`;
+  }
+
+  if (/rate limit|too many requests|429/i.test(readable)) {
+    return "Se llego al limite de correos que Supabase manda por hora (son 2). Espera un rato y volve a intentar, o configura un servicio de email propio.";
+  }
+
+  if (/invalid|email address/i.test(readable)) {
+    return "Supabase no acepto ese email. Revisa que este bien escrito.";
+  }
+
+  // Ante un error inesperado Supabase a veces devuelve el cuerpo crudo, que
+  // puede ser un JSON vacio: mostrarlo no le sirve a nadie.
+  const esTextoUtil = readable.length > 3 && !/^[[{]/.test(readable);
+
+  return esTextoUtil
+    ? `No pudimos enviar el enlace: ${readable}`
+    : "No pudimos enviar el enlace. Revisa tu conexion e intenta de nuevo en un momento.";
+}
+
+/**
  * Lee el resultado que dejo el enlace del email en la URL. Supabase lo manda
  * en el fragmento (#) o en la query (?), segun el tipo de flujo.
  */
@@ -560,10 +594,10 @@ export function AppShell({
         message: `Listo: te enviamos un enlace a ${email}. Abrilo desde este mismo dispositivo para entrar. Puede tardar un minuto; si no llega, revisa la carpeta de spam.`,
         tone: "success"
       }));
-    } catch {
+    } catch (error) {
       announceAccount((currentStatus) => ({
         ...currentStatus,
-        message: "No pudimos enviar el enlace. Revisa que el email este bien escrito y tu conexion, e intenta de nuevo.",
+        message: describeSendLinkError(error),
         tone: "error"
       }));
     }
