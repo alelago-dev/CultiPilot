@@ -954,14 +954,14 @@ export function AppShell({
 
           <div className="flex items-center gap-2">
             <InstallAppButton />
-            <Link className="secondary-button account-header-link" href={`${getSectionHref(locale, "privacy")}#cuenta` as Route}>
-              Cuenta
-            </Link>
-            <LegalInfoSummary />
             <div className="hidden items-center gap-2 rounded-lg border border-emerald-700/15 bg-white/88 px-3 py-2 text-sm font-bold text-moss-900 shadow-sm sm:flex">
               <span className="status-dot" aria-hidden="true" />
               Demo seguro
             </div>
+            <AccountAvatarLink
+              accountStatus={accountStatus}
+              href={`${getSectionHref(locale, "privacy")}#cuenta` as Route}
+            />
           </div>
         </div>
       </header>
@@ -3186,18 +3186,39 @@ function QuickPlantForm({
   );
 }
 
-function LegalInfoSummary() {
+// Avatar de cuenta del encabezado. Reemplaza al popover "Info legal", que
+// ocupaba el lugar donde cualquier app pone el acceso a la cuenta y repetia
+// texto que ya esta completo en la seccion Privacidad.
+function AccountAvatarLink({ accountStatus, href }: { accountStatus: AccountStatus; href: Route }) {
+  const trimmedEmail = accountStatus.email.trim();
+  const initial = accountStatus.isSignedIn && trimmedEmail ? trimmedEmail.charAt(0).toUpperCase() : "";
+  const label = accountStatus.isSignedIn
+    ? `Cuenta conectada como ${trimmedEmail}. Ir a los datos de tu cuenta.`
+    : "Iniciar sesion para ver tus cultivos en otros dispositivos";
+
   return (
-    <details className="legal-popover">
-      <summary>Info legal</summary>
-      <div className="legal-popover-panel">
-        <p className="font-black text-moss-950">Uso legal y privacidad</p>
-        <p className="mt-2 text-sm leading-6 text-stone-700">
-          Solo para jurisdicciones donde el cultivo sea legal. La ubicacion debe ser aproximada y el usuario puede
-          exportar o eliminar sus datos.
-        </p>
-      </div>
-    </details>
+    <Link
+      aria-label={label}
+      className={accountStatus.isSignedIn ? "account-avatar is-signed-in" : "account-avatar"}
+      href={href}
+      title={label}
+    >
+      {initial ? (
+        <span aria-hidden="true" className="account-avatar-initial">
+          {initial}
+        </span>
+      ) : (
+        <svg aria-hidden="true" className="account-avatar-icon" fill="none" viewBox="0 0 24 24">
+          <circle cx="12" cy="8.4" r="3.5" stroke="currentColor" strokeWidth="1.9" />
+          <path
+            d="M5 19.4c0-3.3 3.1-5.4 7-5.4s7 2.1 7 5.4"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeWidth="1.9"
+          />
+        </svg>
+      )}
+    </Link>
   );
 }
 

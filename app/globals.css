@@ -5679,4 +5679,52 @@ textarea {
     grid-column: 1 / -1;
     flex-basis: 100%;
   }
+
+  /* Avatar de cuenta en el encabezado, en el lugar que antes ocupaba el boton
+     "Info legal". Sin sesion muestra la silueta gris habitual; con sesion, la
+     inicial del email sobre verde, que es la senal de "estas adentro". */
+  .account-avatar {
+    display: inline-flex;
+    position: relative;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid rgba(35, 84, 62, 0.24);
+    border-radius: 999px;
+    background: #ffffff;
+    color: #3f5a4b;
+    text-decoration: none;
+    box-shadow: 0 2px 6px rgba(28, 54, 38, 0.08);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+
+  .account-avatar:hover {
+    border-color: rgba(35, 84, 62, 0.45);
+    box-shadow: 0 6px 14px rgba(28, 54, 38, 0.16);
+    transform: translateY(-1px);
+  }
+
+  .account-avatar:focus-visible {
+    outline: 2px solid #1f6b4c;
+    outline-offset: 2px;
+  }
+
+  .account-avatar.is-signed-in {
+    border-color: transparent;
+    background: linear-gradient(135deg, #2f8f63, #1f6b4c);
+    color: #ffffff;
+  }
+
+  .account-avatar-icon {
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+
+  .account-avatar-initial {
+    font-size: 0.95rem;
+    font-weight: 900;
+    line-height: 1;
+  }
 }
