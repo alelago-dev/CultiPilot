@@ -105,11 +105,16 @@ type AppSnapshot = {
   tasks: Task[];
 };
 
+// El tono define el color y el icono del cartel de estado de la cuenta, para
+// que cada accion (enviar enlace, entrar, guardar, fallar) se vea distinta.
+type AccountTone = "error" | "info" | "pending" | "success";
+
 type AccountStatus = {
   email: string;
   isConfigured: boolean;
   isSignedIn: boolean;
   message: string;
+  tone: AccountTone;
   userId: string;
 };
 
@@ -257,9 +262,28 @@ export function AppShell({
     message: isSupabaseConfigured()
       ? "Conecta una cuenta para guardar datos por usuario."
       : "Demo local: falta configurar Supabase para sincronizar entre navegadores.",
+    tone: "info",
     userId: ""
   }));
   const [remoteSyncReady, setRemoteSyncReady] = useState(false);
+  // El guardado automatico corre en paralelo al manual y a la carga inicial de
+  // sesion. Sin esta marca, su mensaje de exito pisaba el "Guardando..." del
+  // boton y el "Sesion iniciada como ..." recien mostrado al entrar.
+  const manualSaveInFlight = useRef(false);
+  // Momento del ultimo mensaje que el usuario provoco a proposito (entrar,
+  // guardar a mano, un error). Durante unos segundos el guardado automatico no
+  // lo reemplaza, para que dé tiempo a leerlo.
+  const lastAnnouncedAt = useRef(0);
+
+  function announceAccount(update: (current: AccountStatus) => AccountStatus) {
+    lastAnnouncedAt.current = Date.now();
+    setAccountStatus(update);
+  }
+
+  function announceAccountStatus(nextStatus: AccountStatus) {
+    lastAnnouncedAt.current = Date.now();
+    setAccountStatus(nextStatus);
+  }
   const [showOnboarding, setShowOnboarding] = useState(
     () => typeof window !== "undefined" && window.localStorage.getItem(storageKeys.onboarding) !== "true"
   );
@@ -331,8 +355,20 @@ export function AppShell({
     }
   }
 
-  async function saveRemoteSnapshot(nextSnapshot = getCurrentSnapshot()) {
+  // El guardado automatico corre solo cada vez que cambian los datos, asi que
+  // no muestra el estado "Guardando..." para no hacer parpadear el cartel. El
+  // guardado manual (boton "Guardar ahora") si lo muestra.
+  async function saveRemoteSnapshot(nextSnapshot = getCurrentSnapshot(), options: { manual?: boolean } = {}) {
     if (!accountStatus.userId || !isSupabaseConfigured()) return;
+
+    if (options.manual) {
+      manualSaveInFlight.current = true;
+      setAccountStatus((currentStatus) => ({
+        ...currentStatus,
+        message: "Guardando tus datos en la cuenta...",
+        tone: "pending"
+      }));
+    }
 
     try {
       const supabase = getSupabaseBrowserClient() as unknown as SnapshotTableClient;
@@ -344,15 +380,33 @@ export function AppShell({
 
       if (error) throw error;
 
-      setAccountStatus((currentStatus) => ({
-        ...currentStatus,
-        message: "Datos guardados por usuario."
-      }));
+      if (options.manual) {
+        announceAccount((currentStatus) => ({
+          ...currentStatus,
+          message: "Listo: tus datos quedaron guardados en tu cuenta.",
+          tone: "success"
+        }));
+      } else {
+        // El guardado automatico solo habla si no hay nada mas importante en
+        // pantalla, para no tapar el mensaje de otra accion.
+        const puedeHablar = !manualSaveInFlight.current && Date.now() - lastAnnouncedAt.current > 8000;
+
+        setAccountStatus((currentStatus) =>
+          puedeHablar && currentStatus.tone !== "pending"
+            ? { ...currentStatus, message: "Cambios guardados automaticamente en tu cuenta.", tone: "info" }
+            : currentStatus
+        );
+      }
     } catch {
-      setAccountStatus((currentStatus) => ({
+      announceAccount((currentStatus) => ({
         ...currentStatus,
-        message: "No se pudo guardar online. Revisa Supabase o la conexion."
+        message: "No se pudo guardar online. Revisa tu conexion e intenta de nuevo.",
+        tone: "error"
       }));
+    } finally {
+      if (options.manual) {
+        manualSaveInFlight.current = false;
+      }
     }
   }
 
@@ -370,11 +424,12 @@ export function AppShell({
 
       if (data?.payload) {
         applySnapshot(data.payload as Partial<AppSnapshot>);
-        setAccountStatus({
+        announceAccountStatus({
           email,
           isConfigured: true,
           isSignedIn: true,
-          message: "Datos cargados desde tu cuenta.",
+          message: `Sesion iniciada como ${email}. Cargamos los cultivos guardados en tu cuenta.`,
+          tone: "success",
           userId
         });
       } else {
@@ -387,21 +442,23 @@ export function AppShell({
 
         if (insertError) throw insertError;
 
-        setAccountStatus({
+        announceAccountStatus({
           email,
           isConfigured: true,
           isSignedIn: true,
-          message: "Cuenta conectada. Se guardara una copia online.",
+          message: `Sesion iniciada como ${email}. Subimos los cultivos de este dispositivo a tu cuenta.`,
+          tone: "success",
           userId
         });
       }
       setRemoteSyncReady(true);
     } catch {
-      setAccountStatus({
+      announceAccountStatus({
         email,
         isConfigured: true,
         isSignedIn: true,
         message: "Cuenta conectada, pero falta aplicar la tabla user_app_snapshots en Supabase.",
+        tone: "error",
         userId
       });
     }
@@ -411,10 +468,18 @@ export function AppShell({
     if (!isSupabaseConfigured()) {
       setAccountStatus((currentStatus) => ({
         ...currentStatus,
-        message: "Falta configurar NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY."
+        message: "Falta configurar NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY.",
+        tone: "error"
       }));
       return;
     }
+
+    setAccountStatus((currentStatus) => ({
+      ...currentStatus,
+      email,
+      message: `Enviando el enlace de acceso a ${email}...`,
+      tone: "pending"
+    }));
 
     try {
       const supabase = getSupabaseBrowserClient();
@@ -427,15 +492,17 @@ export function AppShell({
 
       if (error) throw error;
 
-      setAccountStatus((currentStatus) => ({
+      announceAccount((currentStatus) => ({
         ...currentStatus,
         email,
-        message: "Te enviamos un enlace de acceso. Abrilo para conectar tu cuenta."
+        message: `Listo: te enviamos un enlace a ${email}. Abrilo desde este mismo dispositivo para entrar. Puede tardar un minuto; si no llega, revisa la carpeta de spam.`,
+        tone: "success"
       }));
     } catch {
-      setAccountStatus((currentStatus) => ({
+      announceAccount((currentStatus) => ({
         ...currentStatus,
-        message: "No se pudo enviar el enlace de acceso."
+        message: "No pudimos enviar el enlace. Revisa que el email este bien escrito y tu conexion, e intenta de nuevo.",
+        tone: "error"
       }));
     }
   }
@@ -448,11 +515,12 @@ export function AppShell({
       await supabase.auth.signOut();
     } finally {
       setRemoteSyncReady(false);
-      setAccountStatus({
+      announceAccountStatus({
         email: "",
         isConfigured: true,
         isSignedIn: false,
         message: "Sesion cerrada. Los datos locales siguen en este navegador.",
+        tone: "info",
         userId: ""
       });
     }
@@ -804,6 +872,7 @@ export function AppShell({
         isConfigured: true,
         isSignedIn: false,
         message: "Conecta una cuenta para guardar datos por usuario.",
+        tone: "info",
         userId: ""
       });
     });
@@ -908,7 +977,7 @@ export function AppShell({
           careScore={careScore}
           dictionary={dictionary}
           locale={locale}
-          onSaveRemoteSnapshot={() => saveRemoteSnapshot()}
+          onSaveRemoteSnapshot={() => saveRemoteSnapshot(undefined, { manual: true })}
           onSendMagicLink={handleSendMagicLink}
           onSignOut={handleSignOut}
           onToggleTask={handleToggleTask}
@@ -962,7 +1031,7 @@ export function AppShell({
           accountStatus={accountStatus}
           onClearCultivationData={handleClearCultivationData}
           onExportData={handleExportData}
-          onSaveRemoteSnapshot={() => saveRemoteSnapshot()}
+          onSaveRemoteSnapshot={() => saveRemoteSnapshot(undefined, { manual: true })}
           onSendMagicLink={handleSendMagicLink}
           onSignOut={handleSignOut}
         />
@@ -1421,6 +1490,44 @@ function GrowCommandPanel({
   );
 }
 
+// Cartel de estado de la cuenta. Se muestra siempre (con sesion o sin ella)
+// para que cada accion deje un rastro visible: antes el usuario apretaba
+// "Iniciar sesion" y no pasaba nada a la vista.
+// Las clases van escritas enteras y no armadas con `account-feedback-${tone}`:
+// Tailwind escanea el codigo buscando nombres de clase literales y descarta del
+// CSS final los que no encuentra, asi que un nombre construido en tiempo de
+// ejecucion se queda sin estilos (el cartel salia transparente).
+const accountFeedbackClassByTone: Record<AccountTone, string> = {
+  error: "account-feedback account-feedback-error",
+  info: "account-feedback account-feedback-info",
+  pending: "account-feedback account-feedback-pending",
+  success: "account-feedback account-feedback-success"
+};
+
+const accountFeedbackIconByTone: Record<AccountTone, string> = {
+  error: "!",
+  info: "i",
+  pending: "",
+  success: "✓"
+};
+
+function AccountFeedback({ status }: { status: AccountStatus }) {
+  if (!status.message) return null;
+
+  return (
+    <p aria-live="polite" className={accountFeedbackClassByTone[status.tone]} role="status">
+      {status.tone === "pending" ? (
+        <span aria-hidden="true" className="account-feedback-spinner" />
+      ) : (
+        <span aria-hidden="true" className="account-feedback-icon">
+          {accountFeedbackIconByTone[status.tone]}
+        </span>
+      )}
+      <span className="account-feedback-text">{status.message}</span>
+    </p>
+  );
+}
+
 function HomeAccountPanel({
   accountStatus,
   onSaveRemoteSnapshot,
@@ -1433,6 +1540,7 @@ function HomeAccountPanel({
   onSignOut: () => void;
 }) {
   const [email, setEmail] = useState(accountStatus.email);
+  const isBusy = accountStatus.tone === "pending";
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1462,12 +1570,18 @@ function HomeAccountPanel({
       {accountStatus.isSignedIn ? (
         <div className="home-account-actions">
           <span>{accountStatus.email}</span>
-          <button className="primary-button" onClick={onSaveRemoteSnapshot} type="button">
-            Guardar ahora
+          <button
+            className="primary-button"
+            disabled={isBusy}
+            onClick={onSaveRemoteSnapshot}
+            type="button"
+          >
+            {isBusy ? "Guardando..." : "Guardar ahora"}
           </button>
           <button className="secondary-button" onClick={onSignOut} type="button">
             Cerrar sesion
           </button>
+          <AccountFeedback status={accountStatus} />
         </div>
       ) : (
         <form className="home-account-form" onSubmit={handleSubmit}>
@@ -1479,10 +1593,10 @@ function HomeAccountPanel({
             type="email"
             value={email}
           />
-          <button className="primary-button" disabled={!accountStatus.isConfigured} type="submit">
-            Iniciar sesion
+          <button className="primary-button" disabled={!accountStatus.isConfigured || isBusy} type="submit">
+            {isBusy ? "Enviando..." : "Iniciar sesion"}
           </button>
-          <p>{accountStatus.message}</p>
+          <AccountFeedback status={accountStatus} />
         </form>
       )}
     </section>
@@ -2886,6 +3000,8 @@ function UserDataPanel({
   onSendMagicLink: (email: string) => void;
   onSignOut: () => void;
 }) {
+  const isBusy = accountStatus.tone === "pending";
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextEmail = email.trim();
@@ -2903,8 +3019,8 @@ function UserDataPanel({
           Iniciar sesion para ver tus datos en otros navegadores
         </h3>
         <p className="mt-2 max-w-3xl text-sm font-bold leading-6 text-stone-700">
-          Para que Nico abra el link desde otro celular o navegador y vea los mismos cultivos, cada usuario tiene que
-          entrar con su email. Si Supabase no esta configurado, la app sigue guardando solo en este dispositivo.
+          Para abrir la app desde otro celular o navegador y ver los mismos cultivos, hay que entrar con email. Te
+          llega un enlace de acceso al correo: no hace falta recordar ninguna contrasena.
         </p>
       </div>
 
@@ -2912,11 +3028,11 @@ function UserDataPanel({
         <span className={accountStatus.isSignedIn ? "pill pill-green" : "pill pill-amber"}>
           {accountStatus.isSignedIn ? "Cuenta conectada" : accountStatus.isConfigured ? "Sin sesion" : "Demo local"}
         </span>
-        <p className="mt-3 text-sm font-bold leading-6 text-stone-700">{accountStatus.message}</p>
+        <AccountFeedback status={accountStatus} />
         {accountStatus.isSignedIn ? (
           <div className="mt-4 flex flex-wrap gap-2">
-            <button className="primary-button" onClick={onSaveRemoteSnapshot} type="button">
-              Guardar ahora
+            <button className="primary-button" disabled={isBusy} onClick={onSaveRemoteSnapshot} type="button">
+              {isBusy ? "Guardando..." : "Guardar ahora"}
             </button>
             <button className="secondary-button" onClick={onSignOut} type="button">
               Cerrar sesion
@@ -2928,12 +3044,16 @@ function UserDataPanel({
             <FormField
               label="Email de usuario"
               onChange={onEmailChange}
-              placeholder="nico@email.com"
+              placeholder="tu@email.com"
               type="email"
               value={email}
             />
-            <button className="primary-button self-end" disabled={!accountStatus.isConfigured} type="submit">
-              Iniciar sesion
+            <button
+              className="primary-button self-end"
+              disabled={!accountStatus.isConfigured || isBusy}
+              type="submit"
+            >
+              {isBusy ? "Enviando..." : "Iniciar sesion"}
             </button>
           </form>
         )}
