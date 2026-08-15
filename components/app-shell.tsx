@@ -2580,23 +2580,19 @@ function CalendarSection({
                     {day.isToday ? <span className="today-dot" aria-label="Hoy" /> : null}
                   </div>
                   {isCompactGrid ? (
-                    <div className="calendar-event-dots">
-                      {dayOccurrences.slice(0, 4).map((occurrence) => (
-                        <span
-                          aria-hidden="true"
-                          className={`calendar-event-dot ${getEventClass(occurrence.kind)}`}
-                          key={occurrence.occurrenceId}
-                        />
+                    <div className="calendar-event-icons">
+                      {dayOccurrences.slice(0, 3).map((occurrence) => (
+                        <span aria-hidden="true" className="calendar-event-icon" key={occurrence.occurrenceId}>
+                          {getEventEmoji(occurrence.kind, occurrence.title)}
+                        </span>
                       ))}
-                      {dayOccurrences.length > 4 ? (
-                        <span aria-hidden="true" className="calendar-event-dot-more">
-                          +{dayOccurrences.length - 4}
+                      {dayOccurrences.length > 3 ? (
+                        <span aria-hidden="true" className="calendar-event-icon-more">
+                          +{dayOccurrences.length - 3}
                         </span>
                       ) : null}
                       {dayOccurrences.length > 0 ? (
-                        <span className="sr-only">
-                          {dayOccurrences.length} {dayOccurrences.length === 1 ? "evento" : "eventos"}
-                        </span>
+                        <span className="sr-only">{dayOccurrences.map((occurrence) => occurrence.title).join(", ")}</span>
                       ) : null}
                     </div>
                   ) : (
@@ -3767,6 +3763,29 @@ function getEventClass(kind: CalendarEventOccurrence["kind"]) {
   if (kind === "photo") return "event-photo";
   if (kind === "cleaning") return "event-clean";
   return "event-review";
+}
+
+/**
+ * Icono que representa al evento en la vista compacta del calendario.
+ *
+ * Los eventos creados desde los accesos rapidos ya traen el emoji al principio
+ * del titulo ("✂️ Poda"), asi que se reutiliza tal cual y cada actividad se
+ * distingue de las demas. Los eventos generados automaticamente no lo traen,
+ * asi que caen en un icono por tipo. Sin esto, poda, defoliar, fumigar y
+ * fotoperiodo se verian todos iguales: los cuatro son de tipo "review".
+ */
+function getEventEmoji(kind: CalendarEventOccurrence["kind"], title: string) {
+  const firstToken = title.trim().split(/\s+/)[0] ?? "";
+
+  if (firstToken && !/[\p{L}\p{N}]/u.test(firstToken)) {
+    return firstToken;
+  }
+
+  if (kind === "watering") return "💧";
+  if (kind === "photo") return "📷";
+  if (kind === "cleaning") return "🧹";
+
+  return "🔎";
 }
 
 function hasDuplicateCalendarAction(occurrences: CalendarEventOccurrence[], actionLabel: string) {
