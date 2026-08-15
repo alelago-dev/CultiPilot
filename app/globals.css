@@ -5948,3 +5948,145 @@ textarea {
     }
   }
 }
+
+@layer components {
+  /* Compartir cultivos: bloque dentro de la ventana de cuenta. */
+  .account-share {
+    margin-top: 1.1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(22, 32, 21, 0.1);
+  }
+
+  .account-share-title {
+    color: #12301f;
+    font-size: 0.9rem;
+    font-weight: 900;
+  }
+
+  .account-share-title-second {
+    margin-top: 1.1rem;
+  }
+
+  .account-share-hint {
+    margin-top: 0.15rem;
+    color: #52604d;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.45;
+  }
+
+  .account-share-button {
+    margin-top: 0.6rem;
+  }
+
+  /* El codigo se muestra grande y espaciado porque se pasa leyendolo o
+     copiandolo a mano. */
+  .account-share-code {
+    margin-top: 0.6rem;
+    padding: 0.6rem;
+    border: 1px dashed rgba(31, 107, 76, 0.4);
+    border-radius: 12px;
+    background: #eef6f1;
+    color: #17603f;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 1.05rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-align: center;
+    user-select: all;
+  }
+
+  .account-share-form {
+    display: grid;
+    gap: 0.45rem;
+    margin-top: 0.55rem;
+  }
+
+  .account-share-list {
+    display: grid;
+    gap: 0.4rem;
+    margin-top: 0.7rem;
+  }
+
+  .account-share-open {
+    width: 100%;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid rgba(35, 84, 62, 0.2);
+    border-radius: 12px;
+    background: #ffffff;
+    color: #23543e;
+    font-size: 0.83rem;
+    font-weight: 800;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .account-share-open:hover {
+    border-color: rgba(35, 84, 62, 0.45);
+    background: #f3f8f5;
+  }
+
+  .account-share-message {
+    margin-top: 0.7rem;
+    color: #3f5a4b;
+    font-size: 0.79rem;
+    font-weight: 700;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  /* Aviso fijo mientras se miran cultivos ajenos. Va pegado abajo y por encima
+     de todo: mientras dure, nada de lo que se toque se guarda, y eso tiene que
+     estar a la vista siempre, no solo al abrirlo. */
+  .shared-view-banner {
+    position: fixed;
+    left: 50%;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 5.2rem);
+    z-index: 55;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    width: min(560px, calc(100vw - 1.5rem));
+    padding: 0.7rem 0.9rem;
+    border-radius: 16px;
+    background: #2b1f4a;
+    color: #f4f0ff;
+    box-shadow: 0 16px 34px rgba(20, 12, 40, 0.32);
+    transform: translateX(-50%);
+  }
+
+  @media (min-width: 1024px) {
+    .shared-view-banner {
+      bottom: 1.2rem;
+    }
+  }
+
+  .shared-view-banner-text {
+    flex: 1 1 220px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  .shared-view-banner-text strong {
+    font-weight: 900;
+  }
+
+  .shared-view-banner-button {
+    flex: none;
+    padding: 0.45rem 0.8rem;
+    border: 0;
+    border-radius: 999px;
+    background: #f4f0ff;
+    color: #2b1f4a;
+    font-size: 0.78rem;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .shared-view-banner-button:hover {
+    background: #ffffff;
+  }
+}

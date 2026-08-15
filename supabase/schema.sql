@@ -153,3 +153,107 @@ create policy "plant photo owners can upload" on storage.objects
 
 create policy "plant photo owners can delete" on storage.objects
   for delete using (bucket_id = 'plant-photos' and auth.uid()::text = (storage.foldername(name))[1]);
+
+-- ---------------------------------------------------------------------------
+-- Compartir cultivos en modo lectura
+--
+-- El dueno genera un codigo y se lo pasa a quien quiera. Quien lo canjea puede
+-- LEER el respaldo del dueno, nunca escribirlo.
+--
+-- Se comparte con un codigo y no con el email a proposito: buscar usuarios por
+-- direccion obligaria a exponer una tabla de emails, y cualquiera podria probar
+-- direcciones para averiguar quien tiene cuenta.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.snapshot_shares (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  viewer_id uuid references auth.users(id) on delete cascade,
+  code text not null unique,
+  owner_label text,
+  created_at timestamptz not null default now(),
+  claimed_at timestamptz
+);
+
+create index if not exists snapshot_shares_viewer_idx on public.snapshot_shares (viewer_id);
+
+alter table public.snapshot_shares enable row level security;
+
+drop policy if exists "shares owner manages" on public.snapshot_shares;
+drop policy if exists "shares viewer reads" on public.snapshot_shares;
+drop policy if exists "shares viewer leaves" on public.snapshot_shares;
+
+-- El dueno ve y administra los codigos que genero.
+create policy "shares owner manages" on public.snapshot_shares
+  for all using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
+
+-- El invitado ve los permisos que le dieron, para poder listarlos.
+create policy "shares viewer reads" on public.snapshot_shares
+  for select using (auth.uid() = viewer_id);
+
+-- El invitado puede soltar un permiso que ya no quiere.
+create policy "shares viewer leaves" on public.snapshot_shares
+  for delete using (auth.uid() = viewer_id);
+
+-- Lectura del respaldo ajeno. Se suma a la politica de "solo mis filas": en
+-- Postgres las politicas permisivas se combinan con OR, asi que esto agrega
+-- lectura sin quitarle a nadie el control de lo suyo. Ojo que es solo SELECT:
+-- escribir sigue exigiendo ser el dueno.
+drop policy if exists "app snapshots shared read" on public.user_app_snapshots;
+
+create policy "app snapshots shared read" on public.user_app_snapshots
+  for select using (
+    exists (
+      select 1
+      from public.snapshot_shares as share
+      where share.owner_id = user_app_snapshots.user_id
+        and share.viewer_id = auth.uid()
+    )
+  );
+
+-- Canje del codigo.
+--
+-- Va como funcion security definer porque quien canjea todavia no tiene
+-- permiso para ver esa fila: sin esto tendria que poder leer la tabla entera
+-- de codigos para encontrar el suyo, y podria probar codigos ajenos.
+create or replace function public.claim_snapshot_share(share_code text)
+returns table (owner_id uuid, owner_label text)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  target public.snapshot_shares%rowtype;
+begin
+  if auth.uid() is null then
+    raise exception 'Hay que iniciar sesion para usar un codigo';
+  end if;
+
+  select * into target
+  from public.snapshot_shares
+  where code = upper(trim(share_code));
+
+  if not found then
+    raise exception 'Ese codigo no existe';
+  end if;
+
+  if target.owner_id = auth.uid() then
+    raise exception 'Ese codigo es tuyo';
+  end if;
+
+  -- Un codigo sirve para una sola persona: si ya lo canjeo otra, no se reusa.
+  if target.viewer_id is not null and target.viewer_id <> auth.uid() then
+    raise exception 'Ese codigo ya lo uso otra persona';
+  end if;
+
+  update public.snapshot_shares
+  set viewer_id = auth.uid(),
+      claimed_at = now()
+  where id = target.id;
+
+  return query select target.owner_id, target.owner_label;
+end;
+$$;
+
+revoke all on function public.claim_snapshot_share(text) from public;
+grant execute on function public.claim_snapshot_share(text) to authenticated;

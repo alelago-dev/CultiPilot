@@ -232,6 +232,84 @@ type SnapshotTableClient = {
   };
 };
 
+/** Un cultivo ajeno que alguien me dejo mirar. */
+type SharedView = {
+  ownerId: string;
+  ownerLabel: string;
+};
+
+type ShareRow = {
+  code: string;
+  owner_id: string;
+  owner_label: string | null;
+  viewer_id: string | null;
+};
+
+type ShareTableClient = {
+  from: (table: "snapshot_shares") => {
+    delete: () => {
+      eq: (column: "id" | "owner_id" | "viewer_id", value: string) => Promise<{ error: unknown }>;
+    };
+    insert: (value: { code: string; owner_id: string; owner_label: string }) => Promise<{ error: unknown }>;
+    select: (columns: string) => {
+      eq: (column: "owner_id" | "viewer_id", value: string) => Promise<{ data: ShareRow[] | null; error: unknown }>;
+    };
+  };
+  rpc: (
+    fn: "claim_snapshot_share",
+    args: { share_code: string }
+  ) => Promise<{ data: Array<{ owner_id: string; owner_label: string | null }> | null; error: unknown }>;
+};
+
+/**
+ * Codigo de invitacion. Se evitan las letras y numeros que se confunden al
+ * leerlos en voz alta o al pasarlos por mensaje (O/0, I/1, S/5).
+ */
+/**
+ * La vista compartida se guarda en sessionStorage y no en localStorage a
+ * proposito: cada seccion de la app es una pagina distinta, asi que cambiar de
+ * pestana vuelve a montar todo y sin esto se perdia de inmediato. Al ser de
+ * sesion, se borra sola al cerrar la pestana, que es el comportamiento seguro.
+ */
+const viewingShareStorageKey = "plantcare-viewing-share";
+
+function readStoredShare(): SharedView | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.sessionStorage.getItem(viewingShareStorageKey);
+
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Partial<SharedView>;
+
+    return parsed.ownerId ? { ownerId: parsed.ownerId, ownerLabel: parsed.ownerLabel ?? "Otra persona" } : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredShare(share: SharedView | null) {
+  if (typeof window === "undefined") return;
+
+  if (share) {
+    window.sessionStorage.setItem(viewingShareStorageKey, JSON.stringify(share));
+  } else {
+    window.sessionStorage.removeItem(viewingShareStorageKey);
+  }
+}
+
+function createShareCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRTUVWXYZ2346789";
+  let code = "";
+
+  for (let index = 0; index < 8; index += 1) {
+    code += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+
+  return `${code.slice(0, 4)}-${code.slice(4)}`;
+}
+
 const careScore = 86;
 const assetBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const manualPlantId = "plant-manual-regulated";
@@ -361,6 +439,26 @@ export function AppShell({
   }));
   const [remoteSyncReady, setRemoteSyncReady] = useState(false);
   const [showAccountDialog, setShowAccountDialog] = useState(false);
+  const [sharedViews, setSharedViews] = useState<SharedView[]>([]);
+  const [viewingShare, setViewingShare] = useState<SharedView | null>(() => readStoredShare());
+  const [shareCode, setShareCode] = useState("");
+  const [shareMessage, setShareMessage] = useState("");
+
+  // Freno de mano para el guardado. Es una referencia y no un estado porque el
+  // guardado automatico corre dentro de un temporizador: si mirara el estado,
+  // podria leer un valor viejo y escribir sobre los cultivos de otra persona.
+  const isViewingSharedRef = useRef(false);
+  // Copia de los cultivos propios de antes de entrar a mirar los de otro, para
+  // devolverlos al salir sin depender de la red.
+  const ownSnapshotBeforeShare = useRef<AppSnapshot | null>(null);
+  const lastRestoredUserRef = useRef<string | null>(null);
+
+  // El freno sigue al estado. Importa sobre todo al montar: si la pestana ya
+  // venia mirando cultivos ajenos, tiene que quedar frenado antes de que algo
+  // pueda guardarse.
+  useEffect(() => {
+    isViewingSharedRef.current = viewingShare !== null;
+  }, [viewingShare]);
   // El guardado automatico corre en paralelo al manual y a la carga inicial de
   // sesion. Sin esta marca, su mensaje de exito pisaba el "Guardando..." del
   // boton y el "Sesion iniciada como ..." recien mostrado al entrar.
@@ -458,6 +556,10 @@ export function AppShell({
   // no muestra el estado "Guardando..." para no hacer parpadear el cartel. El
   // guardado manual (boton "Guardar ahora") si lo muestra.
   async function saveRemoteSnapshot(nextSnapshot = getCurrentSnapshot(), options: { manual?: boolean } = {}) {
+    // Primer freno: nunca escribir mientras lo que hay en pantalla es de otra
+    // persona. Va antes que cualquier otra cosa a proposito.
+    if (isViewingSharedRef.current) return;
+
     if (!accountStatus.userId || !isSupabaseConfigured()) return;
 
     if (options.manual) {
@@ -531,6 +633,17 @@ export function AppShell({
           tone: "success",
           userId
         });
+      } else if (isViewingSharedRef.current) {
+        // La cuenta propia no tiene respaldo todavia, pero lo que hay en
+        // pantalla es de otra persona: subirlo lo dejaria guardado como propio.
+        announceAccountStatus({
+          email,
+          isConfigured: true,
+          isSignedIn: true,
+          message: "Todavia no guardaste cultivos propios.",
+          tone: "info",
+          userId
+        });
       } else {
         const firstSnapshot = getCurrentSnapshot();
         const { error: insertError } = await supabase.from("user_app_snapshots").upsert({
@@ -551,6 +664,7 @@ export function AppShell({
         });
       }
       setRemoteSyncReady(true);
+      void loadSharedViews(userId);
     } catch {
       announceAccountStatus({
         email,
@@ -612,6 +726,166 @@ export function AppShell({
     }
   }
 
+  async function loadSharedViews(viewerId: string) {
+    try {
+      const supabase = getSupabaseBrowserClient() as unknown as ShareTableClient;
+      const { data, error } = await supabase
+        .from("snapshot_shares")
+        .select("code, owner_id, owner_label, viewer_id")
+        .eq("viewer_id", viewerId);
+
+      if (error) throw error;
+
+      setSharedViews(
+        (data ?? []).map((row) => ({
+          ownerId: row.owner_id,
+          ownerLabel: row.owner_label ?? "Otra persona"
+        }))
+      );
+    } catch {
+      setSharedViews([]);
+    }
+  }
+
+  async function handleCreateShareCode() {
+    if (!accountStatus.userId) return;
+
+    const code = createShareCode();
+
+    setShareMessage("Generando el codigo...");
+
+    try {
+      const supabase = getSupabaseBrowserClient() as unknown as ShareTableClient;
+      const { error } = await supabase.from("snapshot_shares").insert({
+        code,
+        owner_id: accountStatus.userId,
+        owner_label: accountStatus.email || "Cultivos compartidos"
+      });
+
+      if (error) throw error;
+
+      setShareCode(code);
+      setShareMessage("Codigo listo. Pasaselo a quien quieras que vea tus cultivos.");
+    } catch {
+      setShareMessage("No pudimos generar el codigo. Revisa tu conexion e intenta de nuevo.");
+    }
+  }
+
+  async function handleRedeemShareCode(code: string) {
+    if (!accountStatus.userId) return;
+
+    setShareMessage("Validando el codigo...");
+
+    try {
+      const supabase = getSupabaseBrowserClient() as unknown as ShareTableClient;
+      const { data, error } = await supabase.rpc("claim_snapshot_share", { share_code: code.trim().toUpperCase() });
+
+      if (error) throw error;
+
+      const claimed = data?.[0];
+
+      if (!claimed) throw new Error("Codigo sin resultado");
+
+      const nextView: SharedView = {
+        ownerId: claimed.owner_id,
+        ownerLabel: claimed.owner_label ?? "Otra persona"
+      };
+
+      setSharedViews((current) =>
+        current.some((view) => view.ownerId === nextView.ownerId) ? current : [...current, nextView]
+      );
+      setShareMessage(`Listo: ya podes ver los cultivos de ${nextView.ownerLabel}.`);
+    } catch (error) {
+      const readable = error instanceof Error ? error.message : "";
+
+      setShareMessage(readable ? `No se pudo usar el codigo: ${readable}` : "No se pudo usar el codigo.");
+    }
+  }
+
+  /**
+   * Pasa a mirar los cultivos de otra persona.
+   *
+   * El freno de escritura se levanta ANTES de tocar cualquier dato: si se
+   * hiciera despues, el guardado automatico podria dispararse en el medio y
+   * subir los cultivos ajenos a la cuenta propia.
+   */
+  async function handleOpenSharedView(share: SharedView, options: { restoring?: boolean } = {}) {
+    isViewingSharedRef.current = true;
+    // Al restaurar tras cambiar de seccion, lo que hay en pantalla ya es de la
+    // otra persona: guardarlo como "copia propia" haria que al salir se
+    // recuperen sus cultivos creyendo que son los mios.
+    if (!options.restoring && !viewingShare) {
+      ownSnapshotBeforeShare.current = getCurrentSnapshot();
+    }
+    setRemoteSyncReady(false);
+    setViewingShare(share);
+    writeStoredShare(share);
+    setShowAccountDialog(false);
+
+    try {
+      const supabase = getSupabaseBrowserClient() as unknown as SnapshotTableClient;
+      const consulta = supabase
+        .from("user_app_snapshots")
+        .select("payload")
+        .eq("user_id", share.ownerId)
+        .eq("key", remoteSnapshotKey)
+        .maybeSingle();
+
+      // Con limite de tiempo: si la consulta no vuelve, el usuario tiene que
+      // enterarse. Colgada y en silencio seria lo peor de los dos mundos,
+      // porque el aviso de "solo lectura" quedaria puesto sin datos detras.
+      const { data, error } = await Promise.race([
+        consulta,
+        new Promise<{ data: SnapshotRow | null; error: unknown }>((_, reject) =>
+          window.setTimeout(() => reject(new Error("tiempo agotado")), 12000)
+        )
+      ]);
+
+      if (error) throw error;
+
+      if (data?.payload) {
+        applySnapshot(data.payload as Partial<AppSnapshot>);
+        setShareMessage(`Estas viendo los cultivos de ${share.ownerLabel}.`);
+      } else {
+        setShareMessage(`${share.ownerLabel} todavia no guardo ningun cultivo.`);
+      }
+    } catch {
+      setShareMessage("No pudimos abrir esos cultivos. Volve a los tuyos y proba de nuevo en un momento.");
+    }
+  }
+
+  async function handleCloseSharedView() {
+    const ownSnapshot = ownSnapshotBeforeShare.current;
+
+    setViewingShare(null);
+    writeStoredShare(null);
+    setShareMessage("");
+
+    if (ownSnapshot) {
+      applySnapshot(ownSnapshot);
+      ownSnapshotBeforeShare.current = null;
+
+      // El freno se suelta recien aca, ya con los datos propios en pantalla,
+      // para que no quede ni un instante en el que se pueda guardar algo ajeno.
+      isViewingSharedRef.current = false;
+
+      if (accountStatus.userId) {
+        setRemoteSyncReady(true);
+      }
+
+      return;
+    }
+
+    // Sin copia en memoria (pasa al volver despues de cambiar de seccion) hay
+    // que traer los propios del servidor, y el freno sigue puesto hasta que
+    // lleguen.
+    if (accountStatus.userId) {
+      await loadRemoteSnapshot(accountStatus.userId, accountStatus.email || "Cuenta conectada");
+    }
+
+    isViewingSharedRef.current = false;
+  }
+
   async function handleSignOut() {
     if (!isSupabaseConfigured()) return;
 
@@ -620,6 +894,16 @@ export function AppShell({
       await supabase.auth.signOut();
     } finally {
       setRemoteSyncReady(false);
+      // Al cerrar sesion no queda ningun permiso ni ninguna vista ajena
+      // abierta, y el freno de escritura vuelve a su lugar.
+      isViewingSharedRef.current = false;
+      ownSnapshotBeforeShare.current = null;
+      lastRestoredUserRef.current = null;
+      setViewingShare(null);
+      writeStoredShare(null);
+      setSharedViews([]);
+      setShareCode("");
+      setShareMessage("");
       announceAccountStatus({
         email: "",
         isConfigured: true,
@@ -999,12 +1283,43 @@ export function AppShell({
     let isMounted = true;
     const supabase = getSupabaseBrowserClient();
 
+    // Si la pestana ya venia mirando cultivos ajenos, se retoma esa vista en
+    // vez de cargar los propios: cambiar de seccion vuelve a montar la app, y
+    // sin esto la vista compartida se caia en cada toque del menu.
+    function restoreSessionFor(userId: string, email: string) {
+      // El evento de sesion llega varias veces seguidas al abrir la app
+      // (sesion inicial, ingreso, refresco). Sin esto se disparaban tres
+      // cargas identicas y tres guardados.
+      if (lastRestoredUserRef.current === userId) return;
+
+      lastRestoredUserRef.current = userId;
+
+      const storedShare = readStoredShare();
+
+      if (storedShare) {
+        isViewingSharedRef.current = true;
+        announceAccountStatus({
+          email,
+          isConfigured: true,
+          isSignedIn: true,
+          message: `Estas viendo los cultivos de ${storedShare.ownerLabel}.`,
+          tone: "info",
+          userId
+        });
+        void loadSharedViews(userId);
+        void handleOpenSharedView(storedShare, { restoring: true });
+        return;
+      }
+
+      void loadRemoteSnapshot(userId, email);
+    }
+
     supabase.auth.getSession().then(({ data }) => {
       if (!isMounted) return;
 
       const user = data.session?.user;
       if (user?.id) {
-        void loadRemoteSnapshot(user.id, user.email ?? "Cuenta conectada");
+        restoreSessionFor(user.id, user.email ?? "Cuenta conectada");
       }
     });
 
@@ -1012,7 +1327,14 @@ export function AppShell({
       const user = session?.user;
 
       if (user?.id) {
-        void loadRemoteSnapshot(user.id, user.email ?? "Cuenta conectada");
+        // Se difiere a proposito. Supabase corre este callback sosteniendo un
+        // cerrojo interno, y cualquier llamada suya hecha aca adentro queda
+        // esperando ese mismo cerrojo: la consulta no falla, se cuelga para
+        // siempre, y con ella todas las que vengan despues.
+        const userId = user.id;
+        const email = user.email ?? "Cuenta conectada";
+
+        window.setTimeout(() => restoreSessionFor(userId, email), 0);
         return;
       }
 
@@ -1047,6 +1369,10 @@ export function AppShell({
   }, []);
 
   useEffect(() => {
+    // Segundo freno, independiente del de saveRemoteSnapshot: mirando cultivos
+    // ajenos el guardado automatico ni siquiera se programa.
+    if (viewingShare || isViewingSharedRef.current) return;
+
     if (!remoteSyncReady || !accountStatus.userId) return;
 
     const timeoutId = window.setTimeout(() => {
@@ -1056,7 +1382,7 @@ export function AppShell({
     return () => window.clearTimeout(timeoutId);
     // saveRemoteSnapshot reads the current snapshot from state; these dependencies are the autosave trigger surface.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountStatus.userId, entryState, eventState, habitDates, plantState, remoteSyncReady, taskState]);
+  }, [accountStatus.userId, entryState, eventState, habitDates, plantState, remoteSyncReady, taskState, viewingShare]);
 
   function handleClearCultivationData() {
     setPlantState([]);
@@ -1128,11 +1454,29 @@ export function AppShell({
         <AccountDialog
           accountStatus={accountStatus}
           onClose={() => setShowAccountDialog(false)}
+          onCreateShareCode={handleCreateShareCode}
+          onOpenSharedView={handleOpenSharedView}
+          onRedeemShareCode={handleRedeemShareCode}
           onSaveRemoteSnapshot={() => saveRemoteSnapshot(undefined, { manual: true })}
           onSendMagicLink={handleSendMagicLink}
           onSignOut={handleSignOut}
           privacyHref={getInternalSectionHref(locale, "privacy") as Route}
+          shareCode={shareCode}
+          shareMessage={shareMessage}
+          sharedViews={sharedViews}
         />
+      ) : null}
+
+      {viewingShare ? (
+        <div className="shared-view-banner" role="status">
+          <span className="shared-view-banner-text">
+            Estas viendo los cultivos de <strong>{viewingShare.ownerLabel}</strong>. Solo lectura: nada de lo que toques
+            se guarda.
+          </span>
+          <button className="shared-view-banner-button" onClick={handleCloseSharedView} type="button">
+            Volver a los mios
+          </button>
+        </div>
       ) : null}
 
       {shouldShowFirstCultivation ? (
@@ -3643,19 +3987,32 @@ function AccountAvatarButton({
 function AccountDialog({
   accountStatus,
   onClose,
+  onCreateShareCode,
+  onOpenSharedView,
+  onRedeemShareCode,
   onSaveRemoteSnapshot,
   onSendMagicLink,
   onSignOut,
-  privacyHref
+  privacyHref,
+  shareCode,
+  shareMessage,
+  sharedViews
 }: {
   accountStatus: AccountStatus;
   onClose: () => void;
+  onCreateShareCode: () => void;
+  onOpenSharedView: (share: SharedView) => void;
+  onRedeemShareCode: (code: string) => void;
   onSaveRemoteSnapshot: () => void;
   onSendMagicLink: (email: string) => void;
   onSignOut: () => void;
   privacyHref: Route;
+  shareCode: string;
+  shareMessage: string;
+  sharedViews: SharedView[];
 }) {
   const [email, setEmail] = useState(accountStatus.email);
+  const [codeInput, setCodeInput] = useState("");
   const emailFieldRef = useRef<HTMLInputElement>(null);
   const isBusy = accountStatus.tone === "pending";
 
@@ -3723,6 +4080,62 @@ function AccountDialog({
               <button className="secondary-button" onClick={onSignOut} type="button">
                 Cerrar sesion
               </button>
+            </div>
+
+            <div className="account-share">
+              <p className="account-share-title">Compartir tus cultivos</p>
+              <p className="account-share-hint">
+                Genera un codigo y pasaselo a quien quieras. Va a poder mirar tus cultivos, no modificarlos.
+              </p>
+
+              {shareCode ? (
+                <p className="account-share-code">{shareCode}</p>
+              ) : (
+                <button className="secondary-button account-share-button" onClick={onCreateShareCode} type="button">
+                  Generar codigo
+                </button>
+              )}
+
+              <p className="account-share-title account-share-title-second">Ver los de otra persona</p>
+              <form
+                className="account-share-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (!codeInput.trim()) return;
+                  onRedeemShareCode(codeInput);
+                  setCodeInput("");
+                }}
+              >
+                <input
+                  aria-label="Codigo que te compartieron"
+                  className="form-control"
+                  onChange={(event) => setCodeInput(event.target.value)}
+                  placeholder="Pega el codigo aca"
+                  type="text"
+                  value={codeInput}
+                />
+                <button className="secondary-button" disabled={!codeInput.trim()} type="submit">
+                  Usar codigo
+                </button>
+              </form>
+
+              {sharedViews.length > 0 ? (
+                <ul className="account-share-list">
+                  {sharedViews.map((view) => (
+                    <li key={view.ownerId}>
+                      <button className="account-share-open" onClick={() => onOpenSharedView(view)} type="button">
+                        Ver los cultivos de {view.ownerLabel}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+
+              {shareMessage ? (
+                <p className="account-share-message" role="status">
+                  {shareMessage}
+                </p>
+              ) : null}
             </div>
           </>
         ) : (
