@@ -811,6 +811,16 @@ export function AppShell({
     goToCalendar(nextEvents[0]?.startDate ?? todayIso, locale);
   }
 
+  // Cada maceta es una planta propia desde el alta, pero hasta ahora no habia
+  // forma de cambiarle nada despues: si dos macetas del mismo espacio tenian
+  // geneticas distintas, no se podia reflejar.
+  function handleUpdatePlant(plantId: string, updates: Partial<Plant>) {
+    const nextPlants = plantState.map((plant) => (plant.id === plantId ? { ...plant, ...updates } : plant));
+
+    setPlantState(nextPlants);
+    persistStoredState(storageKeys.plants, nextPlants);
+  }
+
   function handleAddJournalEntry(entry: CareEntry) {
     const nextEntries = [entry, ...entryState];
 
@@ -1152,7 +1162,15 @@ export function AppShell({
         />
       ) : null}
       {!shouldShowFirstCultivation && currentSection === "spaces" ? (
-        <SpacesSection calendarEvents={eventState} entries={entryState} plants={plantState} spaces={spaces} tasks={taskState} />
+        <SpacesSection
+          calendarEvents={eventState}
+          entries={entryState}
+          onAddJournalEntry={handleAddJournalEntry}
+          onUpdatePlant={handleUpdatePlant}
+          plants={plantState}
+          spaces={spaces}
+          tasks={taskState}
+        />
       ) : null}
       {!shouldShowFirstCultivation && currentSection === "calendar" ? (
         <CalendarSection
@@ -1929,12 +1947,16 @@ function OnboardingFlow({ onClose, todayHref }: { onClose: () => void; todayHref
 function SpacesSection({
   calendarEvents,
   entries,
+  onAddJournalEntry,
+  onUpdatePlant,
   plants,
   spaces,
   tasks
 }: {
   calendarEvents: CalendarEvent[];
   entries: CareEntry[];
+  onAddJournalEntry: (entry: CareEntry) => void;
+  onUpdatePlant: (plantId: string, updates: Partial<Plant>) => void;
   plants: Plant[];
   spaces: GrowSpace[];
   tasks: Task[];
@@ -2056,7 +2078,9 @@ function SpacesSection({
                       calendarEvents={calendarEvents}
                       entries={entries}
                       key={plant.id}
+                      onAddJournalEntry={onAddJournalEntry}
                       onOpenGenetic={setPopupGenetic}
+                      onUpdatePlant={onUpdatePlant}
                       plant={plant}
                       tasks={tasks}
                     />
@@ -2082,16 +2106,21 @@ function SpacesSection({
 function PlantSpaceRow({
   calendarEvents,
   entries,
+  onAddJournalEntry,
   onOpenGenetic,
+  onUpdatePlant,
   plant,
   tasks
 }: {
   calendarEvents: CalendarEvent[];
   entries: CareEntry[];
+  onAddJournalEntry: (entry: CareEntry) => void;
   onOpenGenetic: (genetic: GeneticReferenceEntry) => void;
+  onUpdatePlant: (plantId: string, updates: Partial<Plant>) => void;
   plant: Plant;
   tasks: Task[];
 }) {
+  const [isEditing, setIsEditing] = useState(false);
   const plantGenetic = findGeneticByPlant(plant);
 
   return (
@@ -2104,17 +2133,241 @@ function PlantSpaceRow({
         </span>
         <span className="pill pill-green">{plant.stage}</span>
       </summary>
-      <PlantGeneticSummary genetic={plantGenetic} onOpenGenetic={onOpenGenetic} plant={plant} />
-      <dl className="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-        <PlantFact label="Maceta" value={plant.pot} />
-        <PlantFact label="Sustrato" value={plant.substrate} />
-        <PlantFact label="Luz" value={plant.lighting} />
-        <PlantFact label="Modo" value={plant.mode} />
-      </dl>
+
+      {isEditing ? (
+        <PlantEditorForm
+          onCancel={() => setIsEditing(false)}
+          onSave={(updates) => {
+            onUpdatePlant(plant.id, updates);
+            setIsEditing(false);
+          }}
+          plant={plant}
+        />
+      ) : (
+        <>
+          <div className="plant-row-toolbar">
+            <button className="secondary-button" onClick={() => setIsEditing(true)} type="button">
+              Editar esta maceta
+            </button>
+          </div>
+          <PlantGeneticSummary genetic={plantGenetic} onOpenGenetic={onOpenGenetic} plant={plant} />
+          <dl className="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+            <PlantFact label="Maceta" value={plant.pot} />
+            <PlantFact label="Sustrato" value={plant.substrate} />
+            <PlantFact label="Luz" value={plant.lighting} />
+            <PlantFact label="Modo" value={plant.mode} />
+          </dl>
+        </>
+      )}
+
       <PlantStageProgress plant={plant} />
+      <PlantQuickNote onAddJournalEntry={onAddJournalEntry} plant={plant} />
       <PlantUtilityPanel calendarEvents={calendarEvents} entries={entries} plant={plant} />
       <PlantTimeline calendarEvents={calendarEvents} entries={entries} plant={plant} tasks={tasks} />
     </details>
+  );
+}
+
+const plantStageOptions = ["Semilla", "Plantin", "Vegetativo", "Floracion", "Cosecha"];
+const plantPotOptions = ["3 L", "5 L", "7 L", "10 L", "15 L", "20 L", "25 L"];
+const plantSubstrateOptions = ["Organico liviano", "Organico aireado", "Compost y fibra", "Drenante", "Universal"];
+const plantLightingOptions = ["Sol directo", "Sol de manana", "Media sombra", "Luz artificial", "Mixta"];
+const otherGeneticValue = "__otra__";
+
+/**
+ * Un <select> no puede mostrar un valor que no esta entre sus opciones: lo
+ * ignora y muestra el primero. Si la maceta trae un dato cargado desde otro
+ * formulario con otra lista, guardar se lo cambiaria sin avisar. Con esto el
+ * valor actual siempre esta disponible.
+ */
+function withCurrentValue(options: string[], value: string) {
+  return options.includes(value) || !value ? options : [value, ...options];
+}
+
+/**
+ * Edicion de una maceta puntual.
+ *
+ * El alta crea N macetas de una sola vez con la misma genetica, y hasta ahora
+ * ese dato quedaba congelado. Con esto cada maceta puede declarar su propia
+ * genetica, etapa y ambiente sin tocar a las demas del mismo espacio.
+ */
+function PlantEditorForm({
+  onCancel,
+  onSave,
+  plant
+}: {
+  onCancel: () => void;
+  onSave: (updates: Partial<Plant>) => void;
+  plant: Plant;
+}) {
+  const matchingGenetic = geneticsCatalogAlphabetically.find(
+    (genetic) => normalizeLookupText(genetic.name) === normalizeLookupText(plant.variety)
+  );
+  const [name, setName] = useState(plant.name);
+  const [geneticId, setGeneticId] = useState(matchingGenetic?.id ?? otherGeneticValue);
+  const [customVariety, setCustomVariety] = useState(matchingGenetic ? "" : plant.variety);
+  const [stage, setStage] = useState(plant.stage);
+  const [pot, setPot] = useState(plant.pot);
+  const [substrate, setSubstrate] = useState(plant.substrate);
+  const [lighting, setLighting] = useState(plant.lighting);
+  const [mode, setMode] = useState<Plant["mode"]>(plant.mode);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const selectedGenetic = geneticsCatalogAlphabetically.find((genetic) => genetic.id === geneticId);
+    const nextVariety = selectedGenetic ? selectedGenetic.name : customVariety.trim() || plant.variety;
+
+    onSave({
+      lighting,
+      mode,
+      name: name.trim() || plant.name,
+      pot,
+      stage,
+      substrate,
+      variety: nextVariety
+    });
+  }
+
+  return (
+    <form className="plant-editor" onSubmit={handleSubmit}>
+      <p className="plant-editor-title">Editar {plant.name}</p>
+      <p className="plant-editor-hint">Los cambios afectan solo a esta maceta, no al resto del espacio.</p>
+
+      <div className="plant-editor-grid">
+        <label className="grid gap-1 text-sm font-black text-moss-950">
+          Nombre
+          <input className="form-control" onChange={(event) => setName(event.target.value)} type="text" value={name} />
+        </label>
+
+        <label className="grid gap-1 text-sm font-black text-moss-950">
+          Genetica
+          <select className="form-control" onChange={(event) => setGeneticId(event.target.value)} value={geneticId}>
+            {geneticsCatalogAlphabetically.map((genetic) => (
+              <option key={genetic.id} value={genetic.id}>
+                {genetic.name} - {formatGeneticType(genetic.type)}
+              </option>
+            ))}
+            <option value={otherGeneticValue}>Otra / escribirla a mano</option>
+          </select>
+        </label>
+
+        {geneticId === otherGeneticValue ? (
+          <label className="grid gap-1 text-sm font-black text-moss-950">
+            Nombre de la genetica
+            <input
+              className="form-control"
+              onChange={(event) => setCustomVariety(event.target.value)}
+              placeholder="Como figura en tu registro"
+              type="text"
+              value={customVariety}
+            />
+          </label>
+        ) : null}
+
+        <FormSelect label="Etapa" onChange={setStage} options={withCurrentValue(plantStageOptions, stage)} value={stage} />
+        <FormSelect label="Maceta" onChange={setPot} options={withCurrentValue(plantPotOptions, pot)} value={pot} />
+        <FormSelect
+          label="Sustrato"
+          onChange={setSubstrate}
+          options={withCurrentValue(plantSubstrateOptions, substrate)}
+          value={substrate}
+        />
+        <FormSelect
+          label="Luz"
+          onChange={setLighting}
+          options={withCurrentValue(plantLightingOptions, lighting)}
+          value={lighting}
+        />
+        <ModeSelect onChange={setMode} value={mode} />
+      </div>
+
+      <div className="plant-editor-actions">
+        <button className="primary-button" type="submit">
+          Guardar cambios
+        </button>
+        <button className="secondary-button" onClick={onCancel} type="button">
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
+
+/**
+ * Nota rapida de una maceta puntual.
+ *
+ * Antes habia que ir a Diario y elegir la planta de una lista; con cuatro
+ * macetas llamadas casi igual era facil anotar en la equivocada. Aca la nota
+ * ya queda asociada a la maceta que se esta mirando.
+ */
+function PlantQuickNote({
+  onAddJournalEntry,
+  plant
+}: {
+  onAddJournalEntry: (entry: CareEntry) => void;
+  plant: Plant;
+}) {
+  const [note, setNote] = useState("");
+  const [title, setTitle] = useState("");
+  const [savedMessage, setSavedMessage] = useState("");
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const trimmedNote = note.trim();
+
+    if (!trimmedNote) return;
+
+    onAddJournalEntry({
+      createdAt: getTodayIso(),
+      id: `entry-${plant.id}-${Date.now()}`,
+      note: trimmedNote,
+      plantId: plant.id,
+      tags: ["Nota de maceta"],
+      title: title.trim() || "Nota rapida"
+    });
+
+    setNote("");
+    setTitle("");
+    setSavedMessage("Nota guardada en esta maceta.");
+    window.setTimeout(() => setSavedMessage(""), 4000);
+  }
+
+  return (
+    <form className="plant-quick-note" onSubmit={handleSubmit}>
+      <p className="plant-quick-note-title">Anotar algo de esta maceta</p>
+      <p className="plant-quick-note-hint">
+        Queda guardado solo en {plant.name} y aparece abajo, en su historial.
+      </p>
+
+      <input
+        aria-label={`Titulo de la nota para ${plant.name}`}
+        className="form-control"
+        onChange={(event) => setTitle(event.target.value)}
+        placeholder="Titulo (opcional)"
+        type="text"
+        value={title}
+      />
+      <textarea
+        aria-label={`Nota para ${plant.name}`}
+        className="form-control"
+        onChange={(event) => setNote(event.target.value)}
+        placeholder="Ej: a esta le puse menos agua, tiene las hojas mas claras que las otras"
+        rows={3}
+        value={note}
+      />
+      <div className="plant-quick-note-actions">
+        <button className="primary-button" disabled={!note.trim()} type="submit">
+          Guardar nota
+        </button>
+        {savedMessage ? (
+          <span className="plant-quick-note-saved" role="status">
+            {savedMessage}
+          </span>
+        ) : null}
+      </div>
+    </form>
   );
 }
 
