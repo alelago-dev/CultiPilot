@@ -5727,4 +5727,157 @@ textarea {
     font-weight: 900;
     line-height: 1;
   }
+
+  /* Ventana de cuenta que abre el avatar. */
+  .account-dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(16, 32, 24, 0.5);
+    backdrop-filter: blur(3px);
+    animation: account-dialog-fade 0.16s ease-out;
+  }
+
+  .account-dialog {
+    position: relative;
+    width: min(400px, 100%);
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+    border: 1px solid rgba(22, 32, 21, 0.1);
+    border-radius: 22px;
+    background: #ffffff;
+    padding: 1.5rem 1.35rem 1.25rem;
+    box-shadow: 0 26px 60px rgba(16, 40, 28, 0.28);
+    animation: account-dialog-rise 0.18s ease-out;
+  }
+
+  .account-dialog-close {
+    position: absolute;
+    top: 0.85rem;
+    right: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    border-radius: 999px;
+    background: #f1f4f1;
+    color: #4a564c;
+    cursor: pointer;
+  }
+
+  .account-dialog-close:hover {
+    background: #e3e9e3;
+    color: #16281d;
+  }
+
+  .account-dialog-close svg {
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+
+  .account-dialog-eyebrow {
+    color: #1f6b4c;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .account-dialog-title {
+    margin-top: 0.2rem;
+    color: #12301f;
+    font-size: 1.4rem;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+    padding-right: 2rem;
+  }
+
+  .account-dialog-text {
+    margin-top: 0.55rem;
+    color: #52604d;
+    font-size: 0.86rem;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  .account-dialog-email {
+    margin-top: 0.75rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: 12px;
+    background: #f3f8f5;
+    color: #16281d;
+    font-size: 0.88rem;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+  }
+
+  .account-dialog-form {
+    display: grid;
+    gap: 0.45rem;
+    margin-top: 0.9rem;
+  }
+
+  .account-dialog-label {
+    color: #3f5a4b;
+    font-size: 0.76rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .account-dialog-form .primary-button {
+    margin-top: 0.3rem;
+    width: 100%;
+  }
+
+  .account-dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.9rem;
+  }
+
+  .account-dialog-actions .primary-button,
+  .account-dialog-actions .secondary-button {
+    flex: 1 1 auto;
+  }
+
+  .account-dialog-link {
+    display: inline-block;
+    margin-top: 1rem;
+    color: #3f5a4b;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: underline;
+  }
+
+  .account-dialog-link:hover {
+    color: #1f6b4c;
+  }
+
+  @keyframes account-dialog-fade {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes account-dialog-rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .account-dialog-backdrop,
+    .account-dialog {
+      animation: none;
+    }
+  }
 }
