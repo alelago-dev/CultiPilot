@@ -22,6 +22,7 @@ import type { CalendarEvent, Locale } from "@/lib/types";
 
 type SeedsSectionProps = {
   calendarHref: string;
+  calendarLinkHref: string;
   locale: Locale;
   onCreateManualEvents: (events: CalendarEvent[]) => void;
 };
@@ -152,7 +153,7 @@ const manualTaskTemplates = [
   }
 ];
 
-export function SeedsSection({ calendarHref, locale, onCreateManualEvents }: SeedsSectionProps) {
+export function SeedsSection({ calendarHref, calendarLinkHref, locale, onCreateManualEvents }: SeedsSectionProps) {
   const [activeTab, setActiveTab] = useState<SeedTab>("finder");
   const [selectedGeneticName, setSelectedGeneticName] = useState("");
   const shouldScrollToGeneticField = useRef(false);
@@ -239,6 +240,7 @@ export function SeedsSection({ calendarHref, locale, onCreateManualEvents }: See
                 ) : null}
                 <ManualCannabisForm
                   calendarHref={calendarHref}
+                  calendarLinkHref={calendarLinkHref}
                   onCreateEvents={onCreateManualEvents}
                   selectedGeneticName={selectedGeneticName}
                 />

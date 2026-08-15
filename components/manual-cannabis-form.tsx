@@ -154,10 +154,14 @@ const geneticSelectOptions = [
 
 export function ManualCannabisForm({
   calendarHref,
+  calendarLinkHref,
   onCreateEvents,
   selectedGeneticName
 }: {
+  /** Con prefijo del repo: se usa en window.location. */
   calendarHref: string;
+  /** Sin prefijo: se usa en next/link, que lo agrega solo. */
+  calendarLinkHref: string;
   onCreateEvents: (events: CalendarEvent[]) => void;
   selectedGeneticName?: string;
 }) {
@@ -364,7 +368,7 @@ export function ManualCannabisForm({
         </button>
         {statusMessage ? <span className="text-sm font-bold text-stone-600">{statusMessage}</span> : null}
         {showCalendarLink ? (
-          <Link className="secondary-button" href={calendarHref as Route}>
+          <Link className="secondary-button" href={calendarLinkHref as Route}>
             Ver calendario
           </Link>
         ) : null}

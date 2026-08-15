@@ -24,7 +24,13 @@ import {
   parseIsoDate,
   toIsoDate
 } from "@/lib/calendar-events";
-import { getSectionHref, navigationByLocale, type AppSection, type NavigationItem } from "@/lib/navigation";
+import {
+  getInternalSectionHref,
+  getSectionHref,
+  navigationByLocale,
+  type AppSection,
+  type NavigationItem
+} from "@/lib/navigation";
 import { getGeneticsCatalogAlphabetically, type GeneticReferenceEntry } from "@/lib/genetics-catalog";
 import { requestReminderNotification } from "@/lib/notifications";
 import { seedCatalog } from "@/lib/seed-catalog";
@@ -298,8 +304,12 @@ export function AppShell({
     [taskState, todayOccurrences]
   );
   const openTasks = agendaItems.filter((task) => task.status === "open").length;
+  // Con prefijo: para window.location y notificaciones.
   const todayHref = getSectionHref(locale, "today");
   const calendarHref = getSectionHref(locale, "calendar");
+  // Sin prefijo: para los href de next/link, que lo agrega solo.
+  const todayLinkHref = getInternalSectionHref(locale, "today");
+  const calendarLinkHref = getInternalSectionHref(locale, "calendar");
   const streakCount = getStreakCount(habitDates, todayIso);
   const shouldShowFirstCultivation = plantState.length === 0 && currentSection !== "privacy";
   const currentNavIndex = navItems.findIndex((item) => item.key === currentSection);
@@ -932,7 +942,7 @@ export function AppShell({
     <main className="min-h-screen pb-28 text-moss-950 lg:pb-0">
       <header className="app-header sticky top-0 z-20 border-b border-moss-950/10 bg-paper/92 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <Link className="flex items-center gap-3" href={todayHref as Route} aria-label="PlantCare Calendar">
+          <Link className="flex items-center gap-3" href={todayLinkHref as Route} aria-label="PlantCare Calendar">
             <BrandLogo />
             <span>
               <span className="block text-xs font-black uppercase text-moss-700">PlantCare</span>
@@ -944,7 +954,7 @@ export function AppShell({
             {navItems.map((item) => (
               <Link
                 className={currentSection === item.key ? "desktop-nav-item active" : "desktop-nav-item"}
-                href={getSectionHref(locale, item.key) as Route}
+                href={getInternalSectionHref(locale, item.key) as Route}
                 key={item.key}
               >
                 {item.label}
@@ -960,7 +970,7 @@ export function AppShell({
             </div>
             <AccountAvatarLink
               accountStatus={accountStatus}
-              href={`${getSectionHref(locale, "privacy")}#cuenta` as Route}
+              href={`${getInternalSectionHref(locale, "privacy")}#cuenta` as Route}
             />
           </div>
         </div>
@@ -995,6 +1005,7 @@ export function AppShell({
       {!shouldShowFirstCultivation && currentSection === "seeds" ? (
         <SeedsSection
           calendarHref={calendarHref}
+          calendarLinkHref={calendarLinkHref}
           locale={locale}
           onCreateManualEvents={handleAddManualEvents}
         />
@@ -1057,7 +1068,7 @@ export function AppShell({
 
       <nav className="mobile-tab-bar" aria-label="Navegacion principal">
         {navItems.map((item) => (
-          <Link className={currentSection === item.key ? "mobile-tab active" : "mobile-tab"} href={getSectionHref(locale, item.key) as Route} key={item.key}>
+          <Link className={currentSection === item.key ? "mobile-tab active" : "mobile-tab"} href={getInternalSectionHref(locale, item.key) as Route} key={item.key}>
             <span className="nav-icon" aria-hidden="true">
               {item.icon}
             </span>
@@ -1306,7 +1317,7 @@ function TodaySection({
           <div className="executive-metrics">
             <MiniStat
               description="Plantas activas que tenes registradas en Espacios."
-              href={getSectionHref(locale, "spaces") as Route}
+              href={getInternalSectionHref(locale, "spaces") as Route}
               label="Cultivos"
               value={plants.length.toString()}
             />
@@ -2838,7 +2849,7 @@ function CalendarOccurrenceCard({
           Eliminar
         </button>
         {plant ? (
-          <Link className="secondary-button" href={`${getSectionHref(locale, "spaces")}#${plant.id}` as Route}>
+          <Link className="secondary-button" href={`${getInternalSectionHref(locale, "spaces")}#${plant.id}` as Route}>
             Ver planta
           </Link>
         ) : null}
@@ -3311,7 +3322,7 @@ function SectionStepper({
   return (
     <nav className="section-stepper" aria-label="Avanzar entre secciones">
       {previousItem ? (
-        <Link className="stepper-button secondary" href={getSectionHref(locale, previousItem.key) as Route}>
+        <Link className="stepper-button secondary" href={getInternalSectionHref(locale, previousItem.key) as Route}>
           <span aria-hidden="true">←</span>
           <span>
             <small>Anterior</small>
@@ -3329,7 +3340,7 @@ function SectionStepper({
       )}
 
       {nextItem ? (
-        <Link className="stepper-button primary" href={getSectionHref(locale, nextItem.key) as Route}>
+        <Link className="stepper-button primary" href={getInternalSectionHref(locale, nextItem.key) as Route}>
           <span>
             <small>Siguiente</small>
             {nextItem.label}
@@ -3337,7 +3348,7 @@ function SectionStepper({
           <span aria-hidden="true">→</span>
         </Link>
       ) : (
-        <Link className="stepper-button primary" href={getSectionHref(locale, "today") as Route}>
+        <Link className="stepper-button primary" href={getInternalSectionHref(locale, "today") as Route}>
           <span>
             <small>Volver</small>
             Hoy
