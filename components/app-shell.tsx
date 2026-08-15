@@ -115,6 +115,52 @@ type AppSnapshot = {
 // que cada accion (enviar enlace, entrar, guardar, fallar) se vea distinta.
 type AccountTone = "error" | "info" | "pending" | "success";
 
+type AuthRedirectResult = { kind: "error"; message: string } | { kind: "processing" } | null;
+
+/**
+ * Traduce los codigos de error que Supabase devuelve en la URL al volver del
+ * enlace del email. Sin esto el usuario solo veia "Sin sesion", sin ninguna
+ * pista de por que no habia entrado.
+ */
+function describeAuthError(errorCode: string | null, errorDescription: string | null) {
+  const readable = (errorDescription ?? "").trim();
+
+  if (errorCode === "otp_expired" || /expired/i.test(readable)) {
+    return "El enlace ya vencio o se uso antes. Pedi uno nuevo: duran poco y sirven una sola vez.";
+  }
+
+  if (errorCode === "access_denied" || /access denied/i.test(readable)) {
+    return "Supabase rechazo el enlace. Suele pasar si se abrio en otro navegador o si falta autorizar la URL del sitio en Supabase.";
+  }
+
+  return readable ? `No se pudo completar el acceso: ${readable}` : "No se pudo completar el acceso con el enlace del email.";
+}
+
+/**
+ * Lee el resultado que dejo el enlace del email en la URL. Supabase lo manda
+ * en el fragmento (#) o en la query (?), segun el tipo de flujo.
+ */
+function readAuthRedirectResult(): AuthRedirectResult {
+  if (typeof window === "undefined") return null;
+
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const queryParams = new URLSearchParams(window.location.search);
+  const readParam = (name: string) => hashParams.get(name) ?? queryParams.get(name);
+
+  const errorCode = readParam("error_code");
+  const errorDescription = readParam("error_description");
+
+  if (readParam("error") || errorCode || errorDescription) {
+    return { kind: "error", message: describeAuthError(errorCode, errorDescription) };
+  }
+
+  if (readParam("access_token") || readParam("code")) {
+    return { kind: "processing" };
+  }
+
+  return null;
+}
+
 type AccountStatus = {
   email: string;
   isConfigured: boolean;
@@ -493,10 +539,16 @@ export function AppShell({
 
     try {
       const supabase = getSupabaseBrowserClient();
+      // URL fija y sin fragmento. Antes se usaba window.location.href: si el
+      // usuario habia llegado por el avatar, la direccion terminaba en
+      // "#cuenta" y Supabase le pegaba encima su propio "#access_token=...",
+      // con lo cual el token quedaba ilegible. Ademas asi hay una sola
+      // direccion que autorizar en Supabase.
+      const redirectTo = `${window.location.origin}${getSectionHref(locale, "privacy")}`;
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: window.location.href
+          emailRedirectTo: redirectTo
         }
       });
 
@@ -856,6 +908,41 @@ export function AppShell({
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
 
+    // Lo primero: contar que trajo el enlace del email. Si volvia con error,
+    // la app no mostraba nada y parecia que el enlace no hacia nada.
+    const redirectResult = readAuthRedirectResult();
+    let stuckTimeout: number | undefined;
+
+    if (redirectResult?.kind === "error") {
+      announceAccount((currentStatus) => ({
+        ...currentStatus,
+        message: redirectResult.message,
+        tone: "error"
+      }));
+      // Se limpia la URL para que el error no reaparezca al recargar.
+      window.history.replaceState(null, "", window.location.pathname);
+    } else if (redirectResult?.kind === "processing") {
+      setAccountStatus((currentStatus) => ({
+        ...currentStatus,
+        message: "Conectando tu cuenta...",
+        tone: "pending"
+      }));
+
+      // Si el token viene mal, Supabase nunca emite el evento de sesion y el
+      // cartel se quedaria girando para siempre.
+      stuckTimeout = window.setTimeout(() => {
+        setAccountStatus((currentStatus) =>
+          currentStatus.tone === "pending" && !currentStatus.isSignedIn
+            ? {
+                ...currentStatus,
+                message: "El enlace no llego a abrir la sesion. Pedi uno nuevo y abrilo en este mismo navegador.",
+                tone: "error"
+              }
+            : currentStatus
+        );
+      }, 12000);
+    }
+
     let isMounted = true;
     const supabase = getSupabaseBrowserClient();
 
@@ -877,19 +964,30 @@ export function AppShell({
       }
 
       setRemoteSyncReady(false);
-      setAccountStatus({
-        email: "",
-        isConfigured: true,
-        isSignedIn: false,
-        message: "Conecta una cuenta para guardar datos por usuario.",
-        tone: "info",
-        userId: ""
-      });
+      // Este evento tambien llega al cargar la pagina sin sesion, justo despues
+      // de volver del enlace. Si pisara el mensaje, el error del enlace o el
+      // "Conectando tu cuenta..." desaparecerian antes de poder leerlos.
+      setAccountStatus((currentStatus) =>
+        currentStatus.tone === "error" || currentStatus.tone === "pending"
+          ? { ...currentStatus, email: "", isSignedIn: false, userId: "" }
+          : {
+              email: "",
+              isConfigured: true,
+              isSignedIn: false,
+              message: "Conecta una cuenta para guardar datos por usuario.",
+              tone: "info",
+              userId: ""
+            }
+      );
     });
 
     return () => {
       isMounted = false;
       listener.subscription.unsubscribe();
+
+      if (stuckTimeout !== undefined) {
+        window.clearTimeout(stuckTimeout);
+      }
     };
     // Runs once to attach Supabase auth listeners; loadRemoteSnapshot is intentionally invoked from auth callbacks.
     // eslint-disable-next-line react-hooks/exhaustive-deps
