@@ -37,12 +37,26 @@ export function getSectionFromSlug(locale: Locale, slug: string): AppSection | n
   return navigationByLocale[locale].find((item) => item.slug === slug)?.key ?? null;
 }
 
+/**
+ * Ruta interna de la app, SIN el prefijo del repositorio.
+ *
+ * Es la que va en los `href` de `next/link` y en `redirect()`: Next ya le
+ * agrega el `basePath` por su cuenta, asi que agregarselo aca lo duplicaria
+ * (`/plantcare-calendar/plantcare-calendar/es/hoy/`).
+ */
 export function getInternalSectionHref(locale: Locale, section: AppSection) {
   const item = navigationByLocale[locale].find((navItem) => navItem.key === section);
 
   return `/${locale}/${item?.slug ?? navigationByLocale[locale][0].slug}/`;
 }
 
+/**
+ * Ruta completa, CON el prefijo del repositorio.
+ *
+ * Es la que va donde Next no interviene y hace falta la URL tal cual la
+ * entiende el navegador: `window.location`, las notificaciones push y los
+ * `<a href>` sueltos. Para `next/link` usar `getInternalSectionHref`.
+ */
 export function getSectionHref(locale: Locale, section: AppSection) {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 

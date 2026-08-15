@@ -6,7 +6,12 @@ export function ServiceWorkerRegister() {
   useEffect(() => {
     if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
       const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-      navigator.serviceWorker.register(`${basePath}/sw.js`, { scope: `${basePath || "/"}` }).catch(() => {
+      // El scope tiene que terminar en barra. Sin ella el navegador rechazaba
+      // "/plantcare-calendar" por estar fuera del maximo permitido
+      // ("/plantcare-calendar/") y lo corregia solo, dejando un error en consola.
+      const scope = basePath ? `${basePath}/` : "/";
+
+      navigator.serviceWorker.register(`${basePath}/sw.js`, { scope }).catch(() => {
         // Registration failure should not block the app shell.
       });
     }
