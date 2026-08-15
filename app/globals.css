@@ -2028,8 +2028,8 @@ textarea {
     }
   }
 
-  /* Below 640px the grid switches to compact dot indicators (see
-     .calendar-event-dots) instead of full event-title pills, so the 7 columns
+  /* Below 640px the grid switches to compact activity icons (see
+     .calendar-event-icons) instead of full event-title pills, so the 7 columns
      can fit the real screen width without forcing horizontal scroll. Tapping
      a day still opens its full details in the day panel. */
   @media (max-width: 639px) {
@@ -2043,8 +2043,8 @@ textarea {
     }
 
     .day-cell {
-      min-height: 64px;
-      padding: 0.3rem 0.25rem;
+      min-height: 70px;
+      padding: 0.3rem 0.2rem;
     }
 
     .calendar-day-number {
@@ -5419,44 +5419,30 @@ textarea {
     line-height: 1.4;
   }
 
-  /* Compact mobile month/week grid: dots instead of full event-title pills so
-     all 7 day columns fit the real screen width (see the 639px calendar
-     breakpoint above). Full details still show in the day panel on tap. */
-  .calendar-event-dots {
+  /* Vista compacta del calendario en el movil: en vez del titulo completo del
+     evento (que no entra en columnas de ~50 px) se muestra el icono de cada
+     actividad. Antes eran puntos de colores, pero un punto no dice si el dia
+     tiene un riego, una poda o un cambio de fotoperiodo. El detalle completo
+     sigue apareciendo en el panel del dia al tocar. */
+  .calendar-event-icons {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 3px;
-    margin-top: 0.3rem;
+    justify-content: center;
+    gap: 1px;
+    margin-top: 0.22rem;
+    line-height: 1;
   }
 
-  .calendar-event-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 999px;
-    background: #8b9a8e;
+  .calendar-event-icon {
+    font-size: 0.78rem;
+    line-height: 1;
   }
 
-  .calendar-event-dot.event-water {
-    background: #3f8fac;
-  }
-
-  .calendar-event-dot.event-photo {
-    background: #2f9490;
-  }
-
-  .calendar-event-dot.event-clean {
-    background: #e08a2c;
-  }
-
-  .calendar-event-dot.event-review {
-    background: #8b9a8e;
-  }
-
-  .calendar-event-dot-more {
+  .calendar-event-icon-more {
     color: #5c6d61;
-    font-size: 0.55rem;
-    font-weight: 700;
+    font-size: 0.58rem;
+    font-weight: 800;
     line-height: 1;
   }
 
