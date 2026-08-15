@@ -5567,4 +5567,116 @@ textarea {
     transform: none !important;
     box-shadow: none !important;
   }
+
+  /* Cartel de estado de la cuenta.
+
+     Antes el mensaje era un parrafo gris comun, del mismo tamano y color que
+     el texto descriptivo de alrededor: al apretar "Iniciar sesion" el unico
+     cambio en pantalla era ese texto, y pasaba completamente desapercibido.
+     Ahora cada estado tiene fondo, borde e icono propios. */
+  .account-feedback {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    width: 100%;
+    min-width: 0;
+    margin-top: 0.75rem;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid transparent;
+    border-radius: 0.85rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.45;
+    text-align: left;
+  }
+
+  .account-feedback-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .account-feedback-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-top: 0.05rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .account-feedback-info {
+    border-color: rgba(22, 32, 21, 0.1);
+    background: #f4f6f4;
+    color: #4a564c;
+  }
+
+  .account-feedback-info .account-feedback-icon {
+    background: #d9e0d9;
+    color: #4a564c;
+  }
+
+  .account-feedback-pending {
+    border-color: rgba(31, 107, 76, 0.22);
+    background: #eef6f1;
+    color: #1f6b4c;
+  }
+
+  .account-feedback-success {
+    border-color: rgba(31, 107, 76, 0.28);
+    background: #e6f4e9;
+    color: #17603f;
+  }
+
+  .account-feedback-success .account-feedback-icon {
+    background: #17603f;
+    color: #ffffff;
+  }
+
+  .account-feedback-error {
+    border-color: rgba(168, 51, 38, 0.28);
+    background: #fdecea;
+    color: #96301f;
+  }
+
+  .account-feedback-error .account-feedback-icon {
+    background: #96301f;
+    color: #ffffff;
+  }
+
+  /* Ruedita de "esperando respuesta de Supabase". */
+  .account-feedback-spinner {
+    flex: none;
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-top: 0.1rem;
+    border: 2px solid rgba(31, 107, 76, 0.28);
+    border-top-color: #1f6b4c;
+    border-radius: 999px;
+    animation: account-feedback-spin 0.7s linear infinite;
+  }
+
+  @keyframes account-feedback-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .account-feedback-spinner {
+      animation-duration: 2.4s;
+    }
+  }
+
+  /* Los dos paneles de cuenta son grid/flex: sin esto el cartel se mete en
+     una columna angosta al lado del boton en vez de ocupar el ancho entero. */
+  .home-account-form .account-feedback,
+  .home-account-actions .account-feedback {
+    grid-column: 1 / -1;
+    flex-basis: 100%;
+  }
 }
