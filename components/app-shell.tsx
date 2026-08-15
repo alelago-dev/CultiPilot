@@ -157,6 +157,14 @@ function describeSendLinkError(error: unknown) {
     return "Se llego al limite de correos que Supabase manda por hora (son 2). Espera un rato y volve a intentar, o configura un servicio de email propio.";
   }
 
+  // Va antes que el chequeo de email invalido: el texto que devuelve Supabase
+  // es "Email address not authorized", que tambien contiene "email address" y
+  // caeria en el mensaje equivocado ("revisa que este bien escrito"), mandando
+  // a corregir una direccion que en realidad esta perfecta.
+  if (/not authorized/i.test(readable)) {
+    return "Mientras el proyecto use el correo de prueba de Supabase, solo llegan enlaces a las direcciones del equipo. Para que entren otras personas hay que configurar un servicio de email propio.";
+  }
+
   if (/invalid|email address/i.test(readable)) {
     return "Supabase no acepto ese email. Revisa que este bien escrito.";
   }
