@@ -3,6 +3,7 @@
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
+import { Bug, Camera, Droplet, Eye, Leaf, MoonStar, Scissors, Sparkles, type LucideIcon } from "lucide-react";
 
 import { CopyValueButton } from "@/components/copy-button";
 import { GeneticFinderWizard } from "@/components/genetic-finder-wizard";
@@ -338,61 +339,94 @@ const firstReminderLabels = {
   "7": "En 7 dias",
   "14": "En 14 dias"
 };
+// Iconos lineales para el calendario, en vez de emoji.
+//
+// Un emoji se renderiza distinto segun el sistema operativo y nunca lee como
+// producto profesional. `kind` solo tiene 4 valores en la base de datos
+// (watering/photo/cleaning/review), asi que no alcanza para distinguir poda,
+// defoliar, fumigar y fotoperiodo entre si: esas cuatro comparten "review".
+// El icono real se resuelve con `getEventIconKey`, que mira la primera
+// palabra del titulo (ver mas abajo) y cae a un icono por `kind` si no la
+// reconoce. Los titulos guardados antes de este cambio seguian el patron
+// "💧 Riego": `normalizeCalendarTitle` descarta el emoji y deja "riego", asi
+// que la deteccion funciona igual para eventos viejos y nuevos.
+type EventIconKey = "watering" | "photo" | "cleaning" | "prune" | "defoliate" | "spray" | "photoperiod";
+
+const eventIconComponents: Record<EventIconKey, LucideIcon> = {
+  watering: Droplet,
+  photo: Camera,
+  cleaning: Sparkles,
+  prune: Scissors,
+  defoliate: Leaf,
+  spray: Bug,
+  photoperiod: MoonStar
+};
+
+const eventIconKeyByFirstWord: Record<string, EventIconKey> = {
+  riego: "watering",
+  foto: "photo",
+  limpieza: "cleaning",
+  poda: "prune",
+  defoliar: "defoliate",
+  fumigar: "spray",
+  fotoperiodo: "photoperiod"
+};
+
 const calendarQuickActions: Array<{
   description: string;
-  emoji: string;
+  iconKey: EventIconKey;
   kind: CalendarEventKind;
   label: string;
   title: string;
 }> = [
   {
     description: "Evento manual agregado desde el calendario para revisar riego.",
-    emoji: "💧",
+    iconKey: "watering",
     kind: "watering",
     label: "Riego",
-    title: "💧 Riego"
+    title: "Riego"
   },
   {
     description: "Evento manual agregado desde el calendario para registrar una foto.",
-    emoji: "📷",
+    iconKey: "photo",
     kind: "photo",
     label: "Foto",
-    title: "📷 Foto"
+    title: "Foto"
   },
   {
     description: "Evento manual agregado desde el calendario para limpieza o mantenimiento.",
-    emoji: "🧹",
+    iconKey: "cleaning",
     kind: "cleaning",
     label: "Limpieza",
-    title: "🧹 Limpieza"
+    title: "Limpieza"
   },
   {
     description: "Evento manual agregado desde el calendario para poda declarada por el usuario.",
-    emoji: "✂️",
+    iconKey: "prune",
     kind: "review",
     label: "Poda",
-    title: "✂️ Poda"
+    title: "Poda"
   },
   {
     description: "Evento manual agregado desde el calendario para defoliar o quitar hojas segun decision del usuario.",
-    emoji: "🍃",
+    iconKey: "defoliate",
     kind: "review",
     label: "Defoliar",
-    title: "🍃 Defoliar"
+    title: "Defoliar"
   },
   {
     description: "Evento manual agregado desde el calendario para revision o fumigacion declarada por el usuario.",
-    emoji: "🐛",
+    iconKey: "spray",
     kind: "review",
     label: "Fumigar",
-    title: "🐛 Fumigar"
+    title: "Fumigar"
   },
   {
     description: "Evento manual agregado desde el calendario para el cambio de fotoperiodo a 12/12 (inicio de floracion).",
-    emoji: "🌗",
+    iconKey: "photoperiod",
     kind: "review",
     label: "Fotoperiodo 12/12",
-    title: "🌗 Fotoperiodo 12/12"
+    title: "Fotoperiodo 12/12"
   }
 ];
 const storageKeys = {
@@ -1819,11 +1853,6 @@ function TodaySection({
             <p className="eyebrow">Operacion horticola legal</p>
             <h1>PlantCare Calendar</h1>
             <p>{dictionary.hero.body}</p>
-            <div className="executive-status-strip" aria-label="Estado de la aplicacion">
-              <span>Datos por usuario</span>
-              <span>Calendario activo</span>
-              <span>Bitacora editable</span>
-            </div>
           </div>
           <div className="executive-metrics">
             <MiniStat
@@ -1911,8 +1940,8 @@ function TodaySection({
             <dl className="grid grid-cols-2 gap-3 xl:grid-cols-4">
               {weather.preview.map((item) => (
                 <div className="metric-tile" key={item.label}>
-                  <dt className="text-xs font-black uppercase text-stone-500">{item.label}</dt>
-                  <dd className="mt-2 text-2xl font-black tracking-tight text-moss-950">{item.value}</dd>
+                  <dt className="text-label">{item.label}</dt>
+                  <dd className="mt-2 text-value text-moss-950">{item.value}</dd>
                 </div>
               ))}
             </dl>
@@ -1955,11 +1984,6 @@ function GrowCommandPanel({
         <p className="eyebrow text-mint-50/80">Centro operativo</p>
         <h2 id="grow-command-title">Estado activo</h2>
         <p>Resumen de plantas, etapas declaradas y proximos eventos manuales.</p>
-        <div className="grow-command-badges">
-          <span>Manual</span>
-          <span>Privado</span>
-          <span>Editable</span>
-        </div>
       </div>
       <div className="grow-command-board">
         <div className="grow-phase-rail" aria-label="Etapas declaradas">
@@ -1992,13 +2016,13 @@ function GrowCommandPanel({
             </div>
           </div>
           <div className="grow-command-card">
-            <p className="text-[11px] font-black uppercase text-stone-500">Proximos eventos</p>
+            <p className="text-label">Proximos eventos</p>
             <div className="mt-3 grid gap-2">
               {upcomingEvents.map((event) => (
                 <div className="grow-event-row" key={event.id}>
                   <span className={`event-legend ${getEventClass(event.kind)}`}>{getEventKindLabel(event.kind)}</span>
                   <span>
-                    <strong>{event.title}</strong>
+                    <strong>{displayEventTitle(event.title)}</strong>
                     <small>{event.startDate}</small>
                   </span>
                 </div>
@@ -3014,7 +3038,7 @@ function CalendarSection({
   }
 
   function handleEditOccurrence(occurrence: CalendarEventOccurrence) {
-    const nextTitle = window.prompt("Editar nombre de la tarea", occurrence.title)?.trim();
+    const nextTitle = window.prompt("Editar nombre de la tarea", displayEventTitle(occurrence.title))?.trim();
 
     if (!nextTitle) return;
 
@@ -3141,17 +3165,21 @@ function CalendarSection({
             </select>
           </label>
           <div className="calendar-action-stack" aria-label="Agregar evento rapido">
-            {calendarQuickActions.map((action) => (
-              <button
-                className={`event-legend event-action ${getEventClass(action.kind)}`}
-                key={action.label}
-                onClick={() => handleQuickEvent(action)}
-                type="button"
-              >
-                <span aria-hidden="true">{action.emoji}</span>
-                <span>{action.label}</span>
-              </button>
-            ))}
+            {calendarQuickActions.map((action) => {
+              const ActionIcon = eventIconComponents[action.iconKey];
+
+              return (
+                <button
+                  className={`event-legend event-action ${getEventClass(action.kind)}`}
+                  key={action.label}
+                  onClick={() => handleQuickEvent(action)}
+                  type="button"
+                >
+                  <ActionIcon aria-hidden="true" size={15} strokeWidth={2.25} />
+                  <span>{action.label}</span>
+                </button>
+              );
+            })}
           </div>
           <input
             ref={photoInputRef}
@@ -3195,11 +3223,19 @@ function CalendarSection({
                   </div>
                   {isCompactGrid ? (
                     <div className="calendar-event-icons">
-                      {dayOccurrences.slice(0, 3).map((occurrence) => (
-                        <span aria-hidden="true" className="calendar-event-icon" key={occurrence.occurrenceId}>
-                          {getEventEmoji(occurrence.kind, occurrence.title)}
-                        </span>
-                      ))}
+                      {dayOccurrences.slice(0, 3).map((occurrence) => {
+                        const OccurrenceIcon = getEventIcon(occurrence.kind, occurrence.title);
+
+                        return (
+                          <span
+                            aria-hidden="true"
+                            className={`calendar-event-icon ${getEventClass(occurrence.kind)}`}
+                            key={occurrence.occurrenceId}
+                          >
+                            <OccurrenceIcon size={11} strokeWidth={2.5} />
+                          </span>
+                        );
+                      })}
                       {dayOccurrences.length > 3 ? (
                         <span aria-hidden="true" className="calendar-event-icon-more">
                           +{dayOccurrences.length - 3}
@@ -3213,7 +3249,7 @@ function CalendarSection({
                     <div className="calendar-event-list">
                       {dayOccurrences.slice(0, 3).map((occurrence) => (
                         <span className={`calendar-event ${getEventClass(occurrence.kind)}`} key={occurrence.occurrenceId}>
-                          {occurrence.title}
+                          {displayEventTitle(occurrence.title)}
                         </span>
                       ))}
                       {dayOccurrences.length > 3 ? <span className="calendar-event event-review">+{dayOccurrences.length - 3}</span> : null}
@@ -3575,7 +3611,7 @@ function CalendarOccurrenceCard({
               {occurrence.completed ? "Hecho" : "Pendiente"}
             </span>
           </div>
-          <h4 className="mt-2 font-black text-moss-950">{occurrence.title}</h4>
+          <h4 className="mt-2 font-black text-moss-950">{displayEventTitle(occurrence.title)}</h4>
           <p className="mt-1 text-sm font-semibold text-stone-600">{plant?.name ?? "Planta sin detalle"}</p>
           <p className="mt-2 text-sm leading-6 text-stone-700">{occurrence.description}</p>
         </div>
@@ -3833,7 +3869,7 @@ function TaskCard({
       </button>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="font-black text-moss-950">{task.title}</h3>
+          <h3 className="font-black text-moss-950">{displayEventTitle(task.title)}</h3>
           <span className={task.status === "done" ? "pill pill-green" : "pill pill-amber"}>
             {task.status === "done" ? "Hecha" : "Pendiente"}
           </span>
@@ -4319,8 +4355,18 @@ function MiniStat({
   const className = featured ? "metric-card featured" : "metric-card";
   const content = (
     <>
-      <p className="text-2xl font-black tracking-tight text-moss-950">{value}</p>
-      <p className="mt-1 text-xs font-black uppercase text-stone-500">{label}</p>
+      {/*
+        La card "featured" fuerza sus propios colores por CSS con reglas
+        !important mas viejas que esto (`.metric-card.featured p:first-child`
+        y `main .uppercase`), asi que no hace falta pisarlas aca. La clase
+        `uppercase` se deja puesta a proposito, aunque `.text-label` ya la
+        aplique por CSS: esa clase es justamente lo que la regla vieja usa
+        para reconocer el texto y ponerlo legible sobre el fondo oscuro. Sacarla
+        dejaba la etiqueta en blanco sobre blanco (bug real que aparecio al
+        probar este cambio).
+      */}
+      <p className="text-value text-moss-950">{value}</p>
+      <p className="mt-1 text-label uppercase">{label}</p>
     </>
   );
 
@@ -4579,26 +4625,48 @@ function getEventClass(kind: CalendarEventOccurrence["kind"]) {
 }
 
 /**
- * Icono que representa al evento en la vista compacta del calendario.
+ * Icono lineal que representa al evento en la vista compacta del calendario.
  *
- * Los eventos creados desde los accesos rapidos ya traen el emoji al principio
- * del titulo ("✂️ Poda"), asi que se reutiliza tal cual y cada actividad se
- * distingue de las demas. Los eventos generados automaticamente no lo traen,
- * asi que caen en un icono por tipo. Sin esto, poda, defoliar, fumigar y
- * fotoperiodo se verian todos iguales: los cuatro son de tipo "review".
+ * `kind` solo distingue watering/photo/cleaning/review, y review cubre poda,
+ * defoliar, fumigar y fotoperiodo por igual: sin mirar el titulo esos cuatro
+ * se verian identicos. Por eso primero se busca la primera palabra del
+ * titulo (normalizada, sin acentos ni simbolos) en `eventIconKeyByFirstWord`;
+ * esto funciona tanto para titulos nuevos ("Poda") como para los que se
+ * guardaron antes de este cambio con un emoji adelante ("✂️ Poda"), porque
+ * `normalizeCalendarTitle` descarta el emoji igual. Si no reconoce la
+ * palabra (el usuario le puso otro nombre a la tarea) cae a un icono por
+ * `kind`, con Eye como generico para "review".
  */
-function getEventEmoji(kind: CalendarEventOccurrence["kind"], title: string) {
-  const firstToken = title.trim().split(/\s+/)[0] ?? "";
+function getEventIcon(kind: CalendarEventOccurrence["kind"], title: string): LucideIcon {
+  const firstWord = normalizeCalendarTitle(title).split(" ")[0] ?? "";
+  const iconKey = eventIconKeyByFirstWord[firstWord];
+
+  if (iconKey) return eventIconComponents[iconKey];
+  if (kind === "watering") return eventIconComponents.watering;
+  if (kind === "photo") return eventIconComponents.photo;
+  if (kind === "cleaning") return eventIconComponents.cleaning;
+
+  return Eye;
+}
+
+/**
+ * Titulo listo para mostrar como texto (encabezados de tarjeta, no el icono).
+ *
+ * Los eventos guardados antes de este cambio tienen el emoji adelante del
+ * titulo ("💧 Riego"): ahora que ese emoji se reemplazo por un icono lineal
+ * en el calendario, dejarlo tambien en el texto del titulo se ve fuera de
+ * lugar. Esto lo saca solo cuando el primer token es justo ese simbolo
+ * decorativo, sin tocar el resto del titulo ni el dato guardado.
+ */
+function displayEventTitle(title: string) {
+  const trimmed = title.trim();
+  const firstToken = trimmed.split(/\s+/)[0] ?? "";
 
   if (firstToken && !/[\p{L}\p{N}]/u.test(firstToken)) {
-    return firstToken;
+    return trimmed.slice(firstToken.length).trim() || trimmed;
   }
 
-  if (kind === "watering") return "💧";
-  if (kind === "photo") return "📷";
-  if (kind === "cleaning") return "🧹";
-
-  return "🔎";
+  return trimmed;
 }
 
 function hasDuplicateCalendarAction(occurrences: CalendarEventOccurrence[], actionLabel: string) {
