@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { Bug, Camera, Droplet, Eye, Leaf, MoonStar, Scissors, Sparkles, type LucideIcon } from "lucide-react";
 
+import { Card } from "@/components/card";
 import { CopyValueButton } from "@/components/copy-button";
 import { GeneticFinderWizard } from "@/components/genetic-finder-wizard";
 import { PlantTimeline } from "@/components/plant-timeline";
@@ -1894,7 +1895,7 @@ function TodaySection({
       </section>
 
       <section className="mx-auto grid max-w-7xl gap-5 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
-        <section className="surface p-4 sm:p-5" aria-labelledby="today-title" id="tareas-hoy">
+        <Card as="section" aria-labelledby="today-title" className="p-4 sm:p-5" id="tareas-hoy">
           <SectionHeader eyebrow="Panel principal" title="Tareas de hoy" />
           <div className="mt-5 grid gap-3">
             {agendaItems.length > 0 ? (
@@ -1914,9 +1915,9 @@ function TodaySection({
               />
             )}
           </div>
-        </section>
+        </Card>
 
-        <section className="surface p-4 sm:p-5" aria-labelledby="weather-title">
+        <Card as="section" aria-labelledby="weather-title" className="p-4 sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <SectionHeader eyebrow="Clima" title="Condiciones del espacio" />
             <span className={weather.isLive ? "pill pill-green" : "pill pill-blue"}>
@@ -1946,7 +1947,7 @@ function TodaySection({
               ))}
             </dl>
           </div>
-        </section>
+        </Card>
       </section>
 
       <section className="mx-auto mt-5 max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -2229,7 +2230,7 @@ function SeasonInsights({
   const completionRate = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : careScore;
 
   return (
-    <section className="surface p-4 sm:p-5" aria-labelledby="season-title">
+    <Card as="section" aria-labelledby="season-title" className="p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <SectionHeader eyebrow="Mi temporada" title="Resumen activo" />
         <span className="pill pill-green">{completionRate}% tareas hechas</span>
@@ -2254,7 +2255,7 @@ function SeasonInsights({
             : "Sin hitos manuales proximos"}
         </p>
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -2438,7 +2439,7 @@ function SpacesSection({
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
         {visibleSpaces.length > 0 ? (
           visibleSpaces.map((space) => (
-            <article className="surface min-w-0 overflow-hidden" key={space.id}>
+            <Card as="article" className="min-w-0 overflow-hidden" key={space.id}>
               <div className="space-banner">
                 <div>
                   <h3 className="text-xl font-black tracking-tight text-white">{space.name}</h3>
@@ -2462,7 +2463,7 @@ function SpacesSection({
                     />
                   ))}
               </div>
-            </article>
+            </Card>
           ))
         ) : (
           <div className="lg:col-span-2">
@@ -3656,7 +3657,7 @@ function JournalSection({
 
   return (
     <section className="mx-auto mt-7 grid max-w-7xl gap-5 px-4 sm:px-6 lg:grid-cols-[1fr_0.9fr] lg:px-8">
-      <div className="surface p-4 sm:p-5">
+      <Card className="p-4 sm:p-5">
         <SectionHeader eyebrow="Bitacora" title="Observaciones y fotos" />
         <div className="journal-timeline mt-5">
           {groupedEntries.length > 0 ? (
@@ -3689,16 +3690,16 @@ function JournalSection({
             />
           )}
         </div>
-      </div>
+      </Card>
 
-      <section className="surface p-4 sm:p-5" aria-labelledby="new-plant-title">
+      <Card as="section" aria-labelledby="new-plant-title" className="p-4 sm:p-5">
         <p className="eyebrow text-emerald-800">Alta rapida</p>
         <h2 className="mt-2 text-xl font-black tracking-tight text-moss-950 sm:text-2xl" id="new-plant-title">
           Nueva planta
         </h2>
         <DesktopQuickPlantForm onCreateQuickPlant={onCreateQuickPlant} />
         <MobileQuickPlantWizard onCreateQuickPlant={onCreateQuickPlant} />
-      </section>
+      </Card>
     </section>
   );
 }
