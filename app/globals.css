@@ -106,21 +106,6 @@ textarea {
 }
 
 @layer components {
-  .brand-mark {
-    display: grid;
-    height: 42px;
-    width: 42px;
-    place-items: center;
-    border-radius: 16px;
-    background:
-      linear-gradient(145deg, rgba(183, 109, 24, 0.98), rgba(36, 118, 111, 0.98) 52%, rgba(35, 84, 62, 0.98)),
-      var(--accent-green);
-    color: white;
-    font-size: 0.8rem;
-    font-weight: 700;
-    box-shadow: 0 14px 30px rgba(35, 84, 62, 0.22);
-  }
-
   .brand-logo {
     display: grid;
     height: 54px;
@@ -277,10 +262,6 @@ textarea {
     font-weight: 700;
   }
 
-  .legal-popover {
-    position: relative;
-  }
-
   .install-app-wrapper {
     position: relative;
     display: none;
@@ -288,16 +269,6 @@ textarea {
 
   .install-app-button {
     white-space: nowrap;
-  }
-
-  .account-header-link {
-    white-space: nowrap;
-  }
-
-  @media (max-width: 520px) {
-    .account-header-link {
-      display: none;
-    }
   }
 
   .install-app-status {
@@ -323,85 +294,6 @@ textarea {
     }
   }
 
-  .legal-popover summary {
-    cursor: pointer;
-    list-style: none;
-    border-radius: 16px;
-    border: 1px solid rgba(35, 84, 62, 0.24);
-    background: #ffffff;
-    padding: 0.62rem 0.75rem;
-    color: #162015;
-    font-size: 0.82rem;
-    font-weight: 700;
-  }
-
-  .legal-popover-panel {
-    position: absolute;
-    top: calc(100% + 0.45rem);
-    right: 0;
-    width: min(78vw, 320px);
-    border: 1px solid rgba(22, 32, 21, 0.12);
-    border-radius: 16px;
-    background: #ffffff;
-    padding: 1rem;
-    box-shadow: 0 16px 34px rgba(28, 54, 38, 0.16);
-  }
-
-  .intro-panel {
-    position: relative;
-    overflow: hidden;
-    display: grid;
-    gap: 1rem;
-    align-items: center;
-    border: 1px solid rgba(22, 32, 21, 0.1);
-    border-radius: 16px;
-    background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(223, 241, 241, 0.76) 56%, rgba(255, 240, 200, 0.72)),
-      #ffffff;
-    padding: 1rem;
-    box-shadow: 0 18px 48px rgba(28, 54, 38, 0.12);
-  }
-
-  .intro-panel::after {
-    position: absolute;
-    right: -38px;
-    bottom: -52px;
-    height: 152px;
-    width: 152px;
-    border-radius: 999px;
-    background: radial-gradient(circle, rgba(226, 180, 87, 0.28), rgba(36, 118, 111, 0.12) 52%, transparent 70%);
-    content: "";
-  }
-
-  .intro-copy,
-  .intro-visual,
-  .summary-grid {
-    position: relative;
-    z-index: 1;
-  }
-
-  .intro-visual {
-    display: none;
-  }
-
-  @media (min-width: 768px) {
-    .intro-panel {
-      grid-template-columns: minmax(0, 1fr) 180px auto;
-      padding: 1.25rem;
-    }
-
-    .intro-visual {
-      display: grid;
-      min-height: 126px;
-      place-items: center;
-      border-radius: 16px;
-      background:
-        radial-gradient(circle at 80% 20%, rgba(255, 240, 200, 0.8), transparent 30%),
-        linear-gradient(135deg, rgba(232, 243, 223, 0.86), rgba(223, 241, 241, 0.72));
-      box-shadow: inset 0 0 0 1px rgba(35, 84, 62, 0.08);
-    }
-  }
-
   .leaf-cluster {
     display: block;
     width: 100%;
@@ -415,12 +307,6 @@ textarea {
   .leaf-cluster.soft {
     max-width: 190px;
     opacity: 0.26;
-  }
-
-  .summary-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(82px, 1fr));
-    gap: 0.6rem;
   }
 
   .metric-card {
@@ -518,14 +404,6 @@ textarea {
     line-height: 1.25;
   }
 
-  .summary-grid .metric-card:nth-child(1) {
-    background: linear-gradient(145deg, #ffffff, #e8f3df);
-  }
-
-  .summary-grid .metric-card:nth-child(3) {
-    background: linear-gradient(145deg, #ffffff, #dff1f1);
-  }
-
   .grow-command {
     position: relative;
     display: grid;
@@ -553,14 +431,6 @@ textarea {
       radial-gradient(circle, rgba(255, 240, 200, 0.2), transparent 58%),
       rgba(111, 143, 47, 0.16);
     content: "";
-  }
-
-  .grow-command-leaves {
-    position: absolute;
-    top: 0.85rem;
-    right: 1rem;
-    width: min(28vw, 170px);
-    pointer-events: none;
   }
 
   .grow-command-copy,
@@ -598,23 +468,6 @@ textarea {
     font-size: 0.92rem;
     font-weight: 700;
     line-height: 1.65;
-  }
-
-  .grow-command-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-    margin-top: 1rem;
-  }
-
-  .grow-command-badges span {
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.14);
-    padding: 0.42rem 0.58rem;
-    color: #ffffff;
-    font-size: 0.72rem;
-    font-weight: 700;
-    line-height: 1;
   }
 
   .grow-command-board {
@@ -808,16 +661,12 @@ textarea {
     text-transform: uppercase;
   }
 
-  .task-row,
-  .plant-row,
-  .journal-row {
+  .task-row {
     display: flex;
     gap: 0.875rem;
   }
 
   .task-row,
-  .journal-row,
-  .seed-card,
   .seed-result {
     align-items: flex-start;
     border-radius: 16px;
@@ -848,20 +697,8 @@ textarea {
     box-shadow: inset 4px 0 0 var(--accent-sky);
   }
 
-  .seed-card,
   .seed-result {
     display: block;
-  }
-
-  .simple-list-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    border-radius: 16px;
-    border: 1px solid rgba(22, 32, 21, 0.08);
-    background: rgba(248, 250, 244, 0.86);
-    padding: 0.7rem 0.78rem;
   }
 
   .seed-tabs {
@@ -1070,23 +907,6 @@ textarea {
     font-size: 0.82rem;
     font-weight: 550;
     line-height: 1.45;
-  }
-
-  .genetic-full-list {
-    border-top: 1px solid rgba(35, 84, 62, 0.12);
-    padding-top: 0.65rem;
-  }
-
-  .genetic-full-list summary {
-    cursor: pointer;
-    color: #23543e;
-    font-size: 0.82rem;
-    font-weight: 700;
-    list-style-position: inside;
-  }
-
-  .genetic-full-list label {
-    margin-top: 0.65rem;
   }
 
   .genetic-count-note {
@@ -1436,10 +1256,6 @@ textarea {
     line-height: 1.45;
   }
 
-  .plant-row {
-    padding: 1rem 0;
-  }
-
   .plant-row-details {
     scroll-margin-top: 96px;
     padding: 1rem 0;
@@ -1459,16 +1275,7 @@ textarea {
     list-style: none;
   }
 
-  .plant-row:first-child {
-    padding-top: 0;
-  }
-
-  .plant-row:last-child {
-    padding-bottom: 0;
-  }
-
   .plant-avatar,
-  .photo-thumb,
   .task-check {
     flex: 0 0 auto;
     border-radius: 16px;
@@ -1485,14 +1292,6 @@ textarea {
     color: #23543e;
     font-size: 0.78rem;
     font-weight: 700;
-  }
-
-  .photo-thumb {
-    height: 58px;
-    width: 58px;
-    background:
-      linear-gradient(135deg, rgba(37, 127, 116, 0.16), rgba(226, 180, 87, 0.2)),
-      #e9f2ec;
   }
 
   .task-check {
@@ -3110,39 +2909,6 @@ textarea {
     background: linear-gradient(90deg, #1f6b4c, #24766f 42%, #e2b457 74%, #a84f3d);
   }
 
-  .intro-panel {
-    border-color: rgba(255, 255, 255, 0.2);
-    background:
-      linear-gradient(135deg, rgba(31, 107, 76, 0.96), rgba(35, 84, 62, 0.92) 50%, rgba(36, 118, 111, 0.88)),
-      #1f6b4c;
-    color: #ffffff;
-    box-shadow: 0 30px 70px rgba(31, 107, 76, 0.28);
-  }
-
-  .intro-panel::after {
-    border-radius: 16px;
-    background:
-      linear-gradient(135deg, transparent 0 42%, rgba(226, 180, 87, 0.22) 42% 58%, transparent 58%),
-      linear-gradient(45deg, transparent 0 38%, rgba(223, 241, 241, 0.14) 38% 52%, transparent 52%);
-  }
-
-  .intro-copy .eyebrow,
-  .intro-copy h1,
-  .intro-copy p {
-    color: #ffffff;
-  }
-
-  .intro-copy p:not(.eyebrow) {
-    color: rgba(255, 255, 255, 0.78);
-  }
-
-  .intro-visual {
-    background:
-      linear-gradient(135deg, rgba(255, 240, 200, 0.2), rgba(223, 241, 241, 0.12)),
-      rgba(255, 255, 255, 0.08);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
-  }
-
   .metric-card {
     border-color: rgba(255, 255, 255, 0.18);
     background:
@@ -3155,14 +2921,6 @@ textarea {
     border-color: rgba(226, 180, 87, 0.45);
     background: linear-gradient(145deg, #fff0c8, #ffffff 78%);
     box-shadow: 0 18px 32px rgba(226, 180, 87, 0.2);
-  }
-
-  .summary-grid .metric-card:nth-child(1) {
-    background: linear-gradient(145deg, #e8f3df, #ffffff);
-  }
-
-  .summary-grid .metric-card:nth-child(3) {
-    background: linear-gradient(145deg, #dff1f1, #ffffff);
   }
 
   .grow-command {
@@ -3199,10 +2957,7 @@ textarea {
   }
 
   .task-row,
-  .journal-row,
-  .seed-card,
-  .seed-result,
-  .simple-list-row {
+  .seed-result {
     border-color: rgba(35, 84, 62, 0.12);
     background:
       linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(248, 250, 244, 0.78)),
@@ -3840,8 +3595,7 @@ textarea {
       padding: 0.68rem;
     }
 
-    .genetic-entry-card label,
-    .genetic-full-list label {
+    .genetic-entry-card label {
       font-size: 0.88rem;
     }
 
@@ -3974,8 +3728,7 @@ textarea {
 
   .manual-form-group > h3,
   .manual-form-group label,
-  .genetic-entry-card label,
-  .genetic-full-list label {
+  .genetic-entry-card label {
     color: #f2f7f4;
   }
 
@@ -4104,10 +3857,7 @@ textarea {
   .info-card,
   .account-sync-card,
   .task-row,
-  .journal-row,
-  .seed-card,
   .seed-result,
-  .simple-list-row,
   .metric-card,
   .metric-tile,
   .plant-utility-card,
@@ -4128,7 +3878,6 @@ textarea {
     background: linear-gradient(90deg, #1f6b4c, #2e6a55);
   }
 
-  .intro-panel,
   .grow-command {
     border-color: rgba(255, 255, 255, 0.16);
     background:
@@ -4137,14 +3886,12 @@ textarea {
     box-shadow: 0 24px 56px rgba(31, 107, 76, 0.28);
   }
 
-  .intro-panel::after,
   .grow-command::after {
     background:
       linear-gradient(135deg, transparent 0 46%, rgba(255, 255, 255, 0.08) 46% 54%, transparent 54%),
       linear-gradient(45deg, transparent 0 56%, rgba(111, 207, 151, 0.1) 56% 66%, transparent 66%);
   }
 
-  .intro-visual,
   .grow-command-board,
   .grow-command-card.accent,
   .grow-phase-step {
@@ -4168,8 +3915,6 @@ textarea {
       0 14px 30px rgba(24, 35, 29, 0.08);
   }
 
-  .summary-grid .metric-card:nth-child(1),
-  .summary-grid .metric-card:nth-child(3),
   .metric-tile:nth-child(2n),
   .metric-tile:nth-child(3n) {
     background: rgba(255, 255, 255, 0.92);
@@ -4179,7 +3924,6 @@ textarea {
   .secondary-button,
   .danger-button,
   .dark-button,
-  .legal-popover summary,
   .calendar-create-button {
     border-radius: 16px;
     font-weight: 600;
@@ -4192,8 +3936,7 @@ textarea {
     color: #ffffff;
   }
 
-  .secondary-button,
-  .legal-popover summary {
+  .secondary-button {
     border-color: rgba(24, 35, 29, 0.12);
     background: #ffffff;
     color: #1d2b24;
@@ -4315,61 +4058,6 @@ textarea {
       linear-gradient(180deg, #f8faf8 0%, #eef3ef 100%);
   }
 
-  .intro-panel {
-    grid-template-columns: minmax(0, 1fr);
-    border-color: rgba(24, 35, 29, 0.08);
-    background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(241, 247, 243, 0.92)),
-      #ffffff;
-    color: #18231d;
-    box-shadow: 0 18px 48px rgba(24, 35, 29, 0.09);
-  }
-
-  .intro-panel::after {
-    right: 0;
-    bottom: 0;
-    height: 100%;
-    width: min(34%, 360px);
-    border-radius: 0;
-    background:
-      linear-gradient(135deg, transparent 0 48%, rgba(46, 106, 85, 0.08) 48% 56%, transparent 56%),
-      linear-gradient(45deg, transparent 0 56%, rgba(46, 106, 85, 0.08) 56% 64%, transparent 64%);
-  }
-
-  .intro-copy .eyebrow {
-    color: #2e6a55;
-  }
-
-  .intro-copy h1,
-  .intro-copy p,
-  .intro-copy p:not(.eyebrow) {
-    color: #18231d;
-  }
-
-  .intro-copy p:not(.eyebrow) {
-    color: #59665f;
-    font-weight: 650;
-  }
-
-  @media (min-width: 768px) {
-    .intro-panel {
-      grid-template-columns: minmax(0, 1fr) minmax(320px, 0.52fr);
-      padding: 1.35rem;
-    }
-
-    .intro-visual {
-      display: none;
-    }
-  }
-
-  .summary-grid {
-    gap: 0.75rem;
-    align-self: stretch;
-  }
-
-  .summary-grid .metric-card,
-  .summary-grid .metric-card:nth-child(1),
-  .summary-grid .metric-card:nth-child(3),
   .metric-card.featured {
     display: grid;
     align-content: center;
@@ -4377,14 +4065,6 @@ textarea {
     border-color: rgba(24, 35, 29, 0.08);
     background: #ffffff;
     box-shadow: 0 10px 26px rgba(24, 35, 29, 0.07);
-  }
-
-  .summary-grid .metric-card.featured {
-    border-color: rgba(46, 106, 85, 0.26);
-    background: #f1f8f4;
-    box-shadow:
-      inset 0 0 0 1px rgba(46, 106, 85, 0.06),
-      0 12px 30px rgba(46, 106, 85, 0.11);
   }
 
   .grow-command {
@@ -4395,8 +4075,7 @@ textarea {
     box-shadow: 0 18px 48px rgba(24, 35, 29, 0.09);
   }
 
-  .grow-command::after,
-  .grow-command-leaves {
+  .grow-command::after {
     display: none;
   }
 
@@ -4414,11 +4093,6 @@ textarea {
   }
 
   .grow-command-copy .eyebrow {
-    color: #2e6a55;
-  }
-
-  .grow-command-badges span {
-    background: #edf4ef;
     color: #2e6a55;
   }
 
@@ -4510,8 +4184,7 @@ textarea {
     background: #2c8060;
   }
 
-  .secondary-button,
-  .legal-popover summary {
+  .secondary-button {
     background: #ffffff;
   }
 
@@ -4584,24 +4257,6 @@ textarea {
     font-size: 0.98rem;
     font-weight: 520;
     line-height: 1.7;
-  }
-
-  .executive-status-strip {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 1.1rem;
-  }
-
-  .executive-status-strip span {
-    border-radius: 999px;
-    border: 1px solid rgba(46, 106, 85, 0.14);
-    background: #f3f8f5;
-    padding: 0.48rem 0.68rem;
-    color: #2e6a55;
-    font-size: 0.76rem;
-    font-weight: 600;
-    line-height: 1;
   }
 
   .executive-metrics {
@@ -4689,11 +4344,6 @@ textarea {
     background: #f3f8f5;
   }
 
-  .executive-overview .grow-command-badges span {
-    background: #eef4f0;
-    color: #2e6a55;
-  }
-
   .executive-overview .home-account-panel {
     border-radius: 22px;
     border-color: rgba(24, 35, 29, 0.08);
@@ -4735,13 +4385,10 @@ textarea {
   }
 
   main .font-black,
-  main .font-extrabold,
   main .font-bold,
   header .font-black,
-  header .font-extrabold,
   header .font-bold,
   .app-header .font-black,
-  .app-header .font-extrabold,
   .app-header .font-bold {
     font-weight: 650 !important;
   }
@@ -4752,7 +4399,6 @@ textarea {
   main h4,
   .executive-hero-copy h1,
   .executive-overview .grow-command-copy h2,
-  .intro-copy h1,
   .grow-command-copy h2 {
     color: #111a16;
     font-weight: 720 !important;
@@ -4761,8 +4407,7 @@ textarea {
   }
 
   main h1,
-  .executive-hero-copy h1,
-  .intro-copy h1 {
+  .executive-hero-copy h1 {
     font-size: clamp(2rem, 3.4vw, 3.25rem);
   }
 
@@ -4784,7 +4429,6 @@ textarea {
   .eyebrow,
   main .uppercase,
   .calendar-title-block .eyebrow,
-  .intro-copy .eyebrow,
   .grow-command-copy .eyebrow,
   .genetics-reference-panel .eyebrow,
   .plant-genetic-eyebrow,
@@ -4846,7 +4490,6 @@ textarea {
   .executive-hero,
   .executive-overview .grow-command,
   .executive-overview .home-account-panel,
-  .intro-panel,
   .grow-command,
   .surface,
   .weather-panel,
@@ -4875,13 +4518,11 @@ textarea {
   }
 
   .executive-hero::after,
-  .intro-panel::after,
   .grow-command::after {
     display: none;
   }
 
   .executive-hero-copy p:not(.eyebrow),
-  .intro-copy p:not(.eyebrow),
   .grow-command-copy p:not(.eyebrow),
   .home-account-panel p,
   .surface p,
@@ -4891,11 +4532,6 @@ textarea {
     line-height: 1.62;
   }
 
-  .executive-status-strip {
-    gap: 0.4rem;
-  }
-
-  .executive-status-strip span,
   .pill,
   .badge,
   .event-legend,
@@ -4919,10 +4555,8 @@ textarea {
   .task-row,
   .setup-card,
   .finder-result-card,
-  .seed-card,
   .seed-result,
-  .info-card,
-  .simple-list-row {
+  .info-card {
     border-radius: 16px !important;
     box-shadow: none;
   }
@@ -4971,7 +4605,6 @@ textarea {
   .dark-button,
   .calendar-create-button,
   .finder-use-button,
-  .legal-popover summary,
   .form-control {
     border-radius: 12px !important;
     font-weight: 600 !important;
@@ -4988,7 +4621,6 @@ textarea {
   }
 
   .secondary-button,
-  .legal-popover summary,
   .form-control {
     border-color: #cdd8d2;
     background: #ffffff;
@@ -5076,7 +4708,6 @@ textarea {
   main h4,
   .executive-hero-copy h1,
   .executive-overview .grow-command-copy h2,
-  .intro-copy h1,
   .grow-command-copy h2,
   .finder-header h3,
   .first-cultivation-intro h1 {
@@ -5088,7 +4719,6 @@ textarea {
   .eyebrow,
   main .uppercase,
   .calendar-title-block .eyebrow,
-  .intro-copy .eyebrow,
   .grow-command-copy .eyebrow,
   .executive-hero-copy .eyebrow,
   .genetics-reference-panel .eyebrow,
@@ -5163,7 +4793,6 @@ textarea {
   .dark-button,
   .calendar-create-button,
   .finder-use-button,
-  .legal-popover summary,
   .form-control {
     border-radius: 14px !important;
     font-weight: 600 !important;
@@ -5184,7 +4813,6 @@ textarea {
   }
 
   .secondary-button,
-  .legal-popover summary,
   .form-control {
     border-color: rgba(30, 51, 39, 0.14);
     background: #ffffff;
@@ -5247,7 +4875,6 @@ textarea {
   .executive-hero,
   .executive-overview .grow-command,
   .executive-overview .home-account-panel,
-  .intro-panel,
   .surface,
   .weather-panel,
   .coach-panel,
@@ -5265,10 +4892,8 @@ textarea {
   .task-row,
   .setup-card,
   .finder-result-card,
-  .seed-card,
   .seed-result,
   .info-card,
-  .simple-list-row,
   .setup-builder,
   .setup-cheatsheet,
   .manual-task-template,
@@ -5340,12 +4965,6 @@ textarea {
 
   .home-account-panel .pill,
   .executive-overview .home-account-panel .pill {
-    background: #eef6ee;
-    color: #1f6b4c;
-  }
-
-  .grow-command-badges span,
-  .executive-overview .grow-command-badges span {
     background: #eef6ee;
     color: #1f6b4c;
   }
