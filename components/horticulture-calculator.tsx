@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { Card } from "@/components/card";
 import {
   calculateHorticulturePlan,
   getHorticultureSeeds,
@@ -29,7 +30,7 @@ export function HorticultureCalculator() {
 
   if (!plan.automaticEnabled) {
     return (
-      <section className="surface p-4 sm:p-5" aria-labelledby="calculator-title">
+      <Card as="section" aria-labelledby="calculator-title" className="p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <SectionHeader eyebrow="Calculadora" title="Cultivo horticola" />
           <span className="mode-badge manual">Manual</span>
@@ -38,12 +39,12 @@ export function HorticultureCalculator() {
           <p className="text-sm font-black text-moss-950">{plan.seedLabel}</p>
           <p className="mt-2 text-sm leading-6 text-stone-700">{plan.note}</p>
         </div>
-      </section>
+      </Card>
     );
   }
 
   return (
-    <section className="surface p-4 sm:p-5" aria-labelledby="calculator-title">
+    <Card as="section" aria-labelledby="calculator-title" className="p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <SectionHeader eyebrow="Calculadora" title="Cultivo horticola" />
         <span className="mode-badge automatic">Automatico</span>
@@ -114,7 +115,7 @@ export function HorticultureCalculator() {
         <p className="mt-1 text-sm leading-6 text-stone-700">{plan.harvestWindow}</p>
         <p className="mt-2 text-xs font-bold leading-5 text-stone-600">{plan.note}</p>
       </div>
-    </section>
+    </Card>
   );
 }
 

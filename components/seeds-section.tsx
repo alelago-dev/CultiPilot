@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 
+import { Card } from "@/components/card";
 import { GeneticFinderWizard } from "@/components/genetic-finder-wizard";
 import { HorticultureCalculator } from "@/components/horticulture-calculator";
 import { ManualCannabisForm } from "@/components/manual-cannabis-form";
@@ -222,7 +223,7 @@ export function SeedsSection({ calendarHref, calendarLinkHref, locale, onCreateM
           ) : null}
 
           {activeTab === "manual" ? (
-            <section className="surface p-4 sm:p-5" aria-labelledby="manual-seed-title">
+            <Card as="section" aria-labelledby="manual-seed-title" className="p-4 sm:p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="eyebrow text-emerald-800">Carga manual</p>
@@ -245,7 +246,7 @@ export function SeedsSection({ calendarHref, calendarLinkHref, locale, onCreateM
                   selectedGeneticName={selectedGeneticName}
                 />
               </div>
-            </section>
+            </Card>
           ) : null}
 
           {activeTab === "horticultural" ? <HorticultureCalculator /> : null}
@@ -299,7 +300,7 @@ function SetupSuggestionsTab() {
   const selectedPlace = isInterior ? selectedSetup.label : isGreenhouse ? greenhousePlace : outdoorPlace;
 
   return (
-    <section className="surface p-4 sm:p-5" aria-labelledby="setup-title">
+    <Card as="section" aria-labelledby="setup-title" className="p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <SectionHeader eyebrow="Sugerencias" id="setup-title" title="Setups de carpa y macetas" />
         <ModeBadge mode="manual" />
@@ -461,7 +462,7 @@ function SetupSuggestionsTab() {
           <ReferenceFact label="Maceta grande" value="15-25 L: menos unidades y mas margen de sustrato" />
         </div>
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -523,7 +524,7 @@ function ReferenceTab({ locale }: { locale: Locale }) {
   const isSpanish = locale === "es";
 
   return (
-    <section className="surface p-4 sm:p-5" aria-labelledby="reference-title">
+    <Card as="section" aria-labelledby="reference-title" className="p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <SectionHeader eyebrow="Solo lectura" id="reference-title" title="Referencia" />
         <div className="flex flex-wrap items-center gap-2">
@@ -622,7 +623,7 @@ function ReferenceTab({ locale }: { locale: Locale }) {
           </details>
         </div>
       </div>
-    </section>
+    </Card>
   );
 }
 
