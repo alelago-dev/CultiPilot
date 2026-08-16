@@ -2422,6 +2422,45 @@ textarea {
     transform: translateY(-1px);
   }
 
+  /*
+   * En Semillas, el stepper de solapas (Finder/Mi cultivo/Setups/...) queda
+   * apilado justo arriba del stepper de secciones (Hoy/Semillas/Espacios/...)
+   * -- y como comparten pinta identica (mismo alto, mismo degrade verde en
+   * "siguiente"), se leen como 4 botones repetidos en vez de dos
+   * navegaciones distintas. Achicamos y aclaramos el de solapas para que se
+   * vea como el control secundario/local que es, y le damos mas aire al
+   * stepper de secciones para que quede claro que es la navegacion
+   * principal de la app.
+   */
+  .tab-stepper {
+    gap: 0.5rem;
+  }
+
+  .tab-stepper .stepper-button {
+    min-height: 44px;
+    padding: 0.55rem 0.75rem;
+    border-radius: 12px;
+  }
+
+  .tab-stepper .stepper-button.primary {
+    border: 1px solid rgba(35, 84, 62, 0.18);
+    background: rgba(35, 84, 62, 0.08);
+    color: #1f3627;
+    box-shadow: none;
+  }
+
+  .tab-stepper .stepper-button.secondary {
+    background: rgba(255, 255, 255, 0.6);
+  }
+
+  .tab-stepper .stepper-button:not(.disabled):hover {
+    box-shadow: none;
+  }
+
+  .section-stepper {
+    margin-top: 2.25rem;
+  }
+
   .genetic-finder {
     border: 1px solid rgba(22, 32, 21, 0.09);
     border-radius: 16px;
