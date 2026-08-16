@@ -106,6 +106,20 @@ textarea {
 }
 
 @layer components {
+  /*
+   * Base del sistema de cards (components/card.tsx). Valores sacados con
+   * getComputedStyle de ".surface" tal como se ve hoy, no de la primera
+   * regla ".surface" que aparece mas abajo en este archivo: esa quedo
+   * tapada hace rato por pases de rediseno posteriores y nunca se llego a
+   * ver en pantalla. Unica fuente de verdad para las cards nuevas.
+   */
+  .card {
+    border-radius: 18px;
+    border: 1px solid rgba(30, 51, 39, 0.08);
+    background: #ffffff;
+    box-shadow: 0 12px 30px rgba(30, 51, 39, 0.06);
+  }
+
   .brand-logo {
     display: grid;
     height: 54px;
@@ -4526,6 +4540,7 @@ textarea {
   .grow-command-copy p:not(.eyebrow),
   .home-account-panel p,
   .surface p,
+  .card p,
   .weather-panel p {
     color: #56615b;
     font-weight: 500 !important;
