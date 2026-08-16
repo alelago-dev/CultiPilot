@@ -5712,4 +5712,41 @@ textarea {
   .shared-view-banner-button:hover {
     background: #ffffff;
   }
+
+  /*
+   * Espacios: al expandir una maceta, la ficha de genetica, el panel de
+   * accion/registro y la linea de tiempo cada una dibujaba su propia card
+   * (radio, borde, sombra, fondo en degrade) apiladas una debajo de la otra
+   * -- adentro de una maceta que ya esta adentro de la card del espacio.
+   * Tres o cuatro cards metidas una en otra es la razon mas concreta de
+   * que esto se sienta "pesado". Las aplanamos a secciones simples,
+   * separadas por una linea divisoria en vez de repetir el tratamiento
+   * de card en cada una. Con !important porque hay reglas antiguas de
+   * pases de rediseno anteriores (algunas con !important) definiendo
+   * ".plant-genetic-summary" / ".plant-utility-card" / ".plant-timeline-card"
+   * mas arriba en este archivo; esta es la que tiene que ganar siempre,
+   * pase lo que pase con esas.
+   */
+  .plant-row-details .plant-genetic-summary,
+  .plant-row-details .plant-utility-card,
+  .plant-row-details .plant-timeline-card {
+    border: none !important;
+    border-top: 1px solid rgba(26, 43, 33, 0.1) !important;
+    border-radius: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+    padding: 1rem 0 0 !important;
+  }
+
+  /*
+   * "Proxima accion declarada" sigue siendo el dato mas accionable del
+   * panel, asi que se queda con un acento propio -- pero un relleno suave
+   * y sin sombra, no una card blanca flotante como las demas.
+   */
+  .plant-row-details .plant-utility-card.featured {
+    border-top: 1px solid rgba(36, 118, 111, 0.22) !important;
+    border-radius: 12px !important;
+    background: rgba(223, 241, 241, 0.35) !important;
+    padding: 1rem !important;
+  }
 }
