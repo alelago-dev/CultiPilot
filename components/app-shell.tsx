@@ -148,6 +148,9 @@ function describeAuthError(errorCode: string | null, errorDescription: string | 
  */
 function describeSendLinkError(error: unknown) {
   const readable = (error instanceof Error ? error.message : typeof error === "string" ? error : "").trim();
+  const errorCode = getErrorDetail(error, "code") || getErrorDetail(error, "error_code");
+  const status = getErrorDetail(error, "status");
+  const combinedError = [readable, errorCode, status].filter(Boolean).join(" ");
 
   const waitSeconds = readable.match(/after (\d+) seconds?/i)?.[1];
 
@@ -155,7 +158,7 @@ function describeSendLinkError(error: unknown) {
     return `Hay que esperar ${waitSeconds} segundos antes de pedir otro enlace: Supabase no deja pedirlos seguidos.`;
   }
 
-  if (/rate limit|too many requests|429/i.test(readable)) {
+  if (/rate limit|too many requests|429/i.test(combinedError)) {
     return "Se llego al limite de correos que Supabase manda por hora (son 2). Espera un rato y volve a intentar, o configura un servicio de email propio.";
   }
 
@@ -163,11 +166,15 @@ function describeSendLinkError(error: unknown) {
   // es "Email address not authorized", que tambien contiene "email address" y
   // caeria en el mensaje equivocado ("revisa que este bien escrito"), mandando
   // a corregir una direccion que en realidad esta perfecta.
-  if (/not authorized/i.test(readable)) {
+  if (/not authorized/i.test(combinedError)) {
     return "Mientras el proyecto use el correo de prueba de Supabase, solo llegan enlaces a las direcciones del equipo. Para que entren otras personas hay que configurar un servicio de email propio.";
   }
 
-  if (/invalid|email address/i.test(readable)) {
+  if (/unexpected_failure|error sending magic link email|\b500\b/i.test(combinedError)) {
+    return "Supabase no pudo enviar el email de acceso. No parece un problema de conexion: revisa Authentication > Logs y la configuracion de SMTP o Email Templates en Supabase.";
+  }
+
+  if (/invalid|email address/i.test(combinedError)) {
     return "Supabase no acepto ese email. Revisa que este bien escrito.";
   }
 
@@ -178,6 +185,13 @@ function describeSendLinkError(error: unknown) {
   return esTextoUtil
     ? `No pudimos enviar el enlace: ${readable}`
     : "No pudimos enviar el enlace. Revisa tu conexion e intenta de nuevo en un momento.";
+}
+
+function getErrorDetail(error: unknown, key: "code" | "error_code" | "status") {
+  if (!error || typeof error !== "object" || !(key in error)) return "";
+
+  const value = (error as Record<string, unknown>)[key];
+  return typeof value === "number" || typeof value === "string" ? String(value) : "";
 }
 
 /**
