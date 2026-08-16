@@ -5788,4 +5788,37 @@ textarea {
     background: rgba(223, 241, 241, 0.35) !important;
     padding: 1rem !important;
   }
+
+  /*
+   * El hero de Hoy muestra 3 numeros (Cultivos / Pendientes / Racha) como
+   * ".metric-card" identicas, y "Pendientes" (tareas de hoy sin marcar,
+   * el dato mas accionable de las tres) se marca como ".featured" -- pero
+   * el featured actual de ".metric-card" es un truco casi invisible (una
+   * sombra interna de 3px en el borde izquierdo) y ademas hereda
+   * "color: white" de una regla vieja pensada para un fondo oscuro que
+   * esta card ya no tiene. Hoy no se rompe porque los dos <p> de adentro
+   * (valor y label) tienen su propio color puesto aparte, pero es fragil:
+   * cualquier texto nuevo sin ese parche puntual quedaria blanco sobre
+   * blanco. En vez de copiar ese blanco, se decide un tratamiento propio:
+   * el mismo verde de "tarea pendiente/prioritaria" que ya se usa dos
+   * tarjetas mas abajo en esta misma pagina (".task-row.task-priority"),
+   * para que el numero de tareas pendientes se lea con el mismo lenguaje
+   * visual que las tareas mismas. Con !important porque hay reglas de
+   * pases de rediseno anteriores definiendo ".metric-card.featured" mas
+   * arriba en este archivo (algunas con !important); esta tiene que ganar.
+   */
+  .executive-metrics .metric-card.featured {
+    background: rgb(242, 249, 244) !important;
+    border: 1px solid rgba(47, 143, 95, 0.4) !important;
+    box-shadow: none !important;
+    color: #16311f !important;
+  }
+
+  .executive-metrics .metric-card.featured p.text-value {
+    color: #16311f !important;
+  }
+
+  .executive-metrics .metric-card.featured p.text-label {
+    color: #2f8f5f !important;
+  }
 }
