@@ -4477,14 +4477,6 @@ function PlantUtilityPanel({
         <p className="mt-1 font-black text-moss-950">{lastEntry?.title ?? "Sin entradas todavia"}</p>
         <p className="mt-1 text-sm text-stone-600">{lastEntry?.createdAt ?? "Usa Diario para agregar fotos y notas"}</p>
       </div>
-      <div className="plant-utility-card">
-        <p className="text-[11px] font-black uppercase text-stone-500">Ambiente declarado</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <span className="plant-signal">{plant.mode}</span>
-          <span className="plant-signal">{plant.lighting}</span>
-          <span className="plant-signal">{plant.pot}</span>
-        </div>
-      </div>
     </div>
   );
 }
