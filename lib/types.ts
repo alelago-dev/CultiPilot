@@ -103,6 +103,18 @@ export type SensorDevice = {
   createdAt: string;
 };
 
+export type PlantEnvironmentalAlertSettings = {
+  plantId: string;
+  temperatureMinC?: number;
+  temperatureMaxC?: number;
+  humidityMinPercent?: number;
+  humidityMaxPercent?: number;
+  vpdMinKpa?: number;
+  vpdMaxKpa?: number;
+  substrateMoistureMinPercent?: number;
+  substrateMoistureMaxPercent?: number;
+};
+
 export type PlantAnalysisContext = {
   calendarEvents: CalendarEvent[];
   entries: CareEntry[];

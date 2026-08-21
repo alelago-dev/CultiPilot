@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type Dispatch, type FormEvent, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 import { Bug, Camera, Droplet, Eye, Leaf, MoonStar, NotebookPen, Scissors, Sparkles, Thermometer, type LucideIcon } from "lucide-react";
@@ -49,6 +49,7 @@ import type {
   GrowSpace,
   Locale,
   Plant,
+  PlantEnvironmentalAlertSettings,
   PlantMeasurement,
   SensorDevice,
   Task
@@ -109,6 +110,7 @@ type FirstCultivationInput = {
 };
 
 type AppSnapshot = {
+  environmentalAlerts: PlantEnvironmentalAlertSettings[];
   entries: CareEntry[];
   events: CalendarEvent[];
   habitDates: string[];
@@ -497,6 +499,7 @@ const storageKeys = {
   events: "plantcare-calendar-events",
   habitDates: "plantcare-habit-dates",
   measurements: "plantcare-plant-measurements",
+  environmentalAlerts: "plantcare-environmental-alerts",
   onboarding: "plantcare-onboarding-complete",
   plants: "plantcare-plants",
   quickChecks: "plantcare-quick-checks",
@@ -523,6 +526,7 @@ export function AppShell({
   const [entryState, setEntryState] = useStoredState(storageKeys.entries, entries);
   const [habitDates, setHabitDates] = useStoredState<string[]>(storageKeys.habitDates, []);
   const [measurementState, setMeasurementState] = useStoredState<PlantMeasurement[]>(storageKeys.measurements, []);
+  const [environmentalAlertState, setEnvironmentalAlertState] = useStoredState<PlantEnvironmentalAlertSettings[]>(storageKeys.environmentalAlerts, []);
   const [weather, setWeather] = useState<WeatherReadiness>(() => getStoredWeatherSnapshot() ?? getWeatherReadiness("Ubicacion sin conectar"));
   const [weatherStatus, setWeatherStatus] = useState("");
   const [accountStatus, setAccountStatus] = useState<AccountStatus>(() => ({
@@ -627,6 +631,7 @@ export function AppShell({
   function getCurrentSnapshot(): AppSnapshot {
     return {
       entries: entryState,
+      environmentalAlerts: environmentalAlertState,
       events: eventState,
       habitDates,
       measurements: measurementState,
@@ -660,6 +665,10 @@ export function AppShell({
     if (snapshot.measurements) {
       setMeasurementState(snapshot.measurements);
       persistStoredState(storageKeys.measurements, snapshot.measurements);
+    }
+    if (snapshot.environmentalAlerts) {
+      setEnvironmentalAlertState(snapshot.environmentalAlerts);
+      persistStoredState(storageKeys.environmentalAlerts, snapshot.environmentalAlerts);
     }
   }
 
@@ -1260,6 +1269,12 @@ export function AppShell({
     persistStoredState(storageKeys.measurements, nextMeasurements);
   }
 
+  function handleUpdateEnvironmentalAlerts(settings: PlantEnvironmentalAlertSettings) {
+    const nextSettings = [...environmentalAlertState.filter((item) => item.plantId !== settings.plantId), settings];
+    setEnvironmentalAlertState(nextSettings);
+    persistStoredState(storageKeys.environmentalAlerts, nextSettings);
+  }
+
   async function refreshSensorData() {
     if (!accountStatus.userId || !accountStatus.isSignedIn || viewingShare) return;
 
@@ -1600,7 +1615,7 @@ export function AppShell({
     return () => window.clearTimeout(timeoutId);
     // saveRemoteSnapshot reads the current snapshot from state; these dependencies are the autosave trigger surface.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountStatus.userId, entryState, eventState, habitDates, measurementState, plantState, remoteSyncReady, taskState, viewingShare]);
+  }, [accountStatus.userId, entryState, environmentalAlertState, eventState, habitDates, measurementState, plantState, remoteSyncReady, taskState, viewingShare]);
 
   useEffect(() => {
     if (!accountStatus.isSignedIn || !accountStatus.userId || viewingShare) {
@@ -1622,12 +1637,14 @@ export function AppShell({
     setEntryState([]);
     setHabitDates([]);
     setMeasurementState([]);
+    setEnvironmentalAlertState([]);
     persistStoredState(storageKeys.plants, []);
     persistStoredState(storageKeys.tasks, []);
     persistStoredState(storageKeys.events, []);
     persistStoredState(storageKeys.entries, []);
     persistStoredState(storageKeys.habitDates, []);
     persistStoredState(storageKeys.measurements, []);
+    persistStoredState(storageKeys.environmentalAlerts, []);
     removeStoredState(storageKeys.calendarDate);
     removeStoredState(storageKeys.quickChecks);
     removeStoredState(storageKeys.weatherConsent);
@@ -1769,11 +1786,13 @@ export function AppShell({
         <SpacesSection
           calendarEvents={eventState}
           entries={entryState}
+          environmentalAlerts={environmentalAlertState}
           measurements={measurementState}
           onAddJournalEntry={handleAddJournalEntry}
           onAddCalendarEvent={handleAddCalendarEvent}
           onAddMeasurement={handleAddMeasurement}
           onDeleteMeasurement={handleDeleteMeasurement}
+          onUpdateEnvironmentalAlerts={handleUpdateEnvironmentalAlerts}
           onCreateSensorDevice={handleCreateSensorDevice}
           onRefreshSensors={refreshSensorData}
           onToggleSensorDevice={handleToggleSensorDevice}
@@ -2574,11 +2593,13 @@ function OnboardingFlow({ onClose, todayHref }: { onClose: () => void; todayHref
 function SpacesSection({
   calendarEvents,
   entries,
+  environmentalAlerts,
   measurements,
   onAddCalendarEvent,
   onAddJournalEntry,
   onAddMeasurement,
   onDeleteMeasurement,
+  onUpdateEnvironmentalAlerts,
   onCreateSensorDevice,
   onRefreshSensors,
   onToggleSensorDevice,
@@ -2591,11 +2612,13 @@ function SpacesSection({
 }: {
   calendarEvents: CalendarEvent[];
   entries: CareEntry[];
+  environmentalAlerts: PlantEnvironmentalAlertSettings[];
   measurements: PlantMeasurement[];
   onAddCalendarEvent: (event: CalendarEvent) => void;
   onAddJournalEntry: (entry: CareEntry) => void;
   onAddMeasurement: (measurement: PlantMeasurement) => void;
   onDeleteMeasurement: (measurementId: string) => void;
+  onUpdateEnvironmentalAlerts: (settings: PlantEnvironmentalAlertSettings) => void;
   onCreateSensorDevice: (plantId: string, name: string) => Promise<string | null>;
   onRefreshSensors: () => Promise<void>;
   onToggleSensorDevice: (deviceId: string, active: boolean) => Promise<void>;
@@ -2748,12 +2771,14 @@ function SpacesSection({
                     <PlantSpaceRow
                       calendarEvents={calendarEvents}
                       entries={entries}
+                      environmentalAlertSettings={environmentalAlerts.find((settings) => settings.plantId === plant.id)}
                       measurements={measurements.filter((measurement) => measurement.plantId === plant.id)}
                       key={plant.id}
                       onAddJournalEntry={onAddJournalEntry}
                       onAddCalendarEvent={onAddCalendarEvent}
                       onAddMeasurement={onAddMeasurement}
                       onDeleteMeasurement={onDeleteMeasurement}
+                      onUpdateEnvironmentalAlerts={onUpdateEnvironmentalAlerts}
                       onCreateSensorDevice={onCreateSensorDevice}
                       onRefreshSensors={onRefreshSensors}
                       onOpenGenetic={setPopupGenetic}
@@ -2786,11 +2811,13 @@ function SpacesSection({
 function PlantSpaceRow({
   calendarEvents,
   entries,
+  environmentalAlertSettings,
   measurements,
   onAddCalendarEvent,
   onAddJournalEntry,
   onAddMeasurement,
   onDeleteMeasurement,
+  onUpdateEnvironmentalAlerts,
   onCreateSensorDevice,
   onRefreshSensors,
   onOpenGenetic,
@@ -2803,11 +2830,13 @@ function PlantSpaceRow({
 }: {
   calendarEvents: CalendarEvent[];
   entries: CareEntry[];
+  environmentalAlertSettings?: PlantEnvironmentalAlertSettings;
   measurements: PlantMeasurement[];
   onAddCalendarEvent: (event: CalendarEvent) => void;
   onAddJournalEntry: (entry: CareEntry) => void;
   onAddMeasurement: (measurement: PlantMeasurement) => void;
   onDeleteMeasurement: (measurementId: string) => void;
+  onUpdateEnvironmentalAlerts: (settings: PlantEnvironmentalAlertSettings) => void;
   onCreateSensorDevice: (plantId: string, name: string) => Promise<string | null>;
   onRefreshSensors: () => Promise<void>;
   onOpenGenetic: (genetic: GeneticReferenceEntry) => void;
@@ -2852,8 +2881,10 @@ function PlantSpaceRow({
           <PlantCalculationSummary genetic={plantGenetic} plant={plant} />
           <PlantEnvironmentPanel
             measurements={measurements}
+            alertSettings={environmentalAlertSettings}
             onAddMeasurement={onAddMeasurement}
             onDeleteMeasurement={onDeleteMeasurement}
+            onUpdateAlertSettings={onUpdateEnvironmentalAlerts}
             plant={plant}
           />
           <PlantWeeklySummary
@@ -3274,14 +3305,18 @@ function PlantCalculationSummary({ genetic, plant }: { genetic?: GeneticReferenc
 }
 
 function PlantEnvironmentPanel({
+  alertSettings,
   measurements,
   onAddMeasurement,
   onDeleteMeasurement,
+  onUpdateAlertSettings,
   plant
 }: {
+  alertSettings?: PlantEnvironmentalAlertSettings;
   measurements: PlantMeasurement[];
   onAddMeasurement: (measurement: PlantMeasurement) => void;
   onDeleteMeasurement: (measurementId: string) => void;
+  onUpdateAlertSettings: (settings: PlantEnvironmentalAlertSettings) => void;
   plant: Plant;
 }) {
   const sortedMeasurements = [...measurements].sort((first, second) => second.measuredAt.localeCompare(first.measuredAt));
@@ -3352,6 +3387,13 @@ function PlantEnvironmentPanel({
           Para evaluar el ambiente falta: {assessment.missingInputs.join(", ") || "una medicion reciente"}.
         </p>
       )}
+
+      <PlantEnvironmentalAlerts
+        measurement={latestMeasurement}
+        onUpdate={onUpdateAlertSettings}
+        plant={plant}
+        settings={alertSettings}
+      />
 
       {sortedMeasurements.length >= 2 ? <EnvironmentalHistoryChart measurements={sortedMeasurements} plant={plant} /> : null}
 
@@ -3437,6 +3479,163 @@ function MeasurementHistoryCard({
       </small>
     </article>
   );
+}
+
+function PlantEnvironmentalAlerts({
+  measurement,
+  onUpdate,
+  plant,
+  settings
+}: {
+  measurement?: PlantMeasurement;
+  onUpdate: (settings: PlantEnvironmentalAlertSettings) => void;
+  plant: Plant;
+  settings?: PlantEnvironmentalAlertSettings;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [savedMessage, setSavedMessage] = useState("");
+  const [draft, setDraft] = useState(() => alertSettingsToDraft(settings));
+
+  const assessment = assessPlantEnvironment(plant, measurement);
+  const alerts = buildConfiguredEnvironmentalAlerts(settings, measurement, assessment.vpdKpa);
+  const configuredCount = settings ? Object.entries(settings).filter(([key, value]) => key !== "plantId" && value !== undefined).length : 0;
+
+  function toggleEditing() {
+    if (!isEditing) setDraft(alertSettingsToDraft(settings));
+    setIsEditing(!isEditing);
+    setSavedMessage("");
+  }
+
+  function saveSettings(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const validationMessage = validateAlertSettingsDraft(draft);
+    if (validationMessage) {
+      setSavedMessage(validationMessage);
+      return;
+    }
+    onUpdate({
+      humidityMaxPercent: parseOptionalNumber(draft.humidityMaxPercent),
+      humidityMinPercent: parseOptionalNumber(draft.humidityMinPercent),
+      plantId: plant.id,
+      substrateMoistureMaxPercent: parseOptionalNumber(draft.substrateMoistureMaxPercent),
+      substrateMoistureMinPercent: parseOptionalNumber(draft.substrateMoistureMinPercent),
+      temperatureMaxC: parseOptionalNumber(draft.temperatureMaxC),
+      temperatureMinC: parseOptionalNumber(draft.temperatureMinC),
+      vpdMaxKpa: parseOptionalNumber(draft.vpdMaxKpa),
+      vpdMinKpa: parseOptionalNumber(draft.vpdMinKpa)
+    });
+    setSavedMessage("Umbrales guardados para esta maceta.");
+    setIsEditing(false);
+  }
+
+  return (
+    <section className="configured-alerts-panel" aria-label={`Alertas configuradas de ${plant.name}`}>
+      <header>
+        <div>
+          <strong>Mis alertas ambientales</strong>
+          <span>{configuredCount > 0 ? `${configuredCount} límite${configuredCount === 1 ? "" : "s"} configurado${configuredCount === 1 ? "" : "s"}` : "Sin límites personalizados"}</span>
+        </div>
+        <button className="text-button" onClick={toggleEditing} type="button">
+          {isEditing ? "Cerrar" : "Configurar"}
+        </button>
+      </header>
+
+      {alerts.length > 0 ? (
+        <div className="configured-alert-list" role="alert">
+          {alerts.map((alert) => <p key={alert}>{alert}</p>)}
+        </div>
+      ) : configuredCount > 0 ? (
+        <p className="configured-alert-ok">La última lectura no supera tus límites configurados.</p>
+      ) : (
+        <p className="configured-alert-empty">Definí tus propios límites si querés recibir avisos. PlantCare no agrega umbrales personalizados por defecto.</p>
+      )}
+
+      {savedMessage ? <p className="configured-alert-saved" role="status">{savedMessage}</p> : null}
+      {isEditing ? (
+        <form className="configured-alert-form" onSubmit={saveSettings}>
+          <AlertRangeFields draft={draft} label="Temperatura (°C)" maxKey="temperatureMaxC" minKey="temperatureMinC" setDraft={setDraft} />
+          <AlertRangeFields draft={draft} label="Humedad ambiental (%)" max="100" maxKey="humidityMaxPercent" min="0" minKey="humidityMinPercent" setDraft={setDraft} />
+          <AlertRangeFields draft={draft} label="VPD calculado (kPa)" maxKey="vpdMaxKpa" min="0" minKey="vpdMinKpa" setDraft={setDraft} />
+          <AlertRangeFields draft={draft} label="Humedad de sustrato (%)" max="100" maxKey="substrateMoistureMaxPercent" min="0" minKey="substrateMoistureMinPercent" setDraft={setDraft} />
+          <p>Los avisos comparan únicamente la última medición guardada con estos límites.</p>
+          <button className="secondary-button" type="submit">Guardar alertas</button>
+        </form>
+      ) : null}
+    </section>
+  );
+}
+
+type AlertSettingsDraft = Record<Exclude<keyof PlantEnvironmentalAlertSettings, "plantId">, string>;
+
+function AlertRangeFields({
+  draft,
+  label,
+  max,
+  maxKey,
+  min,
+  minKey,
+  setDraft
+}: {
+  draft: AlertSettingsDraft;
+  label: string;
+  max?: string;
+  maxKey: keyof AlertSettingsDraft;
+  min?: string;
+  minKey: keyof AlertSettingsDraft;
+  setDraft: Dispatch<SetStateAction<AlertSettingsDraft>>;
+}) {
+  return (
+    <fieldset>
+      <legend>{label}</legend>
+      <label>Mínimo<input className="form-control" inputMode="decimal" max={max} min={min} onChange={(event) => setDraft((current) => ({ ...current, [minKey]: event.target.value }))} step="0.01" type="number" value={draft[minKey]} /></label>
+      <label>Máximo<input className="form-control" inputMode="decimal" max={max} min={min} onChange={(event) => setDraft((current) => ({ ...current, [maxKey]: event.target.value }))} step="0.01" type="number" value={draft[maxKey]} /></label>
+    </fieldset>
+  );
+}
+
+function alertSettingsToDraft(settings?: PlantEnvironmentalAlertSettings): AlertSettingsDraft {
+  return {
+    humidityMaxPercent: settings?.humidityMaxPercent?.toString() ?? "",
+    humidityMinPercent: settings?.humidityMinPercent?.toString() ?? "",
+    substrateMoistureMaxPercent: settings?.substrateMoistureMaxPercent?.toString() ?? "",
+    substrateMoistureMinPercent: settings?.substrateMoistureMinPercent?.toString() ?? "",
+    temperatureMaxC: settings?.temperatureMaxC?.toString() ?? "",
+    temperatureMinC: settings?.temperatureMinC?.toString() ?? "",
+    vpdMaxKpa: settings?.vpdMaxKpa?.toString() ?? "",
+    vpdMinKpa: settings?.vpdMinKpa?.toString() ?? ""
+  };
+}
+
+function validateAlertSettingsDraft(draft: AlertSettingsDraft) {
+  const ranges: Array<[keyof AlertSettingsDraft, keyof AlertSettingsDraft, string]> = [
+    ["temperatureMinC", "temperatureMaxC", "temperatura"],
+    ["humidityMinPercent", "humidityMaxPercent", "humedad ambiental"],
+    ["vpdMinKpa", "vpdMaxKpa", "VPD"],
+    ["substrateMoistureMinPercent", "substrateMoistureMaxPercent", "humedad de sustrato"]
+  ];
+  for (const [minimumKey, maximumKey, label] of ranges) {
+    const minimum = parseOptionalNumber(draft[minimumKey]);
+    const maximum = parseOptionalNumber(draft[maximumKey]);
+    if (minimum !== undefined && maximum !== undefined && minimum > maximum) return `Revisá ${label}: el mínimo no puede superar al máximo.`;
+  }
+  return "";
+}
+
+function buildConfiguredEnvironmentalAlerts(settings: PlantEnvironmentalAlertSettings | undefined, measurement: PlantMeasurement | undefined, vpdKpa: number | undefined) {
+  if (!settings || !measurement) return [];
+  const capturedAt = formatMeasurementDate(measurement.measuredAt);
+  const alerts: string[] = [];
+  compareConfiguredLimit(alerts, "Temperatura", measurement.temperatureC, settings.temperatureMinC, settings.temperatureMaxC, "°C", capturedAt);
+  compareConfiguredLimit(alerts, "Humedad ambiental", measurement.ambientHumidityPercent, settings.humidityMinPercent, settings.humidityMaxPercent, "%", capturedAt);
+  compareConfiguredLimit(alerts, "VPD calculado", vpdKpa, settings.vpdMinKpa, settings.vpdMaxKpa, " kPa", capturedAt);
+  compareConfiguredLimit(alerts, "Humedad de sustrato", measurement.substrateMoisturePercent, settings.substrateMoistureMinPercent, settings.substrateMoistureMaxPercent, "%", capturedAt);
+  return alerts;
+}
+
+function compareConfiguredLimit(alerts: string[], label: string, value: number | undefined, minimum: number | undefined, maximum: number | undefined, unit: string, capturedAt: string) {
+  if (value === undefined) return;
+  if (minimum !== undefined && value < minimum) alerts.push(`${label}: ${value}${unit}, por debajo de tu mínimo ${minimum}${unit}. Lectura: ${capturedAt}.`);
+  if (maximum !== undefined && value > maximum) alerts.push(`${label}: ${value}${unit}, por encima de tu máximo ${maximum}${unit}. Lectura: ${capturedAt}.`);
 }
 
 function MeasurementIrrigationSummary({ measurement }: { measurement: PlantMeasurement }) {
