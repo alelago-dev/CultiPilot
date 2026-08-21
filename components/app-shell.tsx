@@ -3265,6 +3265,8 @@ function PlantEnvironmentPanel({
         </p>
       )}
 
+      {sortedMeasurements.length >= 2 ? <EnvironmentalHistoryChart measurements={sortedMeasurements} plant={plant} /> : null}
+
       {isAdding ? <PlantMeasurementForm onAddMeasurement={onAddMeasurement} onDone={() => setIsAdding(false)} plant={plant} /> : null}
 
       {sortedMeasurements.length > 0 ? (
@@ -3491,6 +3493,20 @@ function PlantMeasurementForm({
   const [waterAmount, setWaterAmount] = useState("");
   const [observations, setObservations] = useState("");
   const [photoDataUrl, setPhotoDataUrl] = useState("");
+  const previewAssessment = useMemo(
+    () =>
+      assessPlantEnvironment(plant, {
+        ambientHumidityPercent: parseOptionalNumber(humidity),
+        id: "measurement-preview",
+        leafTemperatureC: parseOptionalNumber(leafTemperature),
+        measuredAt: measuredAt || getLocalDateTimeValue(),
+        plantId: plant.id,
+        ppfdUmolM2S: parseOptionalNumber(ppfd),
+        source,
+        temperatureC: parseOptionalNumber(temperature)
+      }),
+    [humidity, leafTemperature, measuredAt, plant, ppfd, source, temperature]
+  );
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -3571,6 +3587,20 @@ function PlantMeasurementForm({
         Observaciones
         <textarea className="form-control" onChange={(event) => setObservations(event.target.value)} rows={2} value={observations} />
       </label>
+      <div className={`measurement-vpd-preview status-${previewAssessment.vpdStatus}`} role="status">
+        <div>
+          <span>VPD calculado en vivo</span>
+          <strong>{previewAssessment.vpdKpa === undefined ? "Ingresá temperatura y humedad" : `${previewAssessment.vpdKpa} kPa`}</strong>
+        </div>
+        <p>
+          {previewAssessment.vpdKpa === undefined
+            ? `Falta: ${previewAssessment.missingInputs.filter((item) => item !== "PPFD a nivel de la copa").join(", ") || "temperatura y humedad"}.`
+            : `${previewAssessment.vpdBasis === "leaf" ? "VPD foliar" : "VPD del aire"} estimado · ${formatEnvironmentalStatus(previewAssessment.vpdStatus)}.`}
+        </p>
+        <small>
+          Fórmula Tetens. {previewAssessment.vpdBasis === "leaf" ? "Usa la temperatura foliar ingresada." : "Sin temperatura foliar, no se supone una diferencia con el aire."}
+        </small>
+      </div>
       <button className="primary-button" type="submit">Guardar medicion</button>
     </form>
   );
@@ -3585,6 +3615,74 @@ function getVpdTrend(plant: Plant, measurements: PlantMeasurement[]) {
   const difference = values[0] - values[1];
   if (Math.abs(difference) < 0.05) return "estable frente a la lectura anterior";
   return difference > 0 ? "en aumento frente a la lectura anterior" : "en descenso frente a la lectura anterior";
+}
+
+function EnvironmentalHistoryChart({ measurements, plant }: { measurements: PlantMeasurement[]; plant: Plant }) {
+  const chronological = [...measurements].sort((first, second) => first.measuredAt.localeCompare(second.measuredAt)).slice(-12);
+  const temperature = chronological.flatMap((measurement) =>
+    measurement.temperatureC === undefined ? [] : [{ label: formatMeasurementDate(measurement.measuredAt), value: measurement.temperatureC }]
+  );
+  const humidity = chronological.flatMap((measurement) =>
+    measurement.ambientHumidityPercent === undefined ? [] : [{ label: formatMeasurementDate(measurement.measuredAt), value: measurement.ambientHumidityPercent }]
+  );
+  const vpd = chronological.flatMap((measurement) => {
+    const value = assessPlantEnvironment(plant, measurement).vpdKpa;
+    return value === undefined ? [] : [{ label: formatMeasurementDate(measurement.measuredAt), value }];
+  });
+
+  return (
+    <section className="environment-history-chart" aria-label={`Tendencia ambiental de ${plant.name}`}>
+      <div className="environment-history-chart-header">
+        <div>
+          <strong>Tendencia ambiental</strong>
+          <span>Últimas {chronological.length} lecturas de esta maceta</span>
+        </div>
+        <small>Los puntos unen mediciones registradas; no completan períodos sin datos.</small>
+      </div>
+      <div className="environment-sparkline-grid">
+        <MeasurementSparkline color="#c76537" label="Temperatura" points={temperature} unit="°C" />
+        <MeasurementSparkline color="#267c8b" label="Humedad" points={humidity} unit="%" />
+        <MeasurementSparkline color="#467b45" label="VPD calculado" points={vpd} unit=" kPa" />
+      </div>
+    </section>
+  );
+}
+
+function MeasurementSparkline({ color, label, points, unit }: { color: string; label: string; points: Array<{ label: string; value: number }>; unit: string }) {
+  const values = points.map((point) => point.value);
+  const minimum = values.length > 0 ? Math.min(...values) : 0;
+  const maximum = values.length > 0 ? Math.max(...values) : 0;
+  const range = maximum - minimum || 1;
+  const coordinates = points.map((point, index) => {
+    const x = points.length === 1 ? 50 : (index / (points.length - 1)) * 100;
+    const y = 34 - ((point.value - minimum) / range) * 28;
+    return { ...point, x, y };
+  });
+  const latest = points.at(-1);
+
+  return (
+    <article className="environment-sparkline">
+      <div>
+        <span>{label}</span>
+        <strong>{latest ? `${latest.value}${unit}` : "Sin datos"}</strong>
+      </div>
+      {coordinates.length > 0 ? (
+        <svg aria-label={`${label}: de ${minimum}${unit} a ${maximum}${unit}`} role="img" viewBox="0 0 100 40">
+          <polyline fill="none" points={coordinates.map((point) => `${point.x},${point.y}`).join(" ")} stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" />
+          {coordinates.map((point) => <circle cx={point.x} cy={point.y} fill={color} key={`${point.label}-${point.x}`} r="2.2"><title>{point.label}: {point.value}{unit}</title></circle>)}
+        </svg>
+      ) : <p>Faltan mediciones comparables.</p>}
+      {latest ? <small>{points.length} lectura{points.length === 1 ? "" : "s"} · mín. {minimum}{unit} · máx. {maximum}{unit}</small> : null}
+    </article>
+  );
+}
+
+function formatEnvironmentalStatus(status: EnvironmentalStatus) {
+  if (status === "in-range") return "dentro de la banda orientativa de la etapa declarada";
+  if (status === "low") return "por debajo de la banda orientativa";
+  if (status === "high") return "por encima de la banda orientativa";
+  if (status === "critical") return "fuera de la zona orientativa habitual; conviene confirmar la medición";
+  return "sin banda disponible para clasificar";
 }
 
 function EnvironmentMetric({

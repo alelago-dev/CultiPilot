@@ -6241,6 +6241,78 @@ textarea {
     line-height: 1.45;
   }
 
+  .measurement-vpd-preview {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 0.35rem;
+    border: 1px solid rgba(49, 72, 62, 0.2);
+    border-radius: 10px;
+    background: rgba(236, 244, 240, 0.84);
+    padding: 0.8rem;
+  }
+
+  .measurement-vpd-preview > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.4rem;
+  }
+
+  .measurement-vpd-preview span,
+  .measurement-vpd-preview small {
+    color: #65746c;
+    font-size: 0.7rem;
+    font-weight: 850;
+  }
+
+  .measurement-vpd-preview strong { color: #13231b; font-size: 1.05rem; }
+  .measurement-vpd-preview p { color: #31483e; font-size: 0.76rem; font-weight: 850; }
+  .measurement-vpd-preview.status-in-range { border-color: rgba(61, 145, 95, 0.4); background: rgba(229, 246, 235, 0.88); }
+  .measurement-vpd-preview.status-low,
+  .measurement-vpd-preview.status-high { border-color: rgba(221, 154, 54, 0.45); background: rgba(255, 247, 226, 0.9); }
+  .measurement-vpd-preview.status-critical { border-color: rgba(181, 67, 58, 0.5); background: rgba(255, 231, 228, 0.92); }
+
+  .environment-history-chart {
+    margin-top: 0.75rem;
+    border: 1px solid rgba(49, 72, 62, 0.16);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.58);
+    padding: 0.75rem;
+  }
+
+  .environment-history-chart-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .environment-history-chart-header > div { display: grid; gap: 0.1rem; }
+  .environment-history-chart-header strong { color: #13231b; font-size: 0.86rem; }
+  .environment-history-chart-header span,
+  .environment-history-chart-header small { color: #65746c; font-size: 0.68rem; font-weight: 800; }
+  .environment-history-chart-header small { max-width: 24rem; }
+
+  .environment-sparkline-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin-top: 0.65rem;
+  }
+
+  .environment-sparkline { min-width: 0; border-radius: 8px; background: rgba(244, 247, 245, 0.9); padding: 0.55rem; }
+  .environment-sparkline > div { display: flex; align-items: baseline; justify-content: space-between; gap: 0.35rem; }
+  .environment-sparkline span,
+  .environment-sparkline small { color: #65746c; font-size: 0.64rem; font-weight: 850; }
+  .environment-sparkline strong { color: #13231b; font-size: 0.78rem; }
+  .environment-sparkline svg { display: block; width: 100%; height: 4.25rem; margin: 0.2rem 0; overflow: visible; }
+  .environment-sparkline > p { margin: 1rem 0; color: #65746c; font-size: 0.68rem; font-weight: 800; }
+
+  @media (max-width: 640px) {
+    .environment-sparkline-grid { grid-template-columns: 1fr; }
+  }
+
   .plant-measurement-form {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
