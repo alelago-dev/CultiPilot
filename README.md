@@ -91,7 +91,7 @@ PlantCare puede incorporar mediciones periodicas asociadas a una planta o espaci
 - observaciones;
 - fotografias.
 
-Las mediciones conservan fecha, hora y origen (`manual`, `device` o `sensor`) para construir series historicas y analizar evolucion. En la ficha expandida de cada maceta se pueden registrar localmente temperatura, humedad ambiental, humedad de sustrato y PPFD. Esos datos forman parte del snapshot del usuario y se sincronizan junto con sus plantas cuando la cuenta esta conectada.
+Las mediciones conservan fecha, hora y origen (`manual`, `device` o `sensor`) para construir series historicas y analizar evolucion. El acceso `Mediciones ambientales` esta visible desde Hoy y al comienzo de Espacios. Permite elegir una maceta independiente y registrar fecha/hora, temperatura y humedad; tambien admite temperatura foliar, humedad de sustrato, PPFD, altura, agua, observaciones y foto. La ficha expandida de cada maceta conserva su resumen e historial. Esos datos forman parte del snapshot del usuario y se sincronizan junto con sus plantas cuando la cuenta esta conectada.
 
 `assessPlantEnvironment` calcula un VPD estimado y lo compara con una banda orientativa segun la etapa declarada. Si el usuario registra temperatura foliar, calcula VPD foliar con temperatura ambiental, foliar y humedad relativa. Si falta ese dato, muestra VPD del aire sin inventar una diferencia fija entre hoja y ambiente. La interfaz diferencia la medicion original del valor `calculated`, muestra la banda utilizada y avisa cuando falta temperatura, humedad o PPFD.
 

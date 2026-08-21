@@ -7,3 +7,6 @@ dist
 .npm-cache
 .eslintcache
 tsconfig.tsbuildinfo
+
+# Graft local graph cache; regenerate with `graft build`.
+graft/
