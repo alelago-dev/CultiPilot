@@ -1765,7 +1765,7 @@ export function AppShell({
           openTasks={openTasks}
           calendarEvents={eventState}
           tasks={taskState}
-          plants={plantState}
+          plants={plantState.filter((plant) => plant.lifecycle !== "archived")}
           measurements={measurementState}
           streakCount={streakCount}
           weatherStatus={weatherStatus}
@@ -2633,7 +2633,9 @@ function SpacesSection({
   const [referenceGeneticId, setReferenceGeneticId] = useState("");
   const [referencePotCount, setReferencePotCount] = useState(4);
   const [popupGenetic, setPopupGenetic] = useState<GeneticReferenceEntry | null>(null);
-  const [measurementPlantId, setMeasurementPlantId] = useState(plants[0]?.id ?? "");
+  const activePlants = plants.filter((plant) => plant.lifecycle !== "archived");
+  const archivedPlants = plants.filter((plant) => plant.lifecycle === "archived");
+  const [measurementPlantId, setMeasurementPlantId] = useState(activePlants[0]?.id ?? "");
   const normalizedQuery = query.trim().toLowerCase();
   const selectedReferenceGenetic = geneticsCatalogAlphabetically.find((genetic) => genetic.id === referenceGeneticId);
   const visibleSpaces = spaces
@@ -2641,7 +2643,7 @@ function SpacesSection({
       const matchingPlants = plants.filter((plant) => {
         const matchesSpace = space.name.toLowerCase().includes(normalizedQuery);
         const matchesPlant = [plant.name, plant.variety, plant.stage].join(" ").toLowerCase().includes(normalizedQuery);
-        return plant.spaceId === space.id && (!normalizedQuery || matchesSpace || matchesPlant);
+        return plant.lifecycle !== "archived" && plant.spaceId === space.id && (!normalizedQuery || matchesSpace || matchesPlant);
       });
 
       return { ...space, plants: matchingPlants };
@@ -2669,19 +2671,19 @@ function SpacesSection({
         <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-stone-700">
           Elegí una maceta y cargá una lectura manual. Temperatura y humedad permiten calcular VPD; el resto de los campos es opcional.
         </p>
-        {plants.length > 0 ? (
+        {activePlants.length > 0 ? (
           <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(220px,0.45fr)_1fr]">
             <label className="grid content-start gap-1 text-sm font-black text-moss-950">
               Planta o maceta
               <select className="form-control" onChange={(event) => setMeasurementPlantId(event.target.value)} value={measurementPlantId}>
-                {plants.map((plant) => <option key={plant.id} value={plant.id}>{plant.name} · {plant.pot}</option>)}
+                {activePlants.map((plant) => <option key={plant.id} value={plant.id}>{plant.name} · {plant.pot}</option>)}
               </select>
             </label>
-            {plants.find((plant) => plant.id === measurementPlantId) ? (
+            {activePlants.find((plant) => plant.id === measurementPlantId) ? (
               <PlantMeasurementForm
                 onAddMeasurement={onAddMeasurement}
                 onDone={() => undefined}
-                plant={plants.find((plant) => plant.id === measurementPlantId)!}
+                plant={activePlants.find((plant) => plant.id === measurementPlantId)!}
                 resetAfterSave
               />
             ) : null}
@@ -2803,6 +2805,8 @@ function SpacesSection({
         )}
       </div>
 
+      <ArchivedCyclesPanel entries={entries} measurements={measurements} onUpdatePlant={onUpdatePlant} plants={archivedPlants} />
+
       {popupGenetic ? <GeneticInfoPopup genetic={popupGenetic} onClose={() => setPopupGenetic(null)} /> : null}
     </section>
   );
@@ -2876,6 +2880,7 @@ function PlantSpaceRow({
             <button className="secondary-button" onClick={() => setIsEditing(true)} type="button">
               Editar esta maceta
             </button>
+            <PlantCycleControls onUpdatePlant={onUpdatePlant} plant={plant} />
           </div>
           <PlantGeneticSummary genetic={plantGenetic} onOpenGenetic={onOpenGenetic} plant={plant} />
           <PlantCalculationSummary genetic={plantGenetic} plant={plant} />
@@ -2991,6 +2996,108 @@ function PlantWeeklySummary({
       </div>
     </section>
   );
+}
+
+function PlantCycleControls({ onUpdatePlant, plant }: { onUpdatePlant: (plantId: string, updates: Partial<Plant>) => void; plant: Plant }) {
+  const [isClosing, setIsClosing] = useState(false);
+  const [completedAt, setCompletedAt] = useState(getTodayIso());
+  const [closingNotes, setClosingNotes] = useState("");
+
+  function closeCycle(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!completedAt) return;
+    onUpdatePlant(plant.id, { closingNotes: closingNotes.trim() || undefined, completedAt, lifecycle: "archived" });
+    setIsClosing(false);
+  }
+
+  return (
+    <div className="plant-cycle-controls">
+      <button className="text-button" onClick={() => setIsClosing((current) => !current)} type="button">
+        {isClosing ? "Cancelar cierre" : "Cerrar y archivar ciclo"}
+      </button>
+      {isClosing ? (
+        <form onSubmit={closeCycle}>
+          <p>El historial no se borra. La fecha y la nota quedan declaradas por vos.</p>
+          <label>Fecha de cierre<input className="form-control" max={getTodayIso()} onChange={(event) => setCompletedAt(event.target.value)} required type="date" value={completedAt} /></label>
+          <label>Nota de cierre (opcional)<textarea className="form-control" onChange={(event) => setClosingNotes(event.target.value)} rows={2} value={closingNotes} /></label>
+          <button className="secondary-button" type="submit">Confirmar cierre</button>
+        </form>
+      ) : null}
+    </div>
+  );
+}
+
+function ArchivedCyclesPanel({
+  entries,
+  measurements,
+  onUpdatePlant,
+  plants
+}: {
+  entries: CareEntry[];
+  measurements: PlantMeasurement[];
+  onUpdatePlant: (plantId: string, updates: Partial<Plant>) => void;
+  plants: Plant[];
+}) {
+  const [firstId, setFirstId] = useState(plants[0]?.id ?? "");
+  const [secondId, setSecondId] = useState(plants[1]?.id ?? plants[0]?.id ?? "");
+  if (plants.length === 0) return null;
+  const first = plants.find((plant) => plant.id === firstId) ?? plants[0];
+  const second = plants.find((plant) => plant.id === secondId) ?? plants[Math.min(1, plants.length - 1)];
+
+  return (
+    <Card as="section" className="archived-cycles-panel mt-5 p-4 sm:p-5">
+      <SectionHeader eyebrow="Histórico por maceta" title="Ciclos cerrados" />
+      <p className="mt-2 text-sm font-semibold leading-6 text-stone-700">Los ciclos archivados conservan sus fechas y registros. Elegí dos para comparar datos existentes.</p>
+      <div className="archived-cycle-selectors">
+        <CycleSelector label="Primer ciclo" onChange={setFirstId} plants={plants} value={first.id} />
+        <CycleSelector label="Segundo ciclo" onChange={setSecondId} plants={plants} value={second.id} />
+      </div>
+      <div className="archived-cycle-comparison">
+        <ArchivedCycleCard entries={entries} measurements={measurements} onReopen={() => onUpdatePlant(first.id, { closingNotes: undefined, completedAt: undefined, lifecycle: "active" })} plant={first} />
+        <ArchivedCycleCard entries={entries} measurements={measurements} onReopen={() => onUpdatePlant(second.id, { closingNotes: undefined, completedAt: undefined, lifecycle: "active" })} plant={second} />
+      </div>
+    </Card>
+  );
+}
+
+function CycleSelector({ label, onChange, plants, value }: { label: string; onChange: (value: string) => void; plants: Plant[]; value: string }) {
+  return <label>{label}<select className="form-control" onChange={(event) => onChange(event.target.value)} value={value}>{plants.map((plant) => <option key={plant.id} value={plant.id}>{plant.name} · {plant.startedAt} → {plant.completedAt}</option>)}</select></label>;
+}
+
+function ArchivedCycleCard({ entries, measurements, onReopen, plant }: { entries: CareEntry[]; measurements: PlantMeasurement[]; onReopen: () => void; plant: Plant }) {
+  const plantMeasurements = measurements.filter((measurement) => measurement.plantId === plant.id);
+  const plantEntries = entries.filter((entry) => entry.plantId === plant.id);
+  const irrigationCount = plantMeasurements.filter((measurement) => measurement.waterAmountMl !== undefined).length;
+  const photoCount = plantMeasurements.filter((measurement) => measurement.photoDataUrl).length + plantEntries.filter((entry) => entry.photoDataUrl).length;
+  const vpdValues = plantMeasurements.flatMap((measurement) => {
+    const value = assessPlantEnvironment(plant, measurement).vpdKpa;
+    return value === undefined ? [] : [value];
+  });
+  const averageVpd = vpdValues.length > 0 ? Number((vpdValues.reduce((total, value) => total + value, 0) / vpdValues.length).toFixed(2)) : undefined;
+
+  return (
+    <article>
+      <header><div><strong>{plant.name}</strong><span>{plant.variety} · {plant.pot}</span></div><span className="pill pill-blue">Archivado</span></header>
+      <dl>
+        <PlantFact label="Inicio declarado" value={formatDisplayDate(plant.startedAt)} />
+        <PlantFact label="Cierre declarado" value={plant.completedAt ? formatDisplayDate(plant.completedAt) : "Sin fecha"} />
+        <PlantFact label="Duración registrada" value={plant.completedAt ? `${getDaysBetween(plant.startedAt, plant.completedAt)} días` : "Sin dato"} />
+        <PlantFact label="Mediciones" value={plantMeasurements.length.toString()} />
+        <PlantFact label="Riegos" value={irrigationCount.toString()} />
+        <PlantFact label="Fotos" value={photoCount.toString()} />
+        <PlantFact label="Notas" value={plantEntries.length.toString()} />
+        <PlantFact label="VPD promedio calculado" value={averageVpd === undefined ? "Sin datos suficientes" : `${averageVpd} kPa (${vpdValues.length} lecturas)`} />
+      </dl>
+      {plant.closingNotes ? <p className="archived-cycle-notes">{plant.closingNotes}</p> : null}
+      <button className="text-button" onClick={onReopen} type="button">Reabrir ciclo</button>
+    </article>
+  );
+}
+
+function getDaysBetween(startIso: string, endIso: string) {
+  const start = parseIsoDate(startIso).getTime();
+  const end = parseIsoDate(endIso).getTime();
+  return Math.max(0, Math.round((end - start) / 86_400_000));
 }
 
 function WeeklyMetric({ label, value }: { label: string; value: number }) {

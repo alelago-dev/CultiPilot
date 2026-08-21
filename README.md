@@ -98,6 +98,8 @@ Las mediciones conservan fecha, hora y origen (`manual`, `device` o `sensor`) pa
 
 Cada maceta incluye un resumen movil de los ultimos siete dias. Cuenta mediciones, riegos, notas, fotos y acciones completadas con fechas existentes; muestra las tareas abiertas como pendientes actuales porque no tienen una fecha de ejecucion confirmada. La tendencia VPD compara solamente la primera y la ultima lectura calculable del periodo y explicita cuando faltan datos.
 
+Cada maceta puede cerrar y archivar su ciclo con una fecha y nota declaradas por el usuario. El cierre no borra mediciones, riegos, fotos ni bitacora y puede revertirse. Espacios separa los ciclos cerrados de los activos y permite comparar duracion registrada, cantidad de datos y VPD promedio calculado solamente sobre lecturas disponibles.
+
 Las alertas personalizadas permiten que el usuario defina por maceta limites minimos y maximos de temperatura, humedad ambiental, VPD calculado y humedad de sustrato. No hay umbrales personalizados implicitos. Cada aviso cita el valor, el limite configurado y la fecha/hora de la ultima medicion que lo activo; los limites forman parte del snapshot sincronizado.
 
 `buildCultivationSuggestions` transforma la etapa declarada, las mediciones recientes, el setup y los datos de catalogo disponibles en revisiones explicables. Cada sugerencia muestra evidencia, origen, datos faltantes y una fecha orientativa. Nunca entra al calendario automaticamente: el usuario debe pulsar `Agregar al calendario`. Tampoco calcula dosis universales de agua o fertilizante ni fuerza poda, flora, cosecha o ajustes de equipos.

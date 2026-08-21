@@ -48,6 +48,9 @@ export type Plant = {
   bank?: string;
   legalRecordStatus?: string;
   setup?: string;
+  lifecycle?: "active" | "archived";
+  completedAt?: string;
+  closingNotes?: string;
 };
 
 export type Task = {
