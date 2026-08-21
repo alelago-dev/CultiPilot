@@ -82,6 +82,12 @@ export type PlantMeasurement = {
   substrateMoisturePercent?: number;
   heightCm?: number;
   waterAmountMl?: number;
+  irrigationPh?: number;
+  irrigationEcMsCm?: number;
+  irrigationPpm?: number;
+  runoffAmountMl?: number;
+  runoffPh?: number;
+  runoffEcMsCm?: number;
   ppfdUmolM2S?: number;
   lighting?: string;
   observations?: string;

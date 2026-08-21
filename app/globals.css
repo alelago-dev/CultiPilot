@@ -6333,8 +6333,26 @@ textarea {
   }
 
   .plant-measurement-notes,
+  .measurement-irrigation-fields,
   .plant-measurement-form > button {
     grid-column: 1 / -1;
+  }
+
+  .measurement-irrigation-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    border: 1px solid rgba(38, 124, 139, 0.22);
+    border-radius: 9px;
+    background: rgba(226, 242, 247, 0.5);
+    padding: 0.7rem;
+  }
+
+  .measurement-irrigation-fields legend { padding: 0 0.3rem; color: #183b43; font-size: 0.78rem; font-weight: 900; }
+  .measurement-irrigation-fields > p { grid-column: 1 / -1; color: #557178; font-size: 0.67rem; font-weight: 750; line-height: 1.4; }
+
+  @media (max-width: 560px) {
+    .measurement-irrigation-fields { grid-template-columns: 1fr; }
   }
 
   .plant-measurement-history {
@@ -6414,6 +6432,20 @@ textarea {
   }
 
   .measurement-history-origin { color: #65746c; font-size: 0.62rem; font-weight: 750; }
+
+  .measurement-irrigation-summary { display: grid; gap: 0.5rem; border-radius: 8px; background: rgba(226, 242, 247, 0.72); padding: 0.65rem; }
+  .measurement-irrigation-summary > div { display: grid; gap: 0.1rem; }
+  .measurement-irrigation-summary strong { color: #183b43; font-size: 0.76rem; }
+  .measurement-irrigation-summary small { color: #557178; font-size: 0.62rem; font-weight: 750; }
+  .measurement-irrigation-summary dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.35rem; }
+  .measurement-irrigation-summary dl > div { min-width: 0; }
+  .measurement-irrigation-summary dl > div.is-missing { opacity: 0.55; }
+  .measurement-irrigation-summary dt { color: #557178; font-size: 0.6rem; font-weight: 800; }
+  .measurement-irrigation-summary dd { color: #183b43; font-size: 0.7rem; font-weight: 900; }
+
+  @media (min-width: 760px) {
+    .measurement-irrigation-summary dl { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
 
   .measurement-photo-gallery {
     display: grid;

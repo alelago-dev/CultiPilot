@@ -3306,8 +3306,7 @@ function MeasurementHistoryCard({
     ["Temperatura foliar", formatOptionalMeasurement(measurement.leafTemperatureC, "°C")],
     ["Sustrato", formatOptionalMeasurement(measurement.substrateMoisturePercent, "%")],
     ["PPFD", formatOptionalMeasurement(measurement.ppfdUmolM2S, " µmol/m²/s")],
-    ["Altura", formatOptionalMeasurement(measurement.heightCm, " cm")],
-    ["Agua", formatOptionalMeasurement(measurement.waterAmountMl, " ml")]
+    ["Altura", formatOptionalMeasurement(measurement.heightCm, " cm")]
   ];
 
   return (
@@ -3338,6 +3337,7 @@ function MeasurementHistoryCard({
           </div>
         ))}
       </dl>
+      <MeasurementIrrigationSummary measurement={measurement} />
       {measurement.observations ? <p className="measurement-history-observations">{measurement.observations}</p> : null}
       {measurement.photoDataUrl ? (
         // La imagen es un data URL local elegido por el usuario; next/image no la optimiza.
@@ -3348,6 +3348,26 @@ function MeasurementHistoryCard({
         Los campos cargados son datos del usuario; el VPD es un cálculo derivado de temperatura y humedad.
       </small>
     </article>
+  );
+}
+
+function MeasurementIrrigationSummary({ measurement }: { measurement: PlantMeasurement }) {
+  const hasIrrigationData = [measurement.waterAmountMl, measurement.irrigationPh, measurement.irrigationEcMsCm, measurement.irrigationPpm, measurement.runoffAmountMl, measurement.runoffPh, measurement.runoffEcMsCm].some((value) => value !== undefined);
+  if (!hasIrrigationData) return null;
+  const facts = [
+    ["Cantidad", formatOptionalMeasurement(measurement.waterAmountMl, " ml")],
+    ["pH medido", formatOptionalMeasurement(measurement.irrigationPh, "")],
+    ["EC medida", formatOptionalMeasurement(measurement.irrigationEcMsCm, " mS/cm")],
+    ["PPM medidos", formatOptionalMeasurement(measurement.irrigationPpm, " ppm")],
+    ["Drenaje", formatOptionalMeasurement(measurement.runoffAmountMl, " ml")],
+    ["pH drenaje", formatOptionalMeasurement(measurement.runoffPh, "")],
+    ["EC drenaje", formatOptionalMeasurement(measurement.runoffEcMsCm, " mS/cm")]
+  ];
+  return (
+    <section className="measurement-irrigation-summary" aria-label="Datos de riego medidos">
+      <div><strong>Riego registrado</strong><small>Valores declarados; PlantCare no convierte EC y ppm ni calcula dosis.</small></div>
+      <dl>{facts.map(([label, value]) => <div className={value === "Sin dato" ? "is-missing" : ""} key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+    </section>
   );
 }
 
@@ -3600,6 +3620,12 @@ function PlantMeasurementForm({
   const [ppfd, setPpfd] = useState("");
   const [height, setHeight] = useState("");
   const [waterAmount, setWaterAmount] = useState("");
+  const [irrigationPh, setIrrigationPh] = useState("");
+  const [irrigationEc, setIrrigationEc] = useState("");
+  const [irrigationPpm, setIrrigationPpm] = useState("");
+  const [runoffAmount, setRunoffAmount] = useState("");
+  const [runoffPh, setRunoffPh] = useState("");
+  const [runoffEc, setRunoffEc] = useState("");
   const [observations, setObservations] = useState("");
   const [photoDataUrl, setPhotoDataUrl] = useState("");
   const previewAssessment = useMemo(
@@ -3620,7 +3646,7 @@ function PlantMeasurementForm({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!temperature && !leafTemperature && !humidity && !substrateMoisture && !ppfd && !height && !waterAmount && !observations && !photoDataUrl) return;
+    if (!temperature && !leafTemperature && !humidity && !substrateMoisture && !ppfd && !height && !waterAmount && !irrigationPh && !irrigationEc && !irrigationPpm && !runoffAmount && !runoffPh && !runoffEc && !observations && !photoDataUrl) return;
 
     onAddMeasurement({
       ambientHumidityPercent: parseOptionalNumber(humidity),
@@ -3635,11 +3661,18 @@ function PlantMeasurementForm({
       substrateMoisturePercent: parseOptionalNumber(substrateMoisture),
       temperatureC: parseOptionalNumber(temperature),
       heightCm: parseOptionalNumber(height),
-      waterAmountMl: parseOptionalNumber(waterAmount)
+      waterAmountMl: parseOptionalNumber(waterAmount),
+      irrigationPh: parseOptionalNumber(irrigationPh),
+      irrigationEcMsCm: parseOptionalNumber(irrigationEc),
+      irrigationPpm: parseOptionalNumber(irrigationPpm),
+      runoffAmountMl: parseOptionalNumber(runoffAmount),
+      runoffPh: parseOptionalNumber(runoffPh),
+      runoffEcMsCm: parseOptionalNumber(runoffEc)
     });
     if (resetAfterSave) {
       setMeasuredAt(getLocalDateTimeValue()); setTemperature(""); setLeafTemperature(""); setHumidity("");
-      setSubstrateMoisture(""); setPpfd(""); setHeight(""); setWaterAmount(""); setObservations(""); setPhotoDataUrl("");
+      setSubstrateMoisture(""); setPpfd(""); setHeight(""); setWaterAmount(""); setIrrigationPh(""); setIrrigationEc("");
+      setIrrigationPpm(""); setRunoffAmount(""); setRunoffPh(""); setRunoffEc(""); setObservations(""); setPhotoDataUrl("");
     } else onDone();
   }
 
@@ -3681,10 +3714,17 @@ function PlantMeasurementForm({
         Altura (cm, opcional)
         <input className="form-control" inputMode="decimal" min="0" onChange={(event) => setHeight(event.target.value)} step="0.1" type="number" value={height} />
       </label>
-      <label>
-        Agua (ml, opcional)
-        <input className="form-control" inputMode="decimal" min="0" onChange={(event) => setWaterAmount(event.target.value)} step="1" type="number" value={waterAmount} />
-      </label>
+      <fieldset className="measurement-irrigation-fields">
+        <legend>Registro de riego (opcional)</legend>
+        <p>Cargá únicamente valores aplicados o medidos. EC y ppm se guardan por separado, sin conversiones automáticas.</p>
+        <label>Agua aplicada (ml)<input className="form-control" inputMode="decimal" min="0" onChange={(event) => setWaterAmount(event.target.value)} step="1" type="number" value={waterAmount} /></label>
+        <label>pH medido<input className="form-control" inputMode="decimal" max="14" min="0" onChange={(event) => setIrrigationPh(event.target.value)} step="0.01" type="number" value={irrigationPh} /></label>
+        <label>EC medida (mS/cm)<input className="form-control" inputMode="decimal" min="0" onChange={(event) => setIrrigationEc(event.target.value)} step="0.01" type="number" value={irrigationEc} /></label>
+        <label>PPM medidos<input className="form-control" inputMode="numeric" min="0" onChange={(event) => setIrrigationPpm(event.target.value)} step="1" type="number" value={irrigationPpm} /></label>
+        <label>Drenaje recolectado (ml)<input className="form-control" inputMode="decimal" min="0" onChange={(event) => setRunoffAmount(event.target.value)} step="1" type="number" value={runoffAmount} /></label>
+        <label>pH del drenaje<input className="form-control" inputMode="decimal" max="14" min="0" onChange={(event) => setRunoffPh(event.target.value)} step="0.01" type="number" value={runoffPh} /></label>
+        <label>EC del drenaje (mS/cm)<input className="form-control" inputMode="decimal" min="0" onChange={(event) => setRunoffEc(event.target.value)} step="0.01" type="number" value={runoffEc} /></label>
+      </fieldset>
       <label className="plant-measurement-notes">
         Foto (opcional)
         <input accept="image/*" className="form-control" onChange={async (event) => {

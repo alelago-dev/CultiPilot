@@ -98,6 +98,12 @@ create table if not exists public.plant_measurements (
   substrate_moisture_percent numeric,
   height_cm numeric,
   water_amount_ml numeric,
+  irrigation_ph numeric check (irrigation_ph is null or irrigation_ph between 0 and 14),
+  irrigation_ec_ms_cm numeric check (irrigation_ec_ms_cm is null or irrigation_ec_ms_cm >= 0),
+  irrigation_ppm numeric check (irrigation_ppm is null or irrigation_ppm >= 0),
+  runoff_amount_ml numeric check (runoff_amount_ml is null or runoff_amount_ml >= 0),
+  runoff_ph numeric check (runoff_ph is null or runoff_ph between 0 and 14),
+  runoff_ec_ms_cm numeric check (runoff_ec_ms_cm is null or runoff_ec_ms_cm >= 0),
   ppfd_umol_m2_s numeric check (ppfd_umol_m2_s is null or ppfd_umol_m2_s >= 0),
   lighting text,
   observations text,
@@ -110,6 +116,14 @@ alter table public.plant_measurements
 
 alter table public.plant_measurements
   add column if not exists leaf_temperature_c numeric;
+
+alter table public.plant_measurements
+  add column if not exists irrigation_ph numeric check (irrigation_ph is null or irrigation_ph between 0 and 14),
+  add column if not exists irrigation_ec_ms_cm numeric check (irrigation_ec_ms_cm is null or irrigation_ec_ms_cm >= 0),
+  add column if not exists irrigation_ppm numeric check (irrigation_ppm is null or irrigation_ppm >= 0),
+  add column if not exists runoff_amount_ml numeric check (runoff_amount_ml is null or runoff_amount_ml >= 0),
+  add column if not exists runoff_ph numeric check (runoff_ph is null or runoff_ph between 0 and 14),
+  add column if not exists runoff_ec_ms_cm numeric check (runoff_ec_ms_cm is null or runoff_ec_ms_cm >= 0);
 
 create table if not exists public.plant_insights (
   id uuid primary key default gen_random_uuid(),

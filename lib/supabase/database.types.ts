@@ -122,6 +122,12 @@ export type Database = {
           substrate_moisture_percent: number | null;
           height_cm: number | null;
           water_amount_ml: number | null;
+          irrigation_ph: number | null;
+          irrigation_ec_ms_cm: number | null;
+          irrigation_ppm: number | null;
+          runoff_amount_ml: number | null;
+          runoff_ph: number | null;
+          runoff_ec_ms_cm: number | null;
           ppfd_umol_m2_s: number | null;
           lighting: string | null;
           observations: string | null;
@@ -140,6 +146,12 @@ export type Database = {
           substrate_moisture_percent?: number | null;
           height_cm?: number | null;
           water_amount_ml?: number | null;
+          irrigation_ph?: number | null;
+          irrigation_ec_ms_cm?: number | null;
+          irrigation_ppm?: number | null;
+          runoff_amount_ml?: number | null;
+          runoff_ph?: number | null;
+          runoff_ec_ms_cm?: number | null;
           ppfd_umol_m2_s?: number | null;
           lighting?: string | null;
           observations?: string | null;
