@@ -3272,35 +3272,144 @@ function PlantEnvironmentPanel({
       {sortedMeasurements.length > 0 ? (
         <details className="plant-measurement-history">
           <summary>Historial de mediciones ({sortedMeasurements.length})</summary>
+          <MeasurementPhotoGallery measurements={sortedMeasurements} plant={plant} />
           <div className="plant-measurement-list">
             {sortedMeasurements.slice(0, 8).map((measurement) => (
-              <article key={measurement.id}>
-                <div>
-                  <strong>{formatMeasurementDate(measurement.measuredAt)}</strong>
-                  <span>{formatMeasurementSource(measurement.source)}</span>
-                </div>
-                <p>
-                  Aire {measurement.temperatureC ?? "--"} C · Hoja {measurement.leafTemperatureC ?? "--"} C · {measurement.ambientHumidityPercent ?? "--"}% HR · PPFD {measurement.ppfdUmolM2S ?? "--"}
-                </p>
-                {measurement.source === "sensor" ? (
-                  <span className="plant-measurement-readonly">Lectura del sensor</span>
-                ) : (
-                  <button
-                    aria-label={`Eliminar medicion del ${formatMeasurementDate(measurement.measuredAt)}`}
-                    className="text-button danger"
-                    onClick={() => onDeleteMeasurement(measurement.id)}
-                    type="button"
-                  >
-                    Eliminar
-                  </button>
-                )}
-              </article>
+              <MeasurementHistoryCard
+                key={measurement.id}
+                measurement={measurement}
+                onDeleteMeasurement={onDeleteMeasurement}
+                plant={plant}
+              />
             ))}
           </div>
         </details>
       ) : null}
     </section>
   );
+}
+
+function MeasurementHistoryCard({
+  measurement,
+  onDeleteMeasurement,
+  plant
+}: {
+  measurement: PlantMeasurement;
+  onDeleteMeasurement: (measurementId: string) => void;
+  plant: Plant;
+}) {
+  const assessment = assessPlantEnvironment(plant, measurement);
+  const facts = [
+    ["Temperatura", formatOptionalMeasurement(measurement.temperatureC, "°C")],
+    ["Humedad", formatOptionalMeasurement(measurement.ambientHumidityPercent, "%")],
+    [assessment.vpdBasis === "leaf" ? "VPD foliar" : "VPD del aire", formatOptionalMeasurement(assessment.vpdKpa, " kPa", "Calculado")],
+    ["Temperatura foliar", formatOptionalMeasurement(measurement.leafTemperatureC, "°C")],
+    ["Sustrato", formatOptionalMeasurement(measurement.substrateMoisturePercent, "%")],
+    ["PPFD", formatOptionalMeasurement(measurement.ppfdUmolM2S, " µmol/m²/s")],
+    ["Altura", formatOptionalMeasurement(measurement.heightCm, " cm")],
+    ["Agua", formatOptionalMeasurement(measurement.waterAmountMl, " ml")]
+  ];
+
+  return (
+    <article className="measurement-history-card">
+      <header>
+        <div>
+          <strong>{formatMeasurementDate(measurement.measuredAt)}</strong>
+          <span>{formatMeasurementSource(measurement.source)} · {plant.name}</span>
+        </div>
+        {measurement.source === "sensor" ? (
+          <span className="plant-measurement-readonly">Lectura del sensor</span>
+        ) : (
+          <button
+            aria-label={`Eliminar medicion del ${formatMeasurementDate(measurement.measuredAt)}`}
+            className="text-button danger"
+            onClick={() => onDeleteMeasurement(measurement.id)}
+            type="button"
+          >
+            Eliminar
+          </button>
+        )}
+      </header>
+      <dl className="measurement-history-facts">
+        {facts.map(([label, value]) => (
+          <div className={value === "Sin dato" ? "is-missing" : ""} key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+      {measurement.observations ? <p className="measurement-history-observations">{measurement.observations}</p> : null}
+      {measurement.photoDataUrl ? (
+        // La imagen es un data URL local elegido por el usuario; next/image no la optimiza.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img alt={`Registro de ${plant.name} del ${formatMeasurementDate(measurement.measuredAt)}`} className="measurement-history-photo" src={measurement.photoDataUrl} />
+      ) : null}
+      <small className="measurement-history-origin">
+        Los campos cargados son datos del usuario; el VPD es un cálculo derivado de temperatura y humedad.
+      </small>
+    </article>
+  );
+}
+
+function MeasurementPhotoGallery({ measurements, plant }: { measurements: PlantMeasurement[]; plant: Plant }) {
+  const photos = measurements.filter((measurement) => measurement.photoDataUrl);
+  const [leftPhotoId, setLeftPhotoId] = useState(photos[0]?.id ?? "");
+  const [rightPhotoId, setRightPhotoId] = useState(photos[1]?.id ?? photos[0]?.id ?? "");
+  if (photos.length === 0) return null;
+  const leftPhoto = photos.find((measurement) => measurement.id === leftPhotoId) ?? photos[0];
+  const rightPhoto = photos.find((measurement) => measurement.id === rightPhotoId) ?? photos[Math.min(1, photos.length - 1)];
+
+  return (
+    <section className="measurement-photo-gallery" aria-label={`Comparación fotográfica de ${plant.name}`}>
+      <div className="measurement-photo-gallery-heading">
+        <div>
+          <strong>Evolución fotográfica</strong>
+          <span>{photos.length} foto{photos.length === 1 ? "" : "s"} registrada{photos.length === 1 ? "" : "s"} en esta maceta</span>
+        </div>
+        <small>Comparación visual; la app no infiere diagnósticos.</small>
+      </div>
+      <div className="measurement-photo-comparison">
+        <MeasurementPhotoChoice label="Foto anterior" measurement={leftPhoto} onChange={setLeftPhotoId} options={photos} plant={plant} value={leftPhoto.id} />
+        <MeasurementPhotoChoice label="Foto posterior" measurement={rightPhoto} onChange={setRightPhotoId} options={photos} plant={plant} value={rightPhoto.id} />
+      </div>
+    </section>
+  );
+}
+
+function MeasurementPhotoChoice({
+  label,
+  measurement,
+  onChange,
+  options,
+  plant,
+  value
+}: {
+  label: string;
+  measurement: PlantMeasurement;
+  onChange: (value: string) => void;
+  options: PlantMeasurement[];
+  plant: Plant;
+  value: string;
+}) {
+  return (
+    <article>
+      <label>
+        {label}
+        <select className="form-control" onChange={(event) => onChange(event.target.value)} value={value}>
+          {options.map((option) => <option key={option.id} value={option.id}>{formatMeasurementDate(option.measuredAt)}</option>)}
+        </select>
+      </label>
+      {/* La imagen es un data URL local elegido por el usuario; next/image no la optimiza. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img alt={`${label} de ${plant.name}, ${formatMeasurementDate(measurement.measuredAt)}`} src={measurement.photoDataUrl} />
+      {measurement.observations ? <p>{measurement.observations}</p> : null}
+    </article>
+  );
+}
+
+function formatOptionalMeasurement(value: number | undefined, unit: string, prefix?: string) {
+  if (value === undefined) return "Sin dato";
+  return `${prefix ? `${prefix}: ` : ""}${value}${unit}`;
 }
 
 function PlantSensorPanel({

@@ -6362,6 +6362,96 @@ textarea {
     padding-top: 0.5rem;
   }
 
+  .measurement-history-card {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .measurement-history-card > header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.65rem;
+  }
+
+  .measurement-history-card > header > div { display: grid; gap: 0.1rem; }
+
+  .measurement-history-facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  @media (min-width: 760px) {
+    .measurement-history-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+
+  .measurement-history-facts > div {
+    min-width: 0;
+    border-radius: 7px;
+    background: rgba(236, 244, 240, 0.74);
+    padding: 0.45rem 0.5rem;
+  }
+
+  .measurement-history-facts > div.is-missing { opacity: 0.62; }
+  .measurement-history-facts dt { color: #65746c; font-size: 0.62rem; font-weight: 850; }
+  .measurement-history-facts dd { margin-top: 0.15rem; color: #13231b; font-size: 0.74rem; font-weight: 900; }
+
+  .measurement-history-observations {
+    border-left: 3px solid rgba(38, 124, 139, 0.5);
+    padding-left: 0.6rem;
+    color: #31483e;
+    font-size: 0.75rem;
+    font-weight: 750;
+    line-height: 1.5;
+  }
+
+  .measurement-history-photo {
+    width: 100%;
+    max-height: 20rem;
+    border-radius: 9px;
+    object-fit: cover;
+  }
+
+  .measurement-history-origin { color: #65746c; font-size: 0.62rem; font-weight: 750; }
+
+  .measurement-photo-gallery {
+    display: grid;
+    gap: 0.65rem;
+    margin-top: 0.65rem;
+    border: 1px solid rgba(49, 72, 62, 0.16);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.68);
+    padding: 0.7rem;
+  }
+
+  .measurement-photo-gallery-heading {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.4rem;
+  }
+
+  .measurement-photo-gallery-heading > div { display: grid; gap: 0.1rem; }
+  .measurement-photo-gallery-heading strong { color: #13231b; font-size: 0.82rem; }
+  .measurement-photo-gallery-heading span,
+  .measurement-photo-gallery-heading small { color: #65746c; font-size: 0.65rem; font-weight: 800; }
+
+  .measurement-photo-comparison {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+
+  .measurement-photo-comparison article { display: grid; align-content: start; gap: 0.4rem; min-width: 0; }
+  .measurement-photo-comparison label { display: grid; gap: 0.25rem; color: #263a31; font-size: 0.7rem; font-weight: 850; }
+  .measurement-photo-comparison img { width: 100%; aspect-ratio: 4 / 3; border-radius: 8px; object-fit: cover; }
+  .measurement-photo-comparison p { color: #55655d; font-size: 0.68rem; font-weight: 750; line-height: 1.4; }
+
+  @media (max-width: 560px) {
+    .measurement-photo-comparison { grid-template-columns: 1fr; }
+  }
+
   .plant-measurement-list article > div span {
     margin-left: 0.45rem;
     color: #65746c;
