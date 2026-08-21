@@ -7,15 +7,13 @@
  * usuario los consulte como ayuda visual al cargar SU propia
  * genética a mano en el formulario manual.
  *
- * IMPORTANTE — se mantiene el mismo límite ya acordado para el
- * proyecto:
- *   - Esto NO calcula fechas de cosecha.
- *   - Esto NO se conecta a un motor que tome estos datos + una
- *     fecha de siembra y devuelva un plan automático de riego,
- *     luz, sustrato o cosecha.
- *   - Es texto informativo que se muestra al lado de un formulario
- *     que el usuario completa a mano (nombre, tipo, sus propias
- *     fechas), igual que en cultivation-reference.ts.
+ * IMPORTANTE:
+ *   - Estos datos pueden usarse como fuente "catalog" dentro del
+ *     motor de estimaciones.
+ *   - Nunca deben confundirse con mediciones reales ni sobrescribir
+ *     silenciosamente datos ingresados por el usuario.
+ *   - La UI debe mostrar el origen del dato cuando alimente una
+ *     estimacion o sugerencia.
  */
 
 export type GeneticType = "feminized" | "regular" | "autoflowering" | "faster_flowering";
@@ -31,7 +29,7 @@ export interface GeneticReferenceEntry {
   thc_percent_range: [number, number];
   effect_notes: string;
   flavor_notes: string;
-  /** Campos originales de una fuente tabular importada. Solo lectura; no alimenta calculos. */
+  /** Campos originales de una fuente tabular importada, para trazabilidad del dato de catalogo. */
   raw_fields?: Record<string, GeneticRawFieldValue>;
   source: string; // referencia de origen del dato
 }

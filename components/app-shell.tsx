@@ -35,7 +35,7 @@ import {
 } from "@/lib/navigation";
 import { getGeneticsCatalogAlphabetically, type GeneticReferenceEntry } from "@/lib/genetics-catalog";
 import { requestReminderNotification } from "@/lib/notifications";
-import { seedCatalog } from "@/lib/seed-catalog";
+import { calculateHorticulturePlan, seedCatalog, type HorticulturePlanInput } from "@/lib/seed-catalog";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Json } from "@/lib/supabase/database.types";
 import type {
@@ -2556,6 +2556,7 @@ function PlantSpaceRow({
             </button>
           </div>
           <PlantGeneticSummary genetic={plantGenetic} onOpenGenetic={onOpenGenetic} plant={plant} />
+          <PlantCalculationSummary genetic={plantGenetic} plant={plant} />
           <dl className="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
             <PlantFact label="Maceta" value={plant.pot} />
             <PlantFact label="Sustrato" value={plant.substrate} />
@@ -2814,6 +2815,59 @@ function PlantGeneticSummary({
         </p>
       )}
     </div>
+  );
+}
+
+function PlantCalculationSummary({ genetic, plant }: { genetic?: GeneticReferenceEntry; plant: Plant }) {
+  const plan = calculateHorticulturePlan({
+    catalogHarvestWindow: genetic ? formatRange(genetic.flowering_weeks_range, "semanas") : undefined,
+    indoorSize: getPlantIndoorSize(plant),
+    lightType: getPlantLightType(plant.lighting),
+    potLiters: getPlantPotLiters(plant.pot),
+    seedId: getSeedProfileIdForPlant(plant, genetic),
+    userSeedType: genetic ? formatGeneticType(genetic.type) : undefined
+  });
+  const visibleDataPoints = plan.dataPoints.filter((point) => ["Maceta", "Luz", "Espacio", "Ventana"].includes(point.label));
+
+  return (
+    <section className="plant-calculation-panel mt-3" aria-label={`Estimaciones de ${plant.name}`}>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="plant-calculation-eyebrow">Motor de datos</p>
+          <h4 className="plant-calculation-title">Estimacion de esta maceta</h4>
+          <p className="plant-calculation-copy">{plan.note}</p>
+        </div>
+        <span className={plan.automaticEnabled ? "mode-badge automatic" : "mode-badge manual"}>
+          {plan.automaticEnabled ? "Datos suficientes" : "Faltan datos"}
+        </span>
+      </div>
+
+      <dl className="plant-calculation-grid">
+        <PlantFact label="Sustrato estimado" value={plan.substrateLiters} />
+        <PlantFact label="Agua estimada" value={plan.waterAmount} />
+        <PlantFact label="Revision" value={plan.waterCheck} />
+        <PlantFact label="Ciclo" value={plan.harvestWindow} />
+      </dl>
+
+      {plan.missingInputs.length > 0 ? (
+        <div className="plant-calculation-missing">
+          <p>Para mejorar la estimacion falta:</p>
+          <ul>
+            {plan.missingInputs.map((inputName) => (
+              <li key={inputName}>{inputName}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <div className="plant-calculation-source-row" aria-label="Origen de los datos usados">
+        {visibleDataPoints.map((point) => (
+          <span className="plant-calculation-source" key={point.label}>
+            {point.label}: {formatDataOrigin(point.source)}
+          </span>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -4890,6 +4944,60 @@ function formatRange([min, max]: [number, number], unit: string) {
 function formatThcRange([min, max]: [number, number]) {
   if (min === 0 && max === 0) return "No declarado";
   return min === max ? `${min}%` : `${min}-${max}%`;
+}
+
+function getPlantPotLiters(pot: string) {
+  const match = pot.match(/(\d+(?:[.,]\d+)?)/);
+  if (!match) return undefined;
+
+  return Number(match[1].replace(",", "."));
+}
+
+function getPlantLightType(lighting: string): HorticulturePlanInput["lightType"] | undefined {
+  const normalizedLighting = normalizeLookupText(lighting);
+
+  if (!normalizedLighting) return undefined;
+  if (normalizedLighting.includes("led") || normalizedLighting.includes("artificial")) return "led";
+  if (normalizedLighting.includes("sol")) return "sun";
+  if (normalizedLighting.includes("mixta") || normalizedLighting.includes("mixto")) return "mixed";
+
+  return undefined;
+}
+
+function getPlantIndoorSize(plant: Plant): HorticulturePlanInput["indoorSize"] | undefined {
+  if (plant.mode !== "Interior") return "large";
+
+  const setupText = normalizeLookupText(`${plant.setup ?? ""} ${plant.pot ?? ""}`);
+  const centimeterMatch = setupText.match(/(?:^|\D)(60|80|100|120|150|200)(?:\D|$)/);
+
+  if (!centimeterMatch) return undefined;
+
+  const size = Number(centimeterMatch[1]);
+  if (size <= 80) return "small";
+  if (size <= 120) return "medium";
+  return "large";
+}
+
+function getSeedProfileIdForPlant(plant: Plant, genetic?: GeneticReferenceEntry) {
+  const lookupValues = [plant.variety, plant.name].map(normalizeLookupText).filter(Boolean);
+  const exactSeed = seedCatalog.find((seed) =>
+    lookupValues.some((value) => normalizeLookupText(seed.name) === value || normalizeLookupText(seed.crop) === value)
+  );
+
+  if (exactSeed) return exactSeed.id;
+  if (!genetic) return "regulated-manual";
+  if (genetic.type === "autoflowering") return "cannabis-autoflowering";
+  if (genetic.type === "regular") return "cannabis-photoperiod-regular";
+  return "cannabis-photoperiod-feminized";
+}
+
+function formatDataOrigin(origin: string) {
+  if (origin === "catalog") return "catalogo";
+  if (origin === "calculated") return "calculado";
+  if (origin === "measurement") return "medicion";
+  if (origin === "suggestion") return "sugerencia";
+  if (origin === "user") return "usuario";
+  return "faltante";
 }
 
 function buildPotCountLabels(counts: number[]) {

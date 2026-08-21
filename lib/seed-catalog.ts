@@ -17,6 +17,7 @@ export type SeedProfile = {
 };
 
 export type HorticulturePlanInput = {
+  catalogHarvestWindow?: string;
   indoorSize?: "small" | "medium" | "large";
   lightType?: "led" | "sun" | "mixed";
   potLiters?: number;
@@ -261,7 +262,7 @@ export function calculateHorticulturePlan(input: HorticulturePlanInput): Horticu
   if (!input.lightType) missingInputs.push("tipo de luz");
   if (!Number.isFinite(input.potLiters) || Number(input.potLiters) <= 0) missingInputs.push("litros de maceta");
 
-  const catalogHarvestWindow = seed?.daysToHarvest ?? "";
+  const catalogHarvestWindow = input.catalogHarvestWindow?.trim() || seed?.daysToHarvest || "";
   const harvestWindow = input.userHarvestWindow?.trim() || (/\d/.test(catalogHarvestWindow) ? catalogHarvestWindow : "");
 
   if (!harvestWindow) missingInputs.push("ventana de cosecha/ciclo declarada por usuario o catalogo");

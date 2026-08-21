@@ -5792,6 +5792,89 @@ textarea {
     background: rgba(255, 255, 255, 0.16);
   }
 
+  .plant-calculation-panel {
+    border-top: 1px solid rgba(49, 72, 62, 0.18);
+    padding-top: 0.9rem;
+  }
+
+  .plant-calculation-eyebrow {
+    color: #5b7167;
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .plant-calculation-title {
+    margin-top: 0.15rem;
+    color: #13231b;
+    font-size: 1rem;
+    font-weight: 900;
+  }
+
+  .plant-calculation-copy {
+    margin-top: 0.25rem;
+    max-width: 58rem;
+    color: #55655d;
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.45;
+  }
+
+  .plant-calculation-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+
+  @media (min-width: 760px) {
+    .plant-calculation-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  .plant-calculation-missing {
+    margin-top: 0.7rem;
+    border: 1px solid rgba(221, 154, 54, 0.28);
+    border-radius: 8px;
+    background: rgba(255, 247, 226, 0.72);
+    padding: 0.65rem 0.75rem;
+    color: #5b4630;
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 1.45;
+  }
+
+  .plant-calculation-missing ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.4rem;
+  }
+
+  .plant-calculation-missing li {
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    padding: 0.2rem 0.45rem;
+  }
+
+  .plant-calculation-source-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.65rem;
+  }
+
+  .plant-calculation-source {
+    border-radius: 999px;
+    background: rgba(111, 207, 151, 0.13);
+    color: #1e5f42;
+    padding: 0.22rem 0.5rem;
+    font-size: 0.68rem;
+    font-weight: 900;
+  }
+
   /*
    * Espacios: al expandir una maceta, la ficha de genetica, el panel de
    * accion/registro y la linea de tiempo cada una dibujaba su propia card
