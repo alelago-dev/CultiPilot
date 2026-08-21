@@ -50,6 +50,7 @@ import type {
   Locale,
   Plant,
   PlantMeasurement,
+  SensorDevice,
   Task
 } from "@/lib/types";
 import { getDeviceWeather, getWeatherReadiness, type WeatherReadiness } from "@/lib/weather";
@@ -249,6 +250,48 @@ type SnapshotTableClient = {
       };
     };
     upsert: (value: { key: string; payload: Json; user_id: string }) => Promise<{ error: unknown }>;
+  };
+};
+
+type SensorDeviceRow = {
+  active: boolean;
+  created_at: string;
+  id: string;
+  last_seen_at: string | null;
+  name: string;
+  plant_ref: string;
+};
+
+type SensorMeasurementRow = {
+  ambient_humidity_percent: number | null;
+  id: string;
+  leaf_temperature_c: number | null;
+  measured_at: string;
+  observations: string | null;
+  plant_ref: string;
+  ppfd_umol_m2_s: number | null;
+  substrate_moisture_percent: number | null;
+  temperature_c: number | null;
+};
+
+type SensorDeviceClient = {
+  from: (table: "sensor_devices") => {
+    select: (columns: string) => { order: (column: "created_at") => Promise<{ data: SensorDeviceRow[] | null; error: unknown }> };
+    update: (value: { active: boolean }) => { eq: (column: "id", value: string) => Promise<{ error: unknown }> };
+  };
+  rpc: (
+    fn: "create_sensor_device",
+    args: { device_name: string; target_plant_ref: string }
+  ) => Promise<{ data: Array<{ device_id: string; device_token: string }> | null; error: unknown }>;
+};
+
+type SensorMeasurementClient = {
+  from: (table: "sensor_measurements") => {
+    select: (columns: "*") => {
+      order: (column: "measured_at", options: { ascending: false }) => {
+        limit: (count: number) => Promise<{ data: SensorMeasurementRow[] | null; error: unknown }>;
+      };
+    };
   };
 };
 
@@ -493,6 +536,8 @@ export function AppShell({
     userId: ""
   }));
   const [remoteSyncReady, setRemoteSyncReady] = useState(false);
+  const [sensorDevices, setSensorDevices] = useState<SensorDevice[]>([]);
+  const [sensorStatus, setSensorStatus] = useState("");
   const [showAccountDialog, setShowAccountDialog] = useState(false);
   const [sharedViews, setSharedViews] = useState<SharedView[]>([]);
   const [viewingShare, setViewingShare] = useState<SharedView | null>(() => readStoredShare());
@@ -1215,6 +1260,98 @@ export function AppShell({
     persistStoredState(storageKeys.measurements, nextMeasurements);
   }
 
+  async function refreshSensorData() {
+    if (!accountStatus.userId || !accountStatus.isSignedIn || viewingShare) return;
+
+    try {
+      const deviceClient = getSupabaseBrowserClient() as unknown as SensorDeviceClient;
+      const measurementClient = getSupabaseBrowserClient() as unknown as SensorMeasurementClient;
+      const [devicesResult, measurementsResult] = await Promise.all([
+        deviceClient.from("sensor_devices").select("id,plant_ref,name,active,last_seen_at,created_at").order("created_at"),
+        measurementClient.from("sensor_measurements").select("*").order("measured_at", { ascending: false }).limit(250)
+      ]);
+
+      if (devicesResult.error) throw devicesResult.error;
+      if (measurementsResult.error) throw measurementsResult.error;
+
+      setSensorDevices((devicesResult.data ?? []).map((device) => ({
+        active: device.active,
+        createdAt: device.created_at,
+        id: device.id,
+        lastSeenAt: device.last_seen_at ?? undefined,
+        name: device.name,
+        plantId: device.plant_ref
+      })));
+
+      const remoteMeasurements: PlantMeasurement[] = (measurementsResult.data ?? []).map((measurement) => ({
+        ambientHumidityPercent: measurement.ambient_humidity_percent ?? undefined,
+        id: `sensor-${measurement.id}`,
+        leafTemperatureC: measurement.leaf_temperature_c ?? undefined,
+        measuredAt: measurement.measured_at,
+        observations: measurement.observations ?? undefined,
+        plantId: measurement.plant_ref,
+        ppfdUmolM2S: measurement.ppfd_umol_m2_s ?? undefined,
+        source: "sensor",
+        substrateMoisturePercent: measurement.substrate_moisture_percent ?? undefined,
+        temperatureC: measurement.temperature_c ?? undefined
+      }));
+
+      setMeasurementState((current) => {
+        const localOnly = current.filter((measurement) => !measurement.id.startsWith("sensor-"));
+        const next = [...remoteMeasurements, ...localOnly];
+        const currentSensorSignature = current
+          .filter((measurement) => measurement.id.startsWith("sensor-"))
+          .map((measurement) => `${measurement.id}:${measurement.measuredAt}`)
+          .join("|");
+        const nextSensorSignature = remoteMeasurements.map((measurement) => `${measurement.id}:${measurement.measuredAt}`).join("|");
+        if (currentSensorSignature === nextSensorSignature) return current;
+        persistStoredState(storageKeys.measurements, next);
+        return next;
+      });
+      setSensorStatus(remoteMeasurements.length > 0 ? `Ultimas ${remoteMeasurements.length} lecturas sincronizadas.` : "Sensores conectados, todavia sin lecturas.");
+    } catch {
+      setSensorStatus("Falta aplicar la actualizacion de sensores en Supabase.");
+    }
+  }
+
+  async function handleCreateSensorDevice(plantId: string, name: string) {
+    if (viewingShare || isViewingSharedRef.current) {
+      setSensorStatus("La vista compartida es solo lectura. Volve a tus cultivos para conectar sensores.");
+      return null;
+    }
+    if (!accountStatus.isSignedIn) {
+      setSensorStatus("Inicia sesion para conectar un sensor a esta maceta.");
+      return null;
+    }
+
+    try {
+      const supabase = getSupabaseBrowserClient() as unknown as SensorDeviceClient;
+      const { data, error } = await supabase.rpc("create_sensor_device", {
+        device_name: name,
+        target_plant_ref: plantId
+      });
+      if (error) throw error;
+      const token = data?.[0]?.device_token ?? null;
+      await refreshSensorData();
+      setSensorStatus(token ? "Dispositivo creado. Guarda el token: se muestra una sola vez." : "Dispositivo creado.");
+      return token;
+    } catch {
+      setSensorStatus("No se pudo crear el dispositivo. Revisa que el SQL de sensores este aplicado.");
+      return null;
+    }
+  }
+
+  async function handleToggleSensorDevice(deviceId: string, active: boolean) {
+    try {
+      const supabase = getSupabaseBrowserClient() as unknown as SensorDeviceClient;
+      const { error } = await supabase.from("sensor_devices").update({ active }).eq("id", deviceId);
+      if (error) throw error;
+      await refreshSensorData();
+    } catch {
+      setSensorStatus("No se pudo cambiar el estado del sensor.");
+    }
+  }
+
   function handleAddCalendarEvent(event: CalendarEvent) {
     const nextEvents = [event, ...eventState];
 
@@ -1465,6 +1602,19 @@ export function AppShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountStatus.userId, entryState, eventState, habitDates, measurementState, plantState, remoteSyncReady, taskState, viewingShare]);
 
+  useEffect(() => {
+    if (!accountStatus.isSignedIn || !accountStatus.userId || viewingShare) {
+      setSensorDevices([]);
+      return;
+    }
+
+    void refreshSensorData();
+    const intervalId = window.setInterval(() => void refreshSensorData(), 60_000);
+    return () => window.clearInterval(intervalId);
+    // La funcion usa la sesion actual; el intervalo se recrea al cambiar de cuenta.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountStatus.isSignedIn, accountStatus.userId, viewingShare]);
+
   function handleClearCultivationData() {
     setPlantState([]);
     setTaskState([]);
@@ -1614,8 +1764,13 @@ export function AppShell({
           onAddCalendarEvent={handleAddCalendarEvent}
           onAddMeasurement={handleAddMeasurement}
           onDeleteMeasurement={handleDeleteMeasurement}
+          onCreateSensorDevice={handleCreateSensorDevice}
+          onRefreshSensors={refreshSensorData}
+          onToggleSensorDevice={handleToggleSensorDevice}
           onUpdatePlant={handleUpdatePlant}
           plants={plantState}
+          sensorDevices={sensorDevices}
+          sensorStatus={sensorStatus}
           spaces={spaces}
           tasks={taskState}
         />
@@ -2390,8 +2545,13 @@ function SpacesSection({
   onAddJournalEntry,
   onAddMeasurement,
   onDeleteMeasurement,
+  onCreateSensorDevice,
+  onRefreshSensors,
+  onToggleSensorDevice,
   onUpdatePlant,
   plants,
+  sensorDevices,
+  sensorStatus,
   spaces,
   tasks
 }: {
@@ -2402,8 +2562,13 @@ function SpacesSection({
   onAddJournalEntry: (entry: CareEntry) => void;
   onAddMeasurement: (measurement: PlantMeasurement) => void;
   onDeleteMeasurement: (measurementId: string) => void;
+  onCreateSensorDevice: (plantId: string, name: string) => Promise<string | null>;
+  onRefreshSensors: () => Promise<void>;
+  onToggleSensorDevice: (deviceId: string, active: boolean) => Promise<void>;
   onUpdatePlant: (plantId: string, updates: Partial<Plant>) => void;
   plants: Plant[];
+  sensorDevices: SensorDevice[];
+  sensorStatus: string;
   spaces: GrowSpace[];
   tasks: Task[];
 }) {
@@ -2529,9 +2694,14 @@ function SpacesSection({
                       onAddCalendarEvent={onAddCalendarEvent}
                       onAddMeasurement={onAddMeasurement}
                       onDeleteMeasurement={onDeleteMeasurement}
+                      onCreateSensorDevice={onCreateSensorDevice}
+                      onRefreshSensors={onRefreshSensors}
                       onOpenGenetic={setPopupGenetic}
+                      onToggleSensorDevice={onToggleSensorDevice}
                       onUpdatePlant={onUpdatePlant}
                       plant={plant}
+                      sensorDevices={sensorDevices.filter((device) => device.plantId === plant.id)}
+                      sensorStatus={sensorStatus}
                       tasks={tasks}
                     />
                   ))}
@@ -2561,9 +2731,14 @@ function PlantSpaceRow({
   onAddJournalEntry,
   onAddMeasurement,
   onDeleteMeasurement,
+  onCreateSensorDevice,
+  onRefreshSensors,
   onOpenGenetic,
+  onToggleSensorDevice,
   onUpdatePlant,
   plant,
+  sensorDevices,
+  sensorStatus,
   tasks
 }: {
   calendarEvents: CalendarEvent[];
@@ -2573,9 +2748,14 @@ function PlantSpaceRow({
   onAddJournalEntry: (entry: CareEntry) => void;
   onAddMeasurement: (measurement: PlantMeasurement) => void;
   onDeleteMeasurement: (measurementId: string) => void;
+  onCreateSensorDevice: (plantId: string, name: string) => Promise<string | null>;
+  onRefreshSensors: () => Promise<void>;
   onOpenGenetic: (genetic: GeneticReferenceEntry) => void;
+  onToggleSensorDevice: (deviceId: string, active: boolean) => Promise<void>;
   onUpdatePlant: (plantId: string, updates: Partial<Plant>) => void;
   plant: Plant;
+  sensorDevices: SensorDevice[];
+  sensorStatus: string;
   tasks: Task[];
 }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -2615,6 +2795,14 @@ function PlantSpaceRow({
             onAddMeasurement={onAddMeasurement}
             onDeleteMeasurement={onDeleteMeasurement}
             plant={plant}
+          />
+          <PlantSensorPanel
+            devices={sensorDevices}
+            onCreateSensorDevice={onCreateSensorDevice}
+            onRefreshSensors={onRefreshSensors}
+            onToggleSensorDevice={onToggleSensorDevice}
+            plant={plant}
+            status={sensorStatus}
           />
           <PlantSuggestionsPanel
             calendarEvents={calendarEvents}
@@ -3028,20 +3216,115 @@ function PlantEnvironmentPanel({
                 <p>
                   Aire {measurement.temperatureC ?? "--"} C · Hoja {measurement.leafTemperatureC ?? "--"} C · {measurement.ambientHumidityPercent ?? "--"}% HR · PPFD {measurement.ppfdUmolM2S ?? "--"}
                 </p>
-                <button
-                  aria-label={`Eliminar medicion del ${formatMeasurementDate(measurement.measuredAt)}`}
-                  className="text-button danger"
-                  onClick={() => onDeleteMeasurement(measurement.id)}
-                  type="button"
-                >
-                  Eliminar
-                </button>
+                {measurement.source === "sensor" ? (
+                  <span className="plant-measurement-readonly">Lectura del sensor</span>
+                ) : (
+                  <button
+                    aria-label={`Eliminar medicion del ${formatMeasurementDate(measurement.measuredAt)}`}
+                    className="text-button danger"
+                    onClick={() => onDeleteMeasurement(measurement.id)}
+                    type="button"
+                  >
+                    Eliminar
+                  </button>
+                )}
               </article>
             ))}
           </div>
         </details>
       ) : null}
     </section>
+  );
+}
+
+function PlantSensorPanel({
+  devices,
+  onCreateSensorDevice,
+  onRefreshSensors,
+  onToggleSensorDevice,
+  plant,
+  status
+}: {
+  devices: SensorDevice[];
+  onCreateSensorDevice: (plantId: string, name: string) => Promise<string | null>;
+  onRefreshSensors: () => Promise<void>;
+  onToggleSensorDevice: (deviceId: string, active: boolean) => Promise<void>;
+  plant: Plant;
+  status: string;
+}) {
+  const [isCreating, setIsCreating] = useState(false);
+  const [deviceName, setDeviceName] = useState(`Sensor ${plant.name}`);
+  const [newToken, setNewToken] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function createDevice() {
+    setIsCreating(true);
+    const token = await onCreateSensorDevice(plant.id, deviceName.trim() || `Sensor ${plant.name}`);
+    setNewToken(token);
+    setIsCreating(false);
+  }
+
+  async function copyToken() {
+    if (!newToken) return;
+    await navigator.clipboard.writeText(newToken);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  }
+
+  return (
+    <details className="plant-sensor-panel mt-3">
+      <summary>
+        <span>
+          <strong>Sensores conectados</strong>
+          <small>{devices.length > 0 ? `${devices.length} dispositivo${devices.length === 1 ? "" : "s"}` : "Sin dispositivos"}</small>
+        </span>
+        <span className="pill pill-green">IoT</span>
+      </summary>
+      <div className="plant-sensor-content">
+        <p>Vincula esta maceta con un ESP32 o gateway. Las lecturas se actualizan cada minuto mientras la app esta abierta.</p>
+
+        {devices.length > 0 ? (
+          <div className="plant-sensor-devices">
+            {devices.map((device) => (
+              <article key={device.id}>
+                <div>
+                  <strong>{device.name}</strong>
+                  <small>{device.lastSeenAt ? `Ultima lectura: ${formatMeasurementDate(device.lastSeenAt)}` : "Esperando primera lectura"}</small>
+                </div>
+                <button
+                  className="secondary-button"
+                  onClick={() => void onToggleSensorDevice(device.id, !device.active)}
+                  type="button"
+                >
+                  {device.active ? "Desactivar" : "Activar"}
+                </button>
+              </article>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="plant-sensor-create">
+          <label>
+            Nombre del dispositivo
+            <input className="form-control" onChange={(event) => setDeviceName(event.target.value)} value={deviceName} />
+          </label>
+          <button className="primary-button" disabled={isCreating} onClick={() => void createDevice()} type="button">
+            {isCreating ? "Creando..." : "Conectar sensor"}
+          </button>
+          <button className="secondary-button" onClick={() => void onRefreshSensors()} type="button">Actualizar lecturas</button>
+        </div>
+
+        {newToken ? (
+          <div className="plant-sensor-token" role="status">
+            <strong>Token del dispositivo</strong>
+            <code>{newToken}</code>
+            <button className="secondary-button" onClick={() => void copyToken()} type="button">{copied ? "Copiado" : "Copiar token"}</button>
+            <p>Guardalo ahora: por seguridad no volvera a mostrarse.</p>
+          </div>
+        ) : null}
+        {status ? <p className="plant-sensor-status">{status}</p> : null}
+      </div>
+    </details>
   );
 }
 

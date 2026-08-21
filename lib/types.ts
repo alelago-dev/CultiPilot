@@ -88,6 +88,15 @@ export type PlantMeasurement = {
   photoDataUrl?: string;
 };
 
+export type SensorDevice = {
+  id: string;
+  plantId: string;
+  name: string;
+  active: boolean;
+  lastSeenAt?: string;
+  createdAt: string;
+};
+
 export type PlantAnalysisContext = {
   calendarEvents: CalendarEvent[];
   entries: CareEntry[];

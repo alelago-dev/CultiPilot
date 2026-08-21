@@ -151,6 +151,89 @@
   font-size: 0.78rem;
 }
 
+.plant-sensor-panel {
+  overflow: hidden;
+  border: 1px solid rgba(40, 89, 79, 0.2);
+  border-radius: 12px;
+  background: rgba(244, 249, 247, 0.86);
+}
+
+.plant-sensor-panel > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  cursor: pointer;
+  list-style: none;
+  padding: 0.85rem 1rem;
+}
+
+.plant-sensor-panel > summary::-webkit-details-marker { display: none; }
+.plant-sensor-panel > summary strong,
+.plant-sensor-panel > summary small { display: block; }
+.plant-sensor-panel > summary strong { color: #17342a; font-size: 0.88rem; }
+.plant-sensor-panel > summary small { margin-top: 0.15rem; color: #64766d; font-size: 0.7rem; }
+
+.plant-sensor-content {
+  border-top: 1px solid rgba(40, 89, 79, 0.14);
+  padding: 0.9rem 1rem 1rem;
+}
+
+.plant-sensor-content > p { color: #52665b; font-size: 0.76rem; line-height: 1.5; }
+
+.plant-sensor-devices { display: grid; gap: 0.45rem; margin-top: 0.7rem; }
+.plant-sensor-devices article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  border-radius: 9px;
+  background: #fff;
+  padding: 0.65rem;
+}
+.plant-sensor-devices strong,
+.plant-sensor-devices small { display: block; }
+.plant-sensor-devices strong { color: #17342a; font-size: 0.78rem; }
+.plant-sensor-devices small { margin-top: 0.1rem; color: #697a71; font-size: 0.67rem; }
+
+.plant-sensor-create {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: end;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+.plant-sensor-create label { color: #273c32; font-size: 0.72rem; font-weight: 750; }
+
+.plant-sensor-token {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+  border: 1px solid rgba(183, 126, 37, 0.3);
+  border-radius: 10px;
+  background: #fff8e9;
+  padding: 0.75rem;
+}
+.plant-sensor-token strong { grid-column: 1 / -1; color: #654718; font-size: 0.72rem; }
+.plant-sensor-token code { overflow-wrap: anywhere; color: #293b32; font-size: 0.7rem; }
+.plant-sensor-token p { grid-column: 1 / -1; color: #765a2a; font-size: 0.68rem; }
+.plant-sensor-status { margin-top: 0.65rem; font-weight: 700; }
+.plant-measurement-readonly {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  color: #557167;
+  font-size: 0.67rem;
+  font-weight: 750;
+}
+
+@media (max-width: 640px) {
+  .plant-sensor-create { grid-template-columns: 1fr; }
+  .plant-sensor-create .primary-button,
+  .plant-sensor-create .secondary-button { width: 100%; }
+}
+
 :root {
   color-scheme: light;
   --background: #fbf9f1;

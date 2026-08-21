@@ -177,7 +177,7 @@ export type Database = {
         Row: {
           id: string;
           user_id: string;
-          plant_id: string;
+          plant_ref: string;
           name: string;
           token_hash: string;
           active: boolean;
@@ -187,7 +187,7 @@ export type Database = {
         Insert: {
           id?: string;
           user_id: string;
-          plant_id: string;
+          plant_ref: string;
           name: string;
           token_hash: string;
           active?: boolean;
@@ -195,6 +195,37 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["sensor_devices"]["Insert"]>;
+      };
+      sensor_measurements: {
+        Row: {
+          id: string;
+          user_id: string;
+          plant_ref: string;
+          device_id: string;
+          measured_at: string;
+          temperature_c: number | null;
+          leaf_temperature_c: number | null;
+          ambient_humidity_percent: number | null;
+          substrate_moisture_percent: number | null;
+          ppfd_umol_m2_s: number | null;
+          observations: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          plant_ref: string;
+          device_id: string;
+          measured_at?: string;
+          temperature_c?: number | null;
+          leaf_temperature_c?: number | null;
+          ambient_humidity_percent?: number | null;
+          substrate_moisture_percent?: number | null;
+          ppfd_umol_m2_s?: number | null;
+          observations?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["sensor_measurements"]["Insert"]>;
       };
       user_app_snapshots: {
         Row: {
@@ -215,7 +246,7 @@ export type Database = {
     Views: Record<string, never>;
     Functions: {
       create_sensor_device: {
-        Args: { target_plant_id: string; device_name: string };
+        Args: { target_plant_ref: string; device_name: string };
         Returns: { device_id: string; device_token: string }[];
       };
     };

@@ -38,7 +38,7 @@ Deno.serve(async (request) => {
     const tokenHash = await sha256(token);
     const { data: device, error: deviceError } = await supabase
       .from("sensor_devices")
-      .select("id,user_id,plant_id,active")
+      .select("id,user_id,plant_ref,active")
       .eq("token_hash", tokenHash)
       .maybeSingle();
 
@@ -48,14 +48,14 @@ Deno.serve(async (request) => {
     const measuredAt = payload.measuredAt ? new Date(payload.measuredAt) : new Date();
     if (Number.isNaN(measuredAt.getTime())) return json({ error: "measuredAt no es una fecha valida" }, 400);
 
-    const { error: insertError } = await supabase.from("plant_measurements").insert({
+    const { error: insertError } = await supabase.from("sensor_measurements").insert({
       ambient_humidity_percent: payload.ambientHumidityPercent,
       leaf_temperature_c: payload.leafTemperatureC,
       measured_at: measuredAt.toISOString(),
       observations: payload.observations?.slice(0, 500),
-      plant_id: device.plant_id,
+      device_id: device.id,
+      plant_ref: device.plant_ref,
       ppfd_umol_m2_s: payload.ppfdUmolM2S,
-      source: "sensor",
       substrate_moisture_percent: payload.substrateMoisturePercent,
       temperature_c: payload.temperatureC,
       user_id: device.user_id

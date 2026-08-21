@@ -308,6 +308,7 @@ end;
 $$;
 
 revoke all on function public.claim_snapshot_share(text) from public;
+revoke execute on function public.claim_snapshot_share(text) from anon;
 grant execute on function public.claim_snapshot_share(text) to authenticated;
 
 -- ---------------------------------------------------------------------------
@@ -320,7 +321,7 @@ grant execute on function public.claim_snapshot_share(text) to authenticated;
 create table if not exists public.sensor_devices (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  plant_id uuid not null references public.plants(id) on delete cascade,
+  plant_ref text not null,
   name text not null,
   token_hash text not null unique,
   active boolean not null default true,
@@ -328,19 +329,62 @@ create table if not exists public.sensor_devices (
   created_at timestamptz not null default now()
 );
 
+-- Compatibilidad con una ejecucion temprana del esquema que vinculaba el
+-- dispositivo a public.plants. La app productiva usa IDs del snapshot.
+alter table public.sensor_devices add column if not exists plant_ref text;
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'sensor_devices' and column_name = 'plant_id'
+  ) then
+    execute 'update public.sensor_devices set plant_ref = plant_id::text where plant_ref is null';
+    execute 'alter table public.sensor_devices drop column plant_id cascade';
+  end if;
+end;
+$$;
+alter table public.sensor_devices alter column plant_ref set not null;
+
 create index if not exists sensor_devices_owner_idx on public.sensor_devices (user_id);
-create index if not exists sensor_devices_plant_idx on public.sensor_devices (plant_id);
+create index if not exists sensor_devices_plant_idx on public.sensor_devices (plant_ref);
+
+create table if not exists public.sensor_measurements (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  plant_ref text not null,
+  device_id uuid not null references public.sensor_devices(id) on delete cascade,
+  measured_at timestamptz not null default now(),
+  temperature_c numeric,
+  leaf_temperature_c numeric,
+  ambient_humidity_percent numeric,
+  substrate_moisture_percent numeric,
+  ppfd_umol_m2_s numeric,
+  observations text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists sensor_measurements_owner_plant_idx
+  on public.sensor_measurements (user_id, plant_ref, measured_at desc);
 
 alter table public.sensor_devices enable row level security;
+alter table public.sensor_measurements enable row level security;
 
 drop policy if exists "sensor device owners manage" on public.sensor_devices;
 create policy "sensor device owners manage" on public.sensor_devices
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop policy if exists "sensor measurement owners read" on public.sensor_measurements;
+create policy "sensor measurement owners read" on public.sensor_measurements
+  for select using (auth.uid() = user_id);
+
 grant select, update, delete on public.sensor_devices to authenticated;
 grant select, insert, update, delete on public.sensor_devices to service_role;
+grant select on public.sensor_measurements to authenticated;
+grant select, insert, update, delete on public.sensor_measurements to service_role;
 
-create or replace function public.create_sensor_device(target_plant_id uuid, device_name text)
+drop function if exists public.create_sensor_device(uuid, text);
+
+create or replace function public.create_sensor_device(target_plant_ref text, device_name text)
 returns table (device_id uuid, device_token text)
 language plpgsql
 security definer
@@ -354,19 +398,16 @@ begin
     raise exception 'Hay que iniciar sesion para crear un dispositivo';
   end if;
 
-  if not exists (
-    select 1 from public.plants
-    where id = target_plant_id and user_id = auth.uid()
-  ) then
-    raise exception 'La planta no existe o no pertenece al usuario';
+  if nullif(trim(target_plant_ref), '') is null then
+    raise exception 'Falta identificar la maceta';
   end if;
 
   raw_token := encode(gen_random_bytes(24), 'hex');
 
-  insert into public.sensor_devices (user_id, plant_id, name, token_hash)
+  insert into public.sensor_devices (user_id, plant_ref, name, token_hash)
   values (
     auth.uid(),
-    target_plant_id,
+    trim(target_plant_ref),
     coalesce(nullif(trim(device_name), ''), 'Sensor'),
     encode(digest(raw_token, 'sha256'), 'hex')
   )
@@ -376,5 +417,6 @@ begin
 end;
 $$;
 
-revoke all on function public.create_sensor_device(uuid, text) from public;
-grant execute on function public.create_sensor_device(uuid, text) to authenticated;
+revoke all on function public.create_sensor_device(text, text) from public;
+revoke execute on function public.create_sensor_device(text, text) from anon;
+grant execute on function public.create_sensor_device(text, text) to authenticated;
