@@ -121,6 +121,7 @@ export type Database = {
           substrate_moisture_percent: number | null;
           height_cm: number | null;
           water_amount_ml: number | null;
+          ppfd_umol_m2_s: number | null;
           lighting: string | null;
           observations: string | null;
           photo_id: string | null;
@@ -137,6 +138,7 @@ export type Database = {
           substrate_moisture_percent?: number | null;
           height_cm?: number | null;
           water_amount_ml?: number | null;
+          ppfd_umol_m2_s?: number | null;
           lighting?: string | null;
           observations?: string | null;
           photo_id?: string | null;

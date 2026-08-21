@@ -87,11 +87,15 @@ PlantCare puede incorporar mediciones periodicas asociadas a una planta o espaci
 - humedad del sustrato;
 - altura de planta;
 - volumen de agua registrado;
-- condiciones de iluminacion;
+- condiciones de iluminacion y PPFD a nivel de la copa;
 - observaciones;
 - fotografias.
 
-Las mediciones deben conservar fecha y hora para permitir construir series historicas y analizar evolucion. En futuras versiones, estos datos podran ingresarse manualmente o recibirse desde sensores y dispositivos IoT.
+Las mediciones conservan fecha, hora y origen (`manual`, `device` o `sensor`) para construir series historicas y analizar evolucion. En la ficha expandida de cada maceta se pueden registrar localmente temperatura, humedad ambiental, humedad de sustrato y PPFD. Esos datos forman parte del snapshot del usuario y se sincronizan junto con sus plantas cuando la cuenta esta conectada.
+
+`assessPlantEnvironment` calcula un VPD de aire estimado a partir de temperatura y humedad relativa y lo compara con una banda orientativa segun la etapa declarada. La interfaz diferencia la medicion original del valor `calculated`, muestra la banda utilizada y avisa cuando falta temperatura, humedad o PPFD. El VPD de aire no reemplaza un calculo basado en temperatura foliar.
+
+El esquema `plant_measurements` queda preparado para que un ESP32, Raspberry Pi u otro gateway escriba mediciones futuras con `source = 'sensor'`. La conexion de hardware y sus credenciales no estan incluidas todavia; nunca se debe exponer una clave `service_role` en el sensor o en el navegador.
 
 ## Analisis asistido por IA
 
@@ -117,6 +121,8 @@ Las respuestas generadas mediante IA deben presentarse como asistencia orientati
 4. Cultivo horticola: elegir `Tomate - Roma`, modificar maceta, luz e indoor/espacio. Resultado esperado: la calculadora actualiza los valores orientativos correspondientes.
 5. Datos de genetica: completar banco/catalogo, genetica, tipo declarado, dias publicados y fechas. Resultado esperado: los datos quedan asociados a la planta y pueden ser utilizados por funciones compatibles del motor.
 6. Historial: agregar nuevas mediciones u observaciones. Resultado esperado: quedan registradas cronologicamente y disponibles para comparacion.
+7. Ambiente: registrar temperatura y humedad en una maceta. Resultado esperado: aparece un VPD estimado, su rango orientativo, el origen de los datos y una alerta explicable si queda fuera de banda.
+8. Luz: registrar PPFD. Resultado esperado: se compara con la referencia de la etapa declarada; si no hay medicion, la app informa que falta el dato en vez de inventarlo.
 
 ## Instalacion
 

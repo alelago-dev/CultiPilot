@@ -97,11 +97,15 @@ create table if not exists public.plant_measurements (
   substrate_moisture_percent numeric,
   height_cm numeric,
   water_amount_ml numeric,
+  ppfd_umol_m2_s numeric check (ppfd_umol_m2_s is null or ppfd_umol_m2_s >= 0),
   lighting text,
   observations text,
   photo_id uuid references public.photos(id) on delete set null,
   created_at timestamptz not null default now()
 );
+
+alter table public.plant_measurements
+  add column if not exists ppfd_umol_m2_s numeric check (ppfd_umol_m2_s is null or ppfd_umol_m2_s >= 0);
 
 create table if not exists public.plant_insights (
   id uuid primary key default gen_random_uuid(),

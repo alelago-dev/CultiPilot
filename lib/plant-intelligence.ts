@@ -45,7 +45,7 @@ export function getMissingAnalysisData({
   plant: Plant;
 }) {
   const missing: string[] = [];
-  const latestMeasurement = measurements.at(-1);
+  const latestMeasurement = getLatestMeasurement(measurements);
 
   if (!plant.startedAt) missing.push("fecha de inicio");
   if (!plant.variety) missing.push("genetica o variedad");
@@ -62,6 +62,7 @@ export function getMissingAnalysisData({
   if (latestMeasurement.ambientHumidityPercent === undefined) missing.push("humedad ambiental");
   if (latestMeasurement.substrateMoisturePercent === undefined) missing.push("humedad de sustrato");
   if (latestMeasurement.heightCm === undefined) missing.push("altura");
+  if (latestMeasurement.ppfdUmolM2S === undefined) missing.push("PPFD");
 
   return missing;
 }
@@ -75,7 +76,7 @@ function buildTimelineSummary({
   measurements: PlantMeasurement[];
   plant: Plant;
 }): DataPoint[] {
-  const latestMeasurement = measurements.at(-1);
+  const latestMeasurement = getLatestMeasurement(measurements);
 
   return [
     {
@@ -109,9 +110,23 @@ function buildTimelineSummary({
       value: latestMeasurement?.substrateMoisturePercent ?? null
     },
     {
+      capturedAt: latestMeasurement?.measuredAt,
+      label: "Ultimo PPFD",
+      origin: latestMeasurement?.ppfdUmolM2S === undefined ? "missing" : latestMeasurement.source === "sensor" ? "measurement" : "user",
+      unit: "umol/m2/s",
+      value: latestMeasurement?.ppfdUmolM2S ?? null
+    },
+    {
       label: "Entradas de bitacora",
       origin: "calculated",
       value: entries.length
     }
   ];
+}
+
+function getLatestMeasurement(measurements: PlantMeasurement[]) {
+  return measurements.reduce<PlantMeasurement | undefined>(
+    (latest, measurement) => (!latest || measurement.measuredAt > latest.measuredAt ? measurement : latest),
+    undefined
+  );
 }

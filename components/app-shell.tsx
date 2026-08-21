@@ -35,6 +35,7 @@ import {
 } from "@/lib/navigation";
 import { getGeneticsCatalogAlphabetically, type GeneticReferenceEntry } from "@/lib/genetics-catalog";
 import { requestReminderNotification } from "@/lib/notifications";
+import { assessPlantEnvironment, type EnvironmentalStatus } from "@/lib/environment-intelligence";
 import { calculateHorticulturePlan, seedCatalog, type HorticulturePlanInput } from "@/lib/seed-catalog";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Json } from "@/lib/supabase/database.types";
@@ -47,6 +48,7 @@ import type {
   GrowSpace,
   Locale,
   Plant,
+  PlantMeasurement,
   Task
 } from "@/lib/types";
 import { getDeviceWeather, getWeatherReadiness, type WeatherReadiness } from "@/lib/weather";
@@ -108,6 +110,7 @@ type AppSnapshot = {
   entries: CareEntry[];
   events: CalendarEvent[];
   habitDates: string[];
+  measurements: PlantMeasurement[];
   plants: Plant[];
   savedAt: string;
   tasks: Task[];
@@ -449,6 +452,7 @@ const storageKeys = {
   entries: "plantcare-journal-entries",
   events: "plantcare-calendar-events",
   habitDates: "plantcare-habit-dates",
+  measurements: "plantcare-plant-measurements",
   onboarding: "plantcare-onboarding-complete",
   plants: "plantcare-plants",
   quickChecks: "plantcare-quick-checks",
@@ -474,6 +478,7 @@ export function AppShell({
   const [eventState, setEventState] = useStoredState(storageKeys.events, calendarEvents);
   const [entryState, setEntryState] = useStoredState(storageKeys.entries, entries);
   const [habitDates, setHabitDates] = useStoredState<string[]>(storageKeys.habitDates, []);
+  const [measurementState, setMeasurementState] = useStoredState<PlantMeasurement[]>(storageKeys.measurements, []);
   const [weather, setWeather] = useState<WeatherReadiness>(() => getStoredWeatherSnapshot() ?? getWeatherReadiness("Ubicacion sin conectar"));
   const [weatherStatus, setWeatherStatus] = useState("");
   const [accountStatus, setAccountStatus] = useState<AccountStatus>(() => ({
@@ -530,9 +535,11 @@ export function AppShell({
     lastAnnouncedAt.current = Date.now();
     setAccountStatus(nextStatus);
   }
-  const [showOnboarding, setShowOnboarding] = useState(
-    () => typeof window !== "undefined" && window.localStorage.getItem(storageKeys.onboarding) !== "true"
-  );
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    setShowOnboarding(window.localStorage.getItem(storageKeys.onboarding) !== "true");
+  }, []);
   const todayIso = getTodayIso();
   const navItems = navigationByLocale[locale];
   const todayOccurrences = useMemo(
@@ -576,6 +583,7 @@ export function AppShell({
       entries: entryState,
       events: eventState,
       habitDates,
+      measurements: measurementState,
       plants: plantState,
       savedAt: new Date().toISOString(),
       tasks: taskState
@@ -602,6 +610,10 @@ export function AppShell({
     if (snapshot.habitDates) {
       setHabitDates(snapshot.habitDates);
       persistStoredState(storageKeys.habitDates, snapshot.habitDates);
+    }
+    if (snapshot.measurements) {
+      setMeasurementState(snapshot.measurements);
+      persistStoredState(storageKeys.measurements, snapshot.measurements);
     }
   }
 
@@ -1188,6 +1200,20 @@ export function AppShell({
     persistStoredState(storageKeys.entries, nextEntries);
   }
 
+  function handleAddMeasurement(measurement: PlantMeasurement) {
+    const nextMeasurements = [measurement, ...measurementState];
+
+    setMeasurementState(nextMeasurements);
+    persistStoredState(storageKeys.measurements, nextMeasurements);
+  }
+
+  function handleDeleteMeasurement(measurementId: string) {
+    const nextMeasurements = measurementState.filter((measurement) => measurement.id !== measurementId);
+
+    setMeasurementState(nextMeasurements);
+    persistStoredState(storageKeys.measurements, nextMeasurements);
+  }
+
   function handleAddCalendarEvent(event: CalendarEvent) {
     const nextEvents = [event, ...eventState];
 
@@ -1436,7 +1462,7 @@ export function AppShell({
     return () => window.clearTimeout(timeoutId);
     // saveRemoteSnapshot reads the current snapshot from state; these dependencies are the autosave trigger surface.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountStatus.userId, entryState, eventState, habitDates, plantState, remoteSyncReady, taskState, viewingShare]);
+  }, [accountStatus.userId, entryState, eventState, habitDates, measurementState, plantState, remoteSyncReady, taskState, viewingShare]);
 
   function handleClearCultivationData() {
     setPlantState([]);
@@ -1444,11 +1470,13 @@ export function AppShell({
     setEventState([]);
     setEntryState([]);
     setHabitDates([]);
+    setMeasurementState([]);
     persistStoredState(storageKeys.plants, []);
     persistStoredState(storageKeys.tasks, []);
     persistStoredState(storageKeys.events, []);
     persistStoredState(storageKeys.entries, []);
     persistStoredState(storageKeys.habitDates, []);
+    persistStoredState(storageKeys.measurements, []);
     removeStoredState(storageKeys.calendarDate);
     removeStoredState(storageKeys.quickChecks);
     removeStoredState(storageKeys.weatherConsent);
@@ -1580,7 +1608,10 @@ export function AppShell({
         <SpacesSection
           calendarEvents={eventState}
           entries={entryState}
+          measurements={measurementState}
           onAddJournalEntry={handleAddJournalEntry}
+          onAddMeasurement={handleAddMeasurement}
+          onDeleteMeasurement={handleDeleteMeasurement}
           onUpdatePlant={handleUpdatePlant}
           plants={plantState}
           spaces={spaces}
@@ -2352,7 +2383,10 @@ function OnboardingFlow({ onClose, todayHref }: { onClose: () => void; todayHref
 function SpacesSection({
   calendarEvents,
   entries,
+  measurements,
   onAddJournalEntry,
+  onAddMeasurement,
+  onDeleteMeasurement,
   onUpdatePlant,
   plants,
   spaces,
@@ -2360,7 +2394,10 @@ function SpacesSection({
 }: {
   calendarEvents: CalendarEvent[];
   entries: CareEntry[];
+  measurements: PlantMeasurement[];
   onAddJournalEntry: (entry: CareEntry) => void;
+  onAddMeasurement: (measurement: PlantMeasurement) => void;
+  onDeleteMeasurement: (measurementId: string) => void;
   onUpdatePlant: (plantId: string, updates: Partial<Plant>) => void;
   plants: Plant[];
   spaces: GrowSpace[];
@@ -2482,8 +2519,11 @@ function SpacesSection({
                     <PlantSpaceRow
                       calendarEvents={calendarEvents}
                       entries={entries}
+                      measurements={measurements.filter((measurement) => measurement.plantId === plant.id)}
                       key={plant.id}
                       onAddJournalEntry={onAddJournalEntry}
+                      onAddMeasurement={onAddMeasurement}
+                      onDeleteMeasurement={onDeleteMeasurement}
                       onOpenGenetic={setPopupGenetic}
                       onUpdatePlant={onUpdatePlant}
                       plant={plant}
@@ -2511,7 +2551,10 @@ function SpacesSection({
 function PlantSpaceRow({
   calendarEvents,
   entries,
+  measurements,
   onAddJournalEntry,
+  onAddMeasurement,
+  onDeleteMeasurement,
   onOpenGenetic,
   onUpdatePlant,
   plant,
@@ -2519,7 +2562,10 @@ function PlantSpaceRow({
 }: {
   calendarEvents: CalendarEvent[];
   entries: CareEntry[];
+  measurements: PlantMeasurement[];
   onAddJournalEntry: (entry: CareEntry) => void;
+  onAddMeasurement: (measurement: PlantMeasurement) => void;
+  onDeleteMeasurement: (measurementId: string) => void;
   onOpenGenetic: (genetic: GeneticReferenceEntry) => void;
   onUpdatePlant: (plantId: string, updates: Partial<Plant>) => void;
   plant: Plant;
@@ -2557,6 +2603,12 @@ function PlantSpaceRow({
           </div>
           <PlantGeneticSummary genetic={plantGenetic} onOpenGenetic={onOpenGenetic} plant={plant} />
           <PlantCalculationSummary genetic={plantGenetic} plant={plant} />
+          <PlantEnvironmentPanel
+            measurements={measurements}
+            onAddMeasurement={onAddMeasurement}
+            onDeleteMeasurement={onDeleteMeasurement}
+            plant={plant}
+          />
           <dl className="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
             <PlantFact label="Maceta" value={plant.pot} />
             <PlantFact label="Sustrato" value={plant.substrate} />
@@ -2574,7 +2626,7 @@ function PlantSpaceRow({
   );
 }
 
-const plantStageOptions = ["Semilla", "Plantin", "Vegetativo", "Floracion", "Cosecha"];
+const plantStageOptions = ["Semilla", "Plantin", "Vegetativo", "Floracion temprana", "Floracion tardia", "Cosecha"];
 const plantPotOptions = ["3 L", "5 L", "7 L", "10 L", "15 L", "20 L", "25 L"];
 const plantSubstrateOptions = ["Organico liviano", "Organico aireado", "Compost y fibra", "Drenante", "Universal"];
 const plantLightingOptions = ["Sol directo", "Sol de manana", "Media sombra", "Luz artificial", "Mixta"];
@@ -2868,6 +2920,203 @@ function PlantCalculationSummary({ genetic, plant }: { genetic?: GeneticReferenc
         ))}
       </div>
     </section>
+  );
+}
+
+function PlantEnvironmentPanel({
+  measurements,
+  onAddMeasurement,
+  onDeleteMeasurement,
+  plant
+}: {
+  measurements: PlantMeasurement[];
+  onAddMeasurement: (measurement: PlantMeasurement) => void;
+  onDeleteMeasurement: (measurementId: string) => void;
+  plant: Plant;
+}) {
+  const sortedMeasurements = [...measurements].sort((first, second) => second.measuredAt.localeCompare(first.measuredAt));
+  const latestMeasurement = sortedMeasurements[0];
+  const assessment = assessPlantEnvironment(plant, latestMeasurement);
+  const [isAdding, setIsAdding] = useState(false);
+
+  return (
+    <section className="plant-environment-panel mt-3" aria-label={`Ambiente y sensores de ${plant.name}`}>
+      <div className="plant-environment-header">
+        <div>
+          <p className="plant-calculation-eyebrow">Ambiente y sensores</p>
+          <h4>VPD y luz de esta maceta</h4>
+          <p>
+            Usa la etapa declarada ({assessment.target.label}) y la ultima medicion. Los rangos son orientativos y cada resultado muestra su origen.
+          </p>
+        </div>
+        <button className="secondary-button" onClick={() => setIsAdding((current) => !current)} type="button">
+          {isAdding ? "Cerrar" : "Registrar medicion"}
+        </button>
+      </div>
+
+      <div className="plant-environment-metrics">
+        <EnvironmentMetric
+          label="Temperatura"
+          value={latestMeasurement?.temperatureC === undefined ? "Sin dato" : `${latestMeasurement.temperatureC} C`}
+        />
+        <EnvironmentMetric
+          label="Humedad"
+          value={latestMeasurement?.ambientHumidityPercent === undefined ? "Sin dato" : `${latestMeasurement.ambientHumidityPercent}%`}
+        />
+        <EnvironmentMetric
+          label="VPD estimado"
+          status={assessment.vpdStatus}
+          value={assessment.vpdKpa === undefined ? "Faltan datos" : `${assessment.vpdKpa} kPa`}
+          target={`${assessment.target.vpdMin}-${assessment.target.vpdMax} kPa`}
+        />
+        <EnvironmentMetric
+          label="PPFD"
+          status={assessment.ppfdStatus}
+          value={latestMeasurement?.ppfdUmolM2S === undefined ? "Sin dato" : `${latestMeasurement.ppfdUmolM2S} umol/m2/s`}
+          target={
+            assessment.target.ppfdMin === undefined
+              ? "Sin referencia para esta etapa"
+              : `${assessment.target.ppfdMin}-${assessment.target.ppfdMax} umol/m2/s`
+          }
+        />
+      </div>
+
+      {assessment.messages.length > 0 ? (
+        <div className="plant-environment-alerts">
+          {assessment.messages.map((message) => (
+            <p key={message}>{message}</p>
+          ))}
+        </div>
+      ) : (
+        <p className="plant-environment-missing">
+          Para evaluar el ambiente falta: {assessment.missingInputs.join(", ") || "una medicion reciente"}.
+        </p>
+      )}
+
+      {isAdding ? <PlantMeasurementForm onAddMeasurement={onAddMeasurement} onDone={() => setIsAdding(false)} plant={plant} /> : null}
+
+      {sortedMeasurements.length > 0 ? (
+        <details className="plant-measurement-history">
+          <summary>Historial de mediciones ({sortedMeasurements.length})</summary>
+          <div className="plant-measurement-list">
+            {sortedMeasurements.slice(0, 8).map((measurement) => (
+              <article key={measurement.id}>
+                <div>
+                  <strong>{formatMeasurementDate(measurement.measuredAt)}</strong>
+                  <span>{formatMeasurementSource(measurement.source)}</span>
+                </div>
+                <p>
+                  {measurement.temperatureC ?? "--"} C · {measurement.ambientHumidityPercent ?? "--"}% HR · PPFD {measurement.ppfdUmolM2S ?? "--"}
+                </p>
+                <button
+                  aria-label={`Eliminar medicion del ${formatMeasurementDate(measurement.measuredAt)}`}
+                  className="text-button danger"
+                  onClick={() => onDeleteMeasurement(measurement.id)}
+                  type="button"
+                >
+                  Eliminar
+                </button>
+              </article>
+            ))}
+          </div>
+        </details>
+      ) : null}
+    </section>
+  );
+}
+
+function PlantMeasurementForm({
+  onAddMeasurement,
+  onDone,
+  plant
+}: {
+  onAddMeasurement: (measurement: PlantMeasurement) => void;
+  onDone: () => void;
+  plant: Plant;
+}) {
+  const [measuredAt, setMeasuredAt] = useState(() => getLocalDateTimeValue());
+  const [source, setSource] = useState<PlantMeasurement["source"]>("manual");
+  const [temperature, setTemperature] = useState("");
+  const [humidity, setHumidity] = useState("");
+  const [substrateMoisture, setSubstrateMoisture] = useState("");
+  const [ppfd, setPpfd] = useState("");
+  const [observations, setObservations] = useState("");
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!temperature && !humidity && !substrateMoisture && !ppfd) return;
+
+    onAddMeasurement({
+      ambientHumidityPercent: parseOptionalNumber(humidity),
+      id: `measurement-${plant.id}-${Date.now()}`,
+      measuredAt: new Date(measuredAt).toISOString(),
+      observations: observations.trim() || undefined,
+      plantId: plant.id,
+      ppfdUmolM2S: parseOptionalNumber(ppfd),
+      source,
+      substrateMoisturePercent: parseOptionalNumber(substrateMoisture),
+      temperatureC: parseOptionalNumber(temperature)
+    });
+    onDone();
+  }
+
+  return (
+    <form className="plant-measurement-form" onSubmit={handleSubmit}>
+      <label>
+        Fecha y hora
+        <input className="form-control" onChange={(event) => setMeasuredAt(event.target.value)} type="datetime-local" value={measuredAt} />
+      </label>
+      <label>
+        Origen
+        <select className="form-control" onChange={(event) => setSource(event.target.value as PlantMeasurement["source"])} value={source}>
+          <option value="manual">Carga manual</option>
+          <option value="device">Dispositivo</option>
+          <option value="sensor">Sensor conectado</option>
+        </select>
+      </label>
+      <label>
+        Temperatura (C)
+        <input className="form-control" inputMode="decimal" max="60" min="-10" onChange={(event) => setTemperature(event.target.value)} step="0.1" type="number" value={temperature} />
+      </label>
+      <label>
+        Humedad ambiental (%)
+        <input className="form-control" inputMode="decimal" max="100" min="0" onChange={(event) => setHumidity(event.target.value)} step="0.1" type="number" value={humidity} />
+      </label>
+      <label>
+        Humedad de sustrato (%)
+        <input className="form-control" inputMode="decimal" max="100" min="0" onChange={(event) => setSubstrateMoisture(event.target.value)} step="0.1" type="number" value={substrateMoisture} />
+      </label>
+      <label>
+        PPFD (umol/m2/s)
+        <input className="form-control" inputMode="numeric" min="0" onChange={(event) => setPpfd(event.target.value)} step="1" type="number" value={ppfd} />
+      </label>
+      <label className="plant-measurement-notes">
+        Observaciones
+        <textarea className="form-control" onChange={(event) => setObservations(event.target.value)} rows={2} value={observations} />
+      </label>
+      <button className="primary-button" type="submit">Guardar medicion</button>
+    </form>
+  );
+}
+
+function EnvironmentMetric({
+  label,
+  status = "missing",
+  target,
+  value
+}: {
+  label: string;
+  status?: EnvironmentalStatus;
+  target?: string;
+  value: string;
+}) {
+  return (
+    <div className={`plant-environment-metric status-${status}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      {target ? <small>Referencia: {target}</small> : null}
+    </div>
   );
 }
 
@@ -5073,6 +5322,33 @@ function getPlantStageIndex(stage: string) {
   if (currentStage === "flower") return 2;
   if (currentStage === "leaf") return 1;
   return 0;
+}
+
+function parseOptionalNumber(value: string) {
+  if (!value.trim()) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function getLocalDateTimeValue() {
+  const now = new Date();
+  const offsetAdjusted = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+  return offsetAdjusted.toISOString().slice(0, 16);
+}
+
+function formatMeasurementDate(value: string) {
+  return new Intl.DateTimeFormat("es-AR", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "short"
+  }).format(new Date(value));
+}
+
+function formatMeasurementSource(source: PlantMeasurement["source"]) {
+  if (source === "sensor") return "Sensor";
+  if (source === "device") return "Dispositivo";
+  return "Carga manual";
 }
 
 function getStreakCount(habitDates: string[], todayIso: string) {
