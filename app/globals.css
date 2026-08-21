@@ -6089,6 +6089,31 @@ textarea {
     gap: 1rem;
   }
 
+  .header-vpd-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-height: 2.5rem;
+    border-radius: 0.75rem;
+    padding: 0.55rem 0.7rem;
+    background: rgb(13 148 136);
+    color: white;
+    font-size: 0.78rem;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 6px 16px rgb(13 148 136 / 20%);
+  }
+
+  .header-vpd-button:hover {
+    background: rgb(15 118 110);
+  }
+
+  .header-vpd-button:focus-visible {
+    outline: 3px solid rgb(45 212 191 / 45%);
+    outline-offset: 2px;
+  }
+
   .environment-quick-access h2 {
     margin-top: 0.25rem;
     font-size: 1.25rem;

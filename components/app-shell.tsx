@@ -3,7 +3,7 @@
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
-import { Bug, Camera, Droplet, Eye, Leaf, MoonStar, NotebookPen, Scissors, Sparkles, type LucideIcon } from "lucide-react";
+import { Bug, Camera, Droplet, Eye, Leaf, MoonStar, NotebookPen, Scissors, Sparkles, Thermometer, type LucideIcon } from "lucide-react";
 
 import { Card } from "@/components/card";
 import { CopyValueButton } from "@/components/copy-button";
@@ -1673,6 +1673,15 @@ export function AppShell({
           </nav>
 
           <div className="flex items-center gap-2">
+            <Link
+              aria-label="Registrar temperatura y humedad para calcular VPD"
+              className="header-vpd-button"
+              href={`${getInternalSectionHref(locale, "spaces")}#mediciones-ambientales` as Route}
+            >
+              <Thermometer aria-hidden="true" size={17} strokeWidth={2.5} />
+              <span className="sm:hidden">VPD</span>
+              <span className="hidden sm:inline">Medir VPD</span>
+            </Link>
             <InstallAppButton />
             <div className="hidden items-center gap-2 rounded-lg border border-emerald-700/15 bg-white/88 px-3 py-2 text-sm font-bold text-moss-900 shadow-sm sm:flex">
               <span className="status-dot" aria-hidden="true" />
