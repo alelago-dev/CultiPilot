@@ -1,6 +1,6 @@
 # PlantCare Calendar
 
-PlantCare Calendar es una PWA mobile-first para seguimiento de cultivos horticolas legalmente permitidos. El MVP incluye arquitectura Next.js App Router, TypeScript, Tailwind CSS, contrato de Supabase, esquema SQL, i18n preparado, pantallas principales con datos demo e interfaz lista para conectar una API meteorologica.
+PlantCare Calendar es una PWA mobile-first para seguimiento y gestion de cultivos legalmente permitidos. El proyecto utiliza Next.js App Router, TypeScript, Tailwind CSS y Supabase, e incluye calendario, tareas, bitacora, seguimiento por planta, datos meteorologicos y herramientas de calculo y asistencia basadas en los datos registrados por el usuario.
 
 ## Incluye
 
@@ -8,24 +8,46 @@ PlantCare Calendar es una PWA mobile-first para seguimiento de cultivos horticol
 - Guardado por usuario con Supabase Auth y snapshot `user_app_snapshots` cuando las variables de entorno estan configuradas.
 - Espacios de cultivo, plantas asociadas y macetas numeradas como unidades independientes.
 - Campos para variedad o semilla, fecha de inicio, modalidad, region aproximada, maceta, sustrato e iluminacion.
-- Selector de semillas con categorias horticultoras y categorias cannabicas legales para registro y consulta.
-- Motor de calculos por semilla, maceta, luz y espacio, con estimaciones orientativas de riego, agua y sustrato cuando hay datos suficientes.
-- Plan manual legal con banco/catalogo, genetica, tipo declarado, dias informados por el usuario, espacio, tamano de indoor, luz, litros de maceta y fechas definidas por el usuario.
+- Selector de semillas y geneticas con categorias horticolas y categorias sujetas a regulacion.
+- Motor de calculos por semilla, maceta, iluminacion, espacio y demas datos disponibles.
+- Estimaciones y sugerencias orientativas generadas a partir de los datos registrados.
+- Registro de banco/catalogo, genetica, tipo declarado, dias informados, espacio, tamano de indoor, iluminacion, litros de maceta y fechas.
 - Tareas manuales y recurrentes con vista de hoy.
 - Calendario mensual.
 - Bitacora de observaciones y fotografias.
-- Linea de tiempo local por planta que unifica inicio, tareas, eventos del calendario, fotos y observaciones.
+- Linea de tiempo por planta que unifica inicio, tareas, eventos del calendario, fotos y observaciones.
 - Interfaz de clima preparada para proveedor externo.
 - Consentimiento de privacidad y uso legal.
 - Base para exportacion y eliminacion completa de datos del usuario.
 
-La app evita recomendaciones destinadas a maximizar sustancias controladas o evadir controles legales.
-Para cultivos regulados, la app mantiene la clasificacion legal como metadato y solo debe usarse donde sea legal. Esa clasificacion no desactiva por si sola el motor de calculos: las estimaciones dependen de datos suficientes registrados por el usuario, catalogos, mediciones o valores identificados como estimados.
-La demo no debe guardar numeros de registro, domicilios exactos ni datos medicos.
+La app evita recomendaciones destinadas a evadir controles legales. El usuario es responsable de utilizar PlantCare Calendar conforme a la legislacion aplicable en su jurisdiccion. La demo no debe guardar numeros de registro, domicilios exactos ni datos medicos.
+
+## Motor de calculos y sugerencias
+
+PlantCare Calendar puede realizar calculos automaticos, estimaciones orientativas y sugerencias basadas en datos ingresados por el usuario, datos de catalogo, mediciones reales o valores calculados.
+
+El motor puede utilizar, entre otros datos:
+
+- especie, semilla y genetica;
+- etapa y edad de la planta;
+- fechas registradas;
+- tamano de maceta;
+- tipo y volumen de sustrato;
+- modalidad indoor/outdoor;
+- dimensiones del espacio;
+- iluminacion;
+- temperatura y humedad;
+- registros de riego;
+- observaciones;
+- fotografias;
+- historial y linea de tiempo de la planta;
+- informacion declarada o disponible en catalogos compatibles.
+
+Las estimaciones deben identificarse como orientativas y diferenciarse de los datos medidos o ingresados directamente por el usuario.
 
 ## Regla de negocio: datos, calculos y cultivos regulados
 
-En `lib/seed-catalog.ts`, una semilla se clasifica como regulada cuando `regulated: true` o cuando su `category` es `"cannabis"` o `"regulated"`. Esto aplica a cannabis y a cualquier cultivo que requiera autorizacion legal especifica.
+En `lib/seed-catalog.ts`, una semilla puede clasificarse como regulada mediante `regulated: true` o mediante categorias especificas como `"cannabis"` o `"regulated"`.
 
 `regulated` es una clasificacion legal, no un interruptor tecnico. La app desacopla:
 
@@ -33,7 +55,7 @@ En `lib/seed-catalog.ts`, una semilla se clasifica como regulada cuando `regulat
 - capacidad de calculo;
 - origen de cada dato.
 
-La calculadora se activa cuando hay datos suficientes. Si falta informacion, `calculateHorticulturePlan` devuelve `automaticEnabled: false` junto con `missingInputs`, para que la UI indique exactamente que dato falta. Las estimaciones quedan marcadas como estimaciones y no deben presentarse como mediciones reales.
+La clasificacion como cultivo regulado no desactiva por si misma el motor de calculos, estimaciones o sugerencias. La calculadora se activa cuando hay datos suficientes. Si falta informacion, `calculateHorticulturePlan` devuelve `automaticEnabled: false` junto con `missingInputs`, para que la UI indique exactamente que dato falta.
 
 Cada valor debe poder distinguir su origen:
 
@@ -44,16 +66,57 @@ Cada valor debe poder distinguir su origen:
 - `suggestion`: sugerencia generada a partir de datos existentes;
 - `missing`: dato faltante que impide estimar con confianza.
 
-El catalogo `lib/genetics-catalog.ts` puede incluir referencias tabulares importadas desde Excel, conservando todas las columnas originales en `raw_fields`. Esos campos son de referencia y no autocompletan campos del formulario. El usuario decide que copiar, pegar o registrar.
+PlantCare puede registrar y procesar datos de cultivos sujetos a regulacion cuando el usuario declara que su actividad se encuentra legalmente permitida. La aplicacion no verifica permisos, registros, recetas, autorizaciones ni documentacion legal.
 
 La app no debe inventar valores cuando faltan datos. En ese caso debe listar los datos faltantes y mantener la accion como pendiente o manual.
 
-### Casos de prueba manuales
+## Catalogo de geneticas
 
-1. Semilla regulada sin datos suficientes: elegir una opcion de cannabis o `Carga manual legal - Variedad regulada` y dejar vacios maceta, luz o ventana de ciclo. Resultado esperado: la calculadora no bloquea por `regulated`, pero `automaticEnabled` queda en `false` y muestra `missingInputs`.
-2. Semilla regulada con datos suficientes: elegir una opcion regulada y completar datos tecnicos requeridos por el usuario. Resultado esperado: la calculadora puede mostrar estimaciones, marcadas como `calculated`, sin cambiar la clasificacion legal.
-3. Semilla horticola: elegir `Tomate - Roma`, modificar maceta, luz e indoor/espacio. Resultado esperado: la calculadora actualiza sustrato, revision de humedad, agua orientativa, luz, espacio y ventana estimada.
-4. Flujo de referencia: seleccionar una genetica del catalogo. Resultado esperado: los datos publicados se ven como referencia y no autocompletan el formulario.
+El catalogo `lib/genetics-catalog.ts` puede incluir referencias tabulares importadas desde fuentes estructuradas, incluyendo archivos Excel u otros datasets compatibles.
+
+Las columnas originales pueden conservarse en `raw_fields` para mantener trazabilidad de los datos importados.
+
+Los datos del catalogo pueden utilizarse como entrada del motor de calculos y sugerencias cuando corresponda, siempre diferenciando su origen y sin ocultar que son datos de catalogo.
+
+## Mediciones e historial
+
+PlantCare puede incorporar mediciones periodicas asociadas a una planta o espacio de cultivo:
+
+- temperatura;
+- humedad ambiental;
+- humedad del sustrato;
+- altura de planta;
+- volumen de agua registrado;
+- condiciones de iluminacion;
+- observaciones;
+- fotografias.
+
+Las mediciones deben conservar fecha y hora para permitir construir series historicas y analizar evolucion. En futuras versiones, estos datos podran ingresarse manualmente o recibirse desde sensores y dispositivos IoT.
+
+## Analisis asistido por IA
+
+La arquitectura queda preparada para incorporar funciones futuras de inteligencia artificial sin agregar todavia APIs pagas, secretos ni llamadas a modelos.
+
+La IA podria utilizar historial, mediciones, fotografias, observaciones, calendario, etapa, datos ambientales y datos de catalogo para:
+
+- resumir la evolucion de una planta;
+- comparar periodos;
+- detectar cambios visuales;
+- identificar anomalias respecto del historial;
+- explicar tendencias observadas;
+- senalar informacion faltante;
+- generar sugerencias de seguimiento.
+
+Las respuestas generadas mediante IA deben presentarse como asistencia orientativa y no como mediciones reales cuando no exista un sensor o dato objetivo que las respalde.
+
+## Casos de prueba manuales
+
+1. Cultivo sujeto a regulacion: elegir una opcion clasificada como `regulated`. Resultado esperado: la clasificacion legal se conserva, pero no desactiva automaticamente el motor de calculo.
+2. Cultivo sujeto a regulacion sin datos suficientes: dejar vacios maceta, luz o ventana de ciclo. Resultado esperado: `automaticEnabled` queda en `false` y muestra `missingInputs`.
+3. Cultivo con datos suficientes: completar los datos tecnicos requeridos. Resultado esperado: la calculadora puede mostrar estimaciones, marcadas como `calculated`.
+4. Cultivo horticola: elegir `Tomate - Roma`, modificar maceta, luz e indoor/espacio. Resultado esperado: la calculadora actualiza los valores orientativos correspondientes.
+5. Datos de genetica: completar banco/catalogo, genetica, tipo declarado, dias publicados y fechas. Resultado esperado: los datos quedan asociados a la planta y pueden ser utilizados por funciones compatibles del motor.
+6. Historial: agregar nuevas mediciones u observaciones. Resultado esperado: quedan registradas cronologicamente y disponibles para comparacion.
 
 ## Instalacion
 
@@ -75,11 +138,11 @@ NEXT_PUBLIC_WEATHER_PROVIDER=
 NEXT_PUBLIC_WEATHER_API_KEY=
 ```
 
-Para el sitio publicado en GitHub Pages, las credenciales de Supabase se leen
-de `.env.production`, que esta versionado en el repo. Las dos variables
-`NEXT_PUBLIC_SUPABASE_*` son publicas por diseno (Next.js las incrusta en el
-bundle del navegador), y lo que protege los datos son las reglas de Row Level
-Security de `supabase/schema.sql`. La clave `service_role` nunca debe ir ahi.
+Para el sitio publicado en GitHub Pages, las credenciales de Supabase se leen de `.env.production`, que esta versionado en el repo.
+
+Las dos variables `NEXT_PUBLIC_SUPABASE_*` son publicas por diseno: Next.js las incrusta en el bundle del navegador, y lo que protege los datos son las reglas de Row Level Security de `supabase/schema.sql`.
+
+La clave `service_role` nunca debe almacenarse ahi ni exponerse en el navegador.
 
 ## Supabase
 
@@ -92,27 +155,34 @@ Security de `supabase/schema.sql`. La clave `service_role` nunca debe ir ahi.
 7. En proyectos Supabase nuevos, revisar que las tablas necesarias esten expuestas a la Data API cuando se vayan a consumir desde el cliente; conservar siempre RLS habilitado.
 8. Reemplazar gradualmente el snapshot por tablas normalizadas si se necesita operacion multiusuario avanzada.
 
-## Fase 1: timeline local
+## Timeline
 
 La base de historial unificado vive en `lib/timeline.ts` y se muestra con `components/plant-timeline.tsx`.
-Por ahora combina datos locales/demo y `localStorage`; no modifica tablas ni migraciones de Supabase.
 
-## Base para mediciones e IA
+Actualmente combina los datos disponibles de cada planta para construir su historial cronologico. La evolucion futura del timeline puede incorporar mediciones, resultados calculados, alertas y analisis generados por IA.
 
-La arquitectura nueva agrega `lib/plant-intelligence.ts` y los tipos `PlantMeasurement`, `PlantAnalysisContext` y `PlantInsight`.
+## Arquitectura futura
 
-El objetivo es permitir el flujo futuro:
+```text
+Planta
+-> Datos y configuracion
+-> Calendario y tareas
+-> Mediciones
+-> Bitacora + fotografias
+-> Historico
+-> Motor de calculos
+-> Analisis / IA
+-> Sugerencias y alertas
+```
+
+Tambien puede incorporarse una capa IoT:
 
 ```text
 Sensores / ESP32 / Raspberry Pi
 -> Supabase
 -> PlantCare
--> historico
--> analisis / IA
--> alertas
+-> Historico y analisis
 ```
-
-Todavia no se agregan APIs pagas, secretos ni llamadas a IA. La app solo prepara el contexto para que una capa futura pueda analizar datos reales de planta, genetica, etapa, clima, timeline, observaciones y fotografias.
 
 ## Scripts
 
@@ -127,7 +197,7 @@ npm run build
 ```text
 app/                  rutas App Router e interfaz
 components/           componentes de pantalla
-lib/                  tipos, datos demo, i18n, clima y Supabase
+lib/                  tipos, datos, calculos, i18n, clima y Supabase
 public/               manifest PWA y service worker basico
 supabase/schema.sql   esquema PostgreSQL, RLS y storage
 ```

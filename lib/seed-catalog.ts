@@ -56,12 +56,12 @@ export const seedCatalog: SeedProfile[] = [
     crop: "Cannabis legal",
     category: "cannabis",
     regulated: true,
-    seedType: "Regulada - registro manual",
+    seedType: "Regulada",
     climates: [],
     daysToHarvest: "Definido por el usuario",
     sowingWindow: "Segun normativa local",
     careNote:
-      "Registro disponible solo donde el cultivo sea legal. Los calculos requieren datos suficientes cargados por el usuario.",
+      "Disponible para seguimiento donde el cultivo sea legal. Los calculos requieren datos suficientes cargados por el usuario.",
     recommendationEnabled: true
   },
   {
@@ -70,12 +70,12 @@ export const seedCatalog: SeedProfile[] = [
     crop: "Cannabis legal",
     category: "cannabis",
     regulated: true,
-    seedType: "Regulada - registro manual",
+    seedType: "Regulada",
     climates: [],
     daysToHarvest: "Definido por el usuario",
     sowingWindow: "Segun normativa local",
     careNote:
-      "Registro disponible solo donde el cultivo sea legal. Los calculos requieren datos suficientes cargados por el usuario.",
+      "Disponible para seguimiento donde el cultivo sea legal. Los calculos requieren datos suficientes cargados por el usuario.",
     recommendationEnabled: true
   },
   {
@@ -84,12 +84,12 @@ export const seedCatalog: SeedProfile[] = [
     crop: "Cannabis legal",
     category: "cannabis",
     regulated: true,
-    seedType: "Regulada - registro manual",
+    seedType: "Regulada",
     climates: [],
     daysToHarvest: "Definido por el usuario",
     sowingWindow: "Segun normativa local",
     careNote:
-      "Registro disponible solo donde el cultivo sea legal. Los calculos requieren datos suficientes cargados por el usuario.",
+      "Disponible para seguimiento donde el cultivo sea legal. Los calculos requieren datos suficientes cargados por el usuario.",
     recommendationEnabled: true
   },
   {
@@ -98,12 +98,12 @@ export const seedCatalog: SeedProfile[] = [
     crop: "Cannabis legal",
     category: "cannabis",
     regulated: true,
-    seedType: "Regulada - registro manual",
+    seedType: "Regulada",
     climates: [],
     daysToHarvest: "Definido por el usuario",
     sowingWindow: "Segun normativa local",
     careNote:
-      "Registro disponible solo donde el cultivo sea legal. Los calculos requieren datos suficientes cargados por el usuario.",
+      "Disponible para seguimiento donde el cultivo sea legal. Los calculos requieren datos suficientes cargados por el usuario.",
     recommendationEnabled: true
   },
   {
@@ -112,12 +112,12 @@ export const seedCatalog: SeedProfile[] = [
     crop: "Cannabis legal",
     category: "cannabis",
     regulated: true,
-    seedType: "Regulada - registro manual",
+    seedType: "Regulada",
     climates: [],
     daysToHarvest: "Definido por el usuario",
     sowingWindow: "Segun normativa local",
     careNote:
-      "Registro disponible solo donde el cultivo sea legal. Los calculos requieren datos suficientes cargados por el usuario.",
+      "Disponible para seguimiento donde el cultivo sea legal. Los calculos requieren datos suficientes cargados por el usuario.",
     recommendationEnabled: true
   },
   {
@@ -131,7 +131,7 @@ export const seedCatalog: SeedProfile[] = [
     daysToHarvest: "Definido por el usuario",
     sowingWindow: "Segun normativa local",
     careNote:
-      "Usa esta opcion para registrar cualquier variedad legal que no figure en el listado. Los calculos dependen de los datos tecnicos que cargue el usuario.",
+      "Usa esta opcion para registrar una variedad legal que no figure en el listado. Los calculos dependen de los datos tecnicos que cargue el usuario.",
     recommendationEnabled: true
   },
   {
@@ -231,12 +231,12 @@ export const seedCatalog: SeedProfile[] = [
     crop: "Carga manual legal",
     category: "regulated",
     regulated: true,
-    seedType: "Solo registro del usuario",
+    seedType: "Regulada - carga libre",
     climates: [],
     daysToHarvest: "Definido por el usuario",
     sowingWindow: "Segun normativa local",
     careNote:
-      "La app puede guardar el dato si el cultivo es legal. Los calculos solo se activan cuando hay datos suficientes.",
+      "Permite seguimiento y calculos genericos basados en los datos aportados por el usuario, si el cultivo es legal.",
     recommendationEnabled: true
   }
 ];
@@ -262,9 +262,7 @@ export function calculateHorticulturePlan(input: HorticulturePlanInput): Horticu
   if (!Number.isFinite(input.potLiters) || Number(input.potLiters) <= 0) missingInputs.push("litros de maceta");
 
   const catalogHarvestWindow = seed?.daysToHarvest ?? "";
-  const harvestWindow =
-    input.userHarvestWindow?.trim() ||
-    (/\d/.test(catalogHarvestWindow) ? catalogHarvestWindow : "");
+  const harvestWindow = input.userHarvestWindow?.trim() || (/\d/.test(catalogHarvestWindow) ? catalogHarvestWindow : "");
 
   if (!harvestWindow) missingInputs.push("ventana de cosecha/ciclo declarada por usuario o catalogo");
 
@@ -321,23 +319,26 @@ function getWaterCheckBySeed(seedType: string, lightType: HorticulturePlanInput[
   const extraLight = lightType === "sun" ? " y despues de dias de mucho sol" : "";
   if (seedType.includes("Hoja")) return `Revisar humedad cada 1-2 dias${extraLight}`;
   if (seedType.includes("Aromatica perenne")) return `Revisar humedad cada 3-5 dias${extraLight}`;
-  return `Revisar humedad cada 2-3 dias${extraLight}`;
+  return `Revisar humedad periodicamente${extraLight}`;
 }
 
 function getLightFit(seedType: string, lightType: HorticulturePlanInput["lightType"]) {
   if (seedType.includes("Hoja")) {
     return lightType === "sun" ? "Luz moderada o media sombra" : "LED suave a medio";
   }
+
   if (seedType.includes("Aromatica")) {
     return lightType === "mixed" ? "Luz mixta estable" : "Luz alta sin exceso de calor";
   }
-  return lightType === "led" ? "LED medio a alto" : "Sol directo o luz intensa";
+
+  return "Usar los parametros de iluminacion registrados por el usuario";
 }
 
 function getSpaceFit(seedType: string, indoorSize: HorticulturePlanInput["indoorSize"]) {
   if (seedType.includes("Hortaliza de fruto")) {
     return indoorSize === "small" ? "Usar variedades compactas o tutorado" : "Espacio apto para plantas de fruto";
   }
+
   if (seedType.includes("Aromatica perenne")) return "Espacio compacto, priorizar buen drenaje";
-  return "Espacio compatible con maceta y cosecha progresiva";
+  return "Evaluar segun dimensiones y mediciones registradas";
 }
