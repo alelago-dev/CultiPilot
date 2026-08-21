@@ -36,6 +36,7 @@ import {
 import { getGeneticsCatalogAlphabetically, type GeneticReferenceEntry } from "@/lib/genetics-catalog";
 import { requestReminderNotification } from "@/lib/notifications";
 import { assessPlantEnvironment, type EnvironmentalStatus } from "@/lib/environment-intelligence";
+import { buildCultivationSuggestions, type CultivationSuggestion } from "@/lib/cultivation-suggestions";
 import { calculateHorticulturePlan, seedCatalog, type HorticulturePlanInput } from "@/lib/seed-catalog";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Json } from "@/lib/supabase/database.types";
@@ -1610,6 +1611,7 @@ export function AppShell({
           entries={entryState}
           measurements={measurementState}
           onAddJournalEntry={handleAddJournalEntry}
+          onAddCalendarEvent={handleAddCalendarEvent}
           onAddMeasurement={handleAddMeasurement}
           onDeleteMeasurement={handleDeleteMeasurement}
           onUpdatePlant={handleUpdatePlant}
@@ -2384,6 +2386,7 @@ function SpacesSection({
   calendarEvents,
   entries,
   measurements,
+  onAddCalendarEvent,
   onAddJournalEntry,
   onAddMeasurement,
   onDeleteMeasurement,
@@ -2395,6 +2398,7 @@ function SpacesSection({
   calendarEvents: CalendarEvent[];
   entries: CareEntry[];
   measurements: PlantMeasurement[];
+  onAddCalendarEvent: (event: CalendarEvent) => void;
   onAddJournalEntry: (entry: CareEntry) => void;
   onAddMeasurement: (measurement: PlantMeasurement) => void;
   onDeleteMeasurement: (measurementId: string) => void;
@@ -2522,6 +2526,7 @@ function SpacesSection({
                       measurements={measurements.filter((measurement) => measurement.plantId === plant.id)}
                       key={plant.id}
                       onAddJournalEntry={onAddJournalEntry}
+                      onAddCalendarEvent={onAddCalendarEvent}
                       onAddMeasurement={onAddMeasurement}
                       onDeleteMeasurement={onDeleteMeasurement}
                       onOpenGenetic={setPopupGenetic}
@@ -2552,6 +2557,7 @@ function PlantSpaceRow({
   calendarEvents,
   entries,
   measurements,
+  onAddCalendarEvent,
   onAddJournalEntry,
   onAddMeasurement,
   onDeleteMeasurement,
@@ -2563,6 +2569,7 @@ function PlantSpaceRow({
   calendarEvents: CalendarEvent[];
   entries: CareEntry[];
   measurements: PlantMeasurement[];
+  onAddCalendarEvent: (event: CalendarEvent) => void;
   onAddJournalEntry: (entry: CareEntry) => void;
   onAddMeasurement: (measurement: PlantMeasurement) => void;
   onDeleteMeasurement: (measurementId: string) => void;
@@ -2607,6 +2614,13 @@ function PlantSpaceRow({
             measurements={measurements}
             onAddMeasurement={onAddMeasurement}
             onDeleteMeasurement={onDeleteMeasurement}
+            plant={plant}
+          />
+          <PlantSuggestionsPanel
+            calendarEvents={calendarEvents}
+            genetic={plantGenetic}
+            measurements={measurements}
+            onAddCalendarEvent={onAddCalendarEvent}
             plant={plant}
           />
           <dl className="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
@@ -3029,6 +3043,83 @@ function PlantEnvironmentPanel({
       ) : null}
     </section>
   );
+}
+
+function PlantSuggestionsPanel({
+  calendarEvents,
+  genetic,
+  measurements,
+  onAddCalendarEvent,
+  plant
+}: {
+  calendarEvents: CalendarEvent[];
+  genetic?: GeneticReferenceEntry;
+  measurements: PlantMeasurement[];
+  onAddCalendarEvent: (event: CalendarEvent) => void;
+  plant: Plant;
+}) {
+  const suggestions = buildCultivationSuggestions({ existingEvents: calendarEvents, genetic, measurements, plant });
+
+  function addSuggestion(suggestion: CultivationSuggestion) {
+    onAddCalendarEvent({
+      completedDates: [],
+      description: `${suggestion.description} Motivo: ${suggestion.rationale}`,
+      id: createEventId(`suggestion-${plant.id}`),
+      kind: suggestion.kind,
+      plantId: plant.id,
+      source: "horticultural",
+      startDate: suggestion.dueDate,
+      title: suggestion.title
+    });
+  }
+
+  return (
+    <section className="plant-suggestions-panel mt-3" aria-label={`Sugerencias para ${plant.name}`}>
+      <div className="plant-suggestions-header">
+        <div>
+          <p className="plant-calculation-eyebrow">Asistente explicable</p>
+          <h4>Proximas revisiones sugeridas</h4>
+          <p>Se basan en datos declarados o medidos. Solo se agregan al calendario cuando vos elegis hacerlo.</p>
+        </div>
+        <span className="pill pill-green">{suggestions.length} nuevas</span>
+      </div>
+
+      {suggestions.length > 0 ? (
+        <div className="plant-suggestions-list">
+          {suggestions.map((suggestion) => (
+            <article className={`plant-suggestion priority-${suggestion.priority}`} key={suggestion.id}>
+              <div className="plant-suggestion-title-row">
+                <div>
+                  <span>{suggestion.priority === "high" ? "Atencion" : suggestion.priority === "medium" ? "Revision" : "Seguimiento"}</span>
+                  <h5>{suggestion.title}</h5>
+                </div>
+                <time dateTime={suggestion.dueDate}>{formatSuggestionDate(suggestion.dueDate)}</time>
+              </div>
+              <p>{suggestion.description}</p>
+              <small>{suggestion.rationale}</small>
+              <div className="plant-suggestion-evidence">
+                {suggestion.evidence.filter((point) => point.value !== null).slice(0, 4).map((point) => (
+                  <span key={point.label}>{point.label}: {String(point.value)}{point.unit ? ` ${point.unit}` : ""} · {formatDataOrigin(point.origin)}</span>
+                ))}
+              </div>
+              {suggestion.missingInputs.length > 0 ? (
+                <p className="plant-suggestion-missing">Para mejorarla falta: {suggestion.missingInputs.join(", ")}.</p>
+              ) : null}
+              <button className="secondary-button" onClick={() => addSuggestion(suggestion)} type="button">
+                Agregar al calendario
+              </button>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="plant-suggestions-empty">No hay sugerencias nuevas: las disponibles ya estan en el calendario.</p>
+      )}
+    </section>
+  );
+}
+
+function formatSuggestionDate(isoDate: string) {
+  return new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short" }).format(new Date(`${isoDate}T12:00:00`));
 }
 
 function PlantMeasurementForm({

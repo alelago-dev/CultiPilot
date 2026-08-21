@@ -95,7 +95,9 @@ Las mediciones conservan fecha, hora y origen (`manual`, `device` o `sensor`) pa
 
 `assessPlantEnvironment` calcula un VPD estimado y lo compara con una banda orientativa segun la etapa declarada. Si el usuario registra temperatura foliar, calcula VPD foliar con temperatura ambiental, foliar y humedad relativa. Si falta ese dato, muestra VPD del aire sin inventar una diferencia fija entre hoja y ambiente. La interfaz diferencia la medicion original del valor `calculated`, muestra la banda utilizada y avisa cuando falta temperatura, humedad o PPFD.
 
-El esquema `plant_measurements` queda preparado para que un ESP32, Raspberry Pi u otro gateway escriba mediciones futuras con `source = 'sensor'`. La conexion de hardware y sus credenciales no estan incluidas todavia; nunca se debe exponer una clave `service_role` en el sensor o en el navegador.
+`buildCultivationSuggestions` transforma la etapa declarada, las mediciones recientes, el setup y los datos de catalogo disponibles en revisiones explicables. Cada sugerencia muestra evidencia, origen, datos faltantes y una fecha orientativa. Nunca entra al calendario automaticamente: el usuario debe pulsar `Agregar al calendario`. Tampoco calcula dosis universales de agua o fertilizante ni fuerza poda, flora, cosecha o ajustes de equipos.
+
+El esquema `plant_measurements` y la Edge Function `supabase/functions/ingest-sensor` permiten que un ESP32, Raspberry Pi u otro gateway escriba mediciones con `source = 'sensor'`. Cada dispositivo usa un token propio revocable cuyo hash se guarda en `sensor_devices`; nunca se expone una clave `service_role` en el sensor o en el navegador. La activacion y el ejemplo de peticion estan documentados junto a la funcion.
 
 ## Analisis asistido por IA
 
@@ -123,6 +125,8 @@ Las respuestas generadas mediante IA deben presentarse como asistencia orientati
 6. Historial: agregar nuevas mediciones u observaciones. Resultado esperado: quedan registradas cronologicamente y disponibles para comparacion.
 7. Ambiente: registrar temperatura y humedad en una maceta. Resultado esperado: aparece un VPD estimado, su rango orientativo, el origen de los datos y una alerta explicable si queda fuera de banda.
 8. Luz: registrar PPFD. Resultado esperado: se compara con la referencia de la etapa declarada; si no hay medicion, la app informa que falta el dato en vez de inventarlo.
+9. Sugerencias: expandir una maceta. Resultado esperado: aparecen revisiones explicadas con sus fuentes y faltantes; al pulsar `Agregar al calendario` se crea una sola tarea vinculada a esa planta.
+10. Sensor: enviar una peticion valida a `ingest-sensor`. Resultado esperado: se crea una medicion con origen `sensor`; un token inexistente o desactivado recibe HTTP 401.
 
 ## Instalacion
 
@@ -160,6 +164,7 @@ La clave `service_role` nunca debe almacenarse ahi ni exponerse en el navegador.
 6. Las tablas `plant_measurements` y `plant_insights` preparan la base para historico de mediciones, sensores e insights futuros.
 7. En proyectos Supabase nuevos, revisar que las tablas necesarias esten expuestas a la Data API cuando se vayan a consumir desde el cliente; conservar siempre RLS habilitado.
 8. Reemplazar gradualmente el snapshot por tablas normalizadas si se necesita operacion multiusuario avanzada.
+9. Para sensores, ejecutar el bloque actualizado de `supabase/schema.sql`, desplegar `ingest-sensor` y seguir `supabase/functions/ingest-sensor/README.md`.
 
 ## Timeline
 

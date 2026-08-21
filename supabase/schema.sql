@@ -309,3 +309,72 @@ $$;
 
 revoke all on function public.claim_snapshot_share(text) from public;
 grant execute on function public.claim_snapshot_share(text) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Dispositivos y sensores
+--
+-- Cada dispositivo recibe un token propio una sola vez. Solo se almacena su
+-- hash; ni el ESP32 ni el navegador conocen la clave service_role.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.sensor_devices (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  plant_id uuid not null references public.plants(id) on delete cascade,
+  name text not null,
+  token_hash text not null unique,
+  active boolean not null default true,
+  last_seen_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists sensor_devices_owner_idx on public.sensor_devices (user_id);
+create index if not exists sensor_devices_plant_idx on public.sensor_devices (plant_id);
+
+alter table public.sensor_devices enable row level security;
+
+drop policy if exists "sensor device owners manage" on public.sensor_devices;
+create policy "sensor device owners manage" on public.sensor_devices
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+grant select, update, delete on public.sensor_devices to authenticated;
+grant select, insert, update, delete on public.sensor_devices to service_role;
+
+create or replace function public.create_sensor_device(target_plant_id uuid, device_name text)
+returns table (device_id uuid, device_token text)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  raw_token text;
+  new_device_id uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'Hay que iniciar sesion para crear un dispositivo';
+  end if;
+
+  if not exists (
+    select 1 from public.plants
+    where id = target_plant_id and user_id = auth.uid()
+  ) then
+    raise exception 'La planta no existe o no pertenece al usuario';
+  end if;
+
+  raw_token := encode(gen_random_bytes(24), 'hex');
+
+  insert into public.sensor_devices (user_id, plant_id, name, token_hash)
+  values (
+    auth.uid(),
+    target_plant_id,
+    coalesce(nullif(trim(device_name), ''), 'Sensor'),
+    encode(digest(raw_token, 'sha256'), 'hex')
+  )
+  returning id into new_device_id;
+
+  return query select new_device_id, raw_token;
+end;
+$$;
+
+revoke all on function public.create_sensor_device(uuid, text) from public;
+grant execute on function public.create_sensor_device(uuid, text) to authenticated;

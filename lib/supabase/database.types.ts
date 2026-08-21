@@ -173,6 +173,29 @@ export type Database = {
         };
         Update: Partial<Database["public"]["Tables"]["plant_insights"]["Insert"]>;
       };
+      sensor_devices: {
+        Row: {
+          id: string;
+          user_id: string;
+          plant_id: string;
+          name: string;
+          token_hash: string;
+          active: boolean;
+          last_seen_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          plant_id: string;
+          name: string;
+          token_hash: string;
+          active?: boolean;
+          last_seen_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["sensor_devices"]["Insert"]>;
+      };
       user_app_snapshots: {
         Row: {
           user_id: string;
@@ -190,7 +213,12 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      create_sensor_device: {
+        Args: { target_plant_id: string; device_name: string };
+        Returns: { device_id: string; device_token: string }[];
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
