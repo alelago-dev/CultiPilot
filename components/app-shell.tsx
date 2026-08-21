@@ -3471,6 +3471,7 @@ type ExportCell = { type?: "DateTime" | "Number" | "String"; value: number | str
 
 function PlantExportPanel({ calendarEvents, entries, measurements, plant, tasks }: { calendarEvents: CalendarEvent[]; entries: CareEntry[]; measurements: PlantMeasurement[]; plant: Plant; tasks: Task[] }) {
   const [period, setPeriod] = useState<ExportPeriod>("cycle");
+  const [reportStatus, setReportStatus] = useState("");
   const bounds = getExportPeriodBounds(period, plant);
   const filteredMeasurements = measurements.filter((measurement) => isDateInExportBounds(measurement.measuredAt, bounds));
   const filteredEntries = entries.filter((entry) => entry.plantId === plant.id && isDateInExportBounds(entry.createdAt, bounds));
@@ -3487,6 +3488,18 @@ function PlantExportPanel({ calendarEvents, entries, measurements, plant, tasks 
     downloadTextFile(`plantcare-${sanitizeFilename(plant.name)}-${period}.xml`, workbook, "application/vnd.ms-excel;charset=utf-8");
   }
 
+  function printReport() {
+    const reportWindow = window.open("", "_blank");
+    if (!reportWindow) {
+      setReportStatus("El navegador bloqueó la ventana. Habilitá ventanas emergentes e intentá nuevamente.");
+      return;
+    }
+    reportWindow.opener = null;
+    reportWindow.document.write(buildPrintablePlantReport({ bounds, calendarEvents: filteredEvents, entries: filteredEntries, measurements: filteredMeasurements, period, plant, tasks: filteredTasks }));
+    reportWindow.document.close();
+    setReportStatus("Se abrió el informe. Elegí ‘Guardar como PDF’ en el diálogo de impresión.");
+  }
+
   return (
     <section className="plant-export-panel" aria-label={`Exportar datos de ${plant.name}`}>
       <header><div><p className="plant-calculation-eyebrow">Respaldo auditable</p><h4>Exportar esta maceta</h4></div><span className="pill pill-blue">{formatDisplayDate(bounds.start)} → {formatDisplayDate(bounds.end)}</span></header>
@@ -3494,8 +3507,10 @@ function PlantExportPanel({ calendarEvents, entries, measurements, plant, tasks 
         <label>Período<select className="form-control" onChange={(event) => setPeriod(event.target.value as ExportPeriod)} value={period}><option value="7-days">Últimos 7 días</option><option value="30-days">Últimos 30 días</option><option value="cycle">Ciclo registrado</option><option value="all">Todo el historial</option></select></label>
         <button className="secondary-button" disabled={filteredMeasurements.length === 0} onClick={exportCsv} type="button">CSV de mediciones</button>
         <button className="primary-button" onClick={exportExcel} type="button">Libro para Excel</button>
+        <button className="secondary-button" onClick={printReport} type="button">Informe PDF</button>
       </div>
-      <p>Excel incluye Resumen, Mediciones, Riegos, Bitácora, Calendario y Tareas. Las fotos se indican como presentes, pero no se incrustan para evitar archivos excesivos.</p>
+      <p>Excel incluye Resumen, Mediciones, Riegos, Bitácora, Calendario y Tareas. Informe PDF abre una vista imprimible con hasta seis fotos recientes para guardar o compartir desde el dispositivo.</p>
+      {reportStatus ? <p className="plant-export-status" role="status">{reportStatus}</p> : null}
     </section>
   );
 }
@@ -3542,6 +3557,35 @@ function escapeXml(value: number | string) { return String(value).replace(/&/g, 
 function toCsvCell(value: number | string | undefined) { if (value === undefined) return ""; const text = String(value); return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text; }
 function sanitizeFilename(value: string) { return normalizeLookupText(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "maceta"; }
 function downloadTextFile(filename: string, content: string, type: string) { const blob = new Blob([content], { type }); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = filename; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url); }
+
+function buildPrintablePlantReport({ bounds, calendarEvents, entries, measurements, period, plant, tasks }: { bounds: { end: string; start: string }; calendarEvents: CalendarEvent[]; entries: CareEntry[]; measurements: PlantMeasurement[]; period: ExportPeriod; plant: Plant; tasks: Task[] }) {
+  const sortedMeasurements = [...measurements].sort((first, second) => second.measuredAt.localeCompare(first.measuredAt));
+  const latestMeasurement = sortedMeasurements[0];
+  const latestAssessment = latestMeasurement ? assessPlantEnvironment(plant, latestMeasurement) : undefined;
+  const water = sumWaterSince(sortedMeasurements, bounds.start);
+  const irrigationRecords = sortedMeasurements.filter(hasCalculationIrrigationData);
+  const photos = [
+    ...sortedMeasurements.filter((measurement) => measurement.photoDataUrl).map((measurement) => ({ date: measurement.measuredAt, source: "Medición", url: measurement.photoDataUrl! })),
+    ...entries.filter((entry) => entry.photoDataUrl).map((entry) => ({ date: entry.createdAt, source: entry.title || "Bitácora", url: entry.photoDataUrl! }))
+  ].sort((first, second) => second.date.localeCompare(first.date)).slice(0, 6);
+  const table = (headers: string[], rows: Array<Array<number | string | undefined>>) => rows.length === 0
+    ? '<p class="empty">Sin registros en el período seleccionado.</p>'
+    : `<table><thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell ?? "—")}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  const measurementTable = table(["Fecha", "Origen", "Temp.", "HR", "VPD calculado", "PPFD", "Sustrato", "Observaciones"], sortedMeasurements.map((measurement) => {
+    const assessment = assessPlantEnvironment(plant, measurement);
+    return [formatMeasurementDate(measurement.measuredAt), formatMeasurementSource(measurement.source), measurement.temperatureC === undefined ? undefined : `${measurement.temperatureC} °C`, measurement.ambientHumidityPercent === undefined ? undefined : `${measurement.ambientHumidityPercent}%`, assessment.vpdKpa === undefined ? undefined : `${assessment.vpdKpa} kPa (${assessment.vpdBasis === "leaf" ? "foliar" : "aire"})`, measurement.ppfdUmolM2S, measurement.substrateMoisturePercent === undefined ? undefined : `${measurement.substrateMoisturePercent}%`, measurement.observations];
+  }));
+  const irrigationTable = table(["Fecha", "Agua", "pH entrada", "EC entrada", "Drenaje", "Drenaje calculado"], irrigationRecords.map((measurement) => [formatMeasurementDate(measurement.measuredAt), measurement.waterAmountMl === undefined ? undefined : `${measurement.waterAmountMl} ml`, measurement.irrigationPh, measurement.irrigationEcMsCm === undefined ? undefined : `${measurement.irrigationEcMsCm} mS/cm`, measurement.runoffAmountMl === undefined ? undefined : `${measurement.runoffAmountMl} ml`, measurement.waterAmountMl && measurement.runoffAmountMl !== undefined ? `${Number(((measurement.runoffAmountMl / measurement.waterAmountMl) * 100).toFixed(1))}%` : undefined]));
+  const photoSection = photos.length === 0 ? '<p class="empty">Sin fotos en el período seleccionado.</p>' : `<div class="photos">${photos.map((photo) => `<figure><img alt="Foto de ${escapeHtml(plant.name)}" src="${escapeHtml(photo.url)}"><figcaption>${escapeHtml(photo.source)} · ${escapeHtml(formatMeasurementDate(photo.date))}</figcaption></figure>`).join("")}</div>`;
+  const printablePeriod = period === "all" ? "Todo el historial" : `${formatDisplayDate(bounds.start)} → ${formatDisplayDate(bounds.end)}`;
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>PlantCare · ${escapeHtml(plant.name)}</title><style>
+    @page{size:A4;margin:14mm}*{box-sizing:border-box}body{margin:0;color:#1f3028;font:12px/1.45 Arial,sans-serif}header{border-bottom:3px solid #496b57;padding-bottom:12px}h1{margin:0;font-size:25px}h2{margin:22px 0 8px;color:#274b38;font-size:17px}p{margin:4px 0}.meta,.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.card{border:1px solid #ccd8d0;border-radius:8px;padding:8px}.card span{display:block;color:#64746b;font-size:10px;text-transform:uppercase}.card strong{display:block;margin-top:3px;font-size:13px}.note{margin-top:12px;padding:9px;border-left:4px solid #8baa94;background:#eff5f1}.empty{color:#6b756f;font-style:italic}table{width:100%;border-collapse:collapse;font-size:9px}th,td{border:1px solid #d7dfda;padding:5px;text-align:left;vertical-align:top}th{background:#e9f1ec}.photos{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.photos figure{margin:0;break-inside:avoid}.photos img{display:block;width:100%;max-height:260px;object-fit:contain;background:#edf1ee}.photos figcaption{padding:4px;color:#59675f;font-size:9px}.section{break-inside:avoid}.footer{margin-top:20px;border-top:1px solid #ccd8d0;padding-top:8px;color:#64746b;font-size:9px}@media(max-width:650px){.meta,.metrics{grid-template-columns:repeat(2,1fr)}}@media print{button{display:none}.section{break-inside:auto}h2{break-after:avoid}table{break-inside:auto}tr{break-inside:avoid}}
+  </style></head><body><header><h1>${escapeHtml(plant.name)}</h1><p>${escapeHtml(plant.variety || "Variedad no declarada")} · Informe individual de maceta</p><div class="meta"><div class="card"><span>Período</span><strong>${escapeHtml(printablePeriod)}</strong></div><div class="card"><span>Etapa declarada</span><strong>${escapeHtml(plant.stage || "Sin declarar")}</strong></div><div class="card"><span>Inicio declarado</span><strong>${escapeHtml(plant.startedAt || "Sin dato")}</strong></div><div class="card"><span>Estado</span><strong>${plant.completedAt ? `Cerrado ${escapeHtml(plant.completedAt)}` : "Activo"}</strong></div></div></header>
+  <section><h2>Resumen del período</h2><div class="metrics"><div class="card"><span>Mediciones</span><strong>${sortedMeasurements.length}</strong></div><div class="card"><span>Riegos registrados</span><strong>${irrigationRecords.length}</strong></div><div class="card"><span>Agua registrada</span><strong>${water.total} ml</strong></div><div class="card"><span>Bitácora / tareas / eventos</span><strong>${entries.length} / ${tasks.length} / ${calendarEvents.length}</strong></div><div class="card"><span>Último VPD calculable</span><strong>${latestAssessment?.vpdKpa === undefined ? "Faltan temperatura y humedad" : `${latestAssessment.vpdKpa} kPa (${latestAssessment.vpdBasis === "leaf" ? "foliar" : "aire"})`}</strong></div><div class="card"><span>Fotoperíodo declarado</span><strong>${plant.photoperiodHours === undefined ? "Sin dato" : `${plant.photoperiodHours} h`}</strong></div></div><p class="note">El VPD es calculado con la fórmula de Tetens. Si falta temperatura foliar se informa VPD del aire y no se inventa una diferencia con la hoja. Este informe resume datos declarados, medidos y calculados; no prescribe dosis ni cambios de equipos.</p></section>
+  <section><h2>Mediciones ambientales</h2>${measurementTable}</section><section><h2>Riegos</h2>${irrigationTable}</section><section><h2>Bitácora</h2>${table(["Fecha", "Título", "Nota", "Etiquetas"], entries.map((entry) => [formatMeasurementDate(entry.createdAt), entry.title, entry.note, entry.tags.join(", ")]))}</section><section><h2>Calendario y tareas</h2>${table(["Fecha", "Tipo", "Título", "Estado / descripción"], [...calendarEvents.map((event) => [event.startDate, "Calendario", event.title, event.description]), ...tasks.map((task) => [task.dueDate, "Tarea", task.title, task.status])])}</section><section><h2>Fotos recientes (${photos.length} de hasta 6)</h2>${photoSection}</section><p class="footer">Generado por PlantCare Calendar el ${escapeHtml(new Date().toLocaleString("es"))}. Informe exclusivo de ${escapeHtml(plant.name)}. Usá Imprimir → Guardar como PDF.</p><script>window.addEventListener('load',function(){setTimeout(function(){window.print()},400)})</script></body></html>`;
+}
+
+function escapeHtml(value: number | string) { return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
 
 function hasCalculationIrrigationData(measurement: PlantMeasurement) {
   return [measurement.waterAmountMl, measurement.runoffAmountMl, measurement.irrigationPh, measurement.runoffPh, measurement.irrigationEcMsCm, measurement.runoffEcMsCm].some((value) => value !== undefined);

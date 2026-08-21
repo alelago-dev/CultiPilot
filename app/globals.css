@@ -6102,9 +6102,10 @@ textarea {
   .plant-export-panel { display: grid; gap: 0.65rem; margin-top: 0.85rem; border-top: 1px solid rgba(49, 72, 62, 0.18); padding-top: 0.9rem; }
   .plant-export-panel > header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.55rem; }
   .plant-export-panel > header h4 { margin-top: 0.15rem; color: #13231b; font-size: 1rem; font-weight: 900; }
-  .plant-export-panel > div { display: grid; grid-template-columns: minmax(180px, 1fr) auto auto; align-items: end; gap: 0.55rem; }
+  .plant-export-panel > div { display: grid; grid-template-columns: minmax(180px, 1fr) auto auto auto; align-items: end; gap: 0.55rem; }
   .plant-export-panel label { display: grid; gap: 0.25rem; color: #31483e; font-size: 0.68rem; font-weight: 850; }
   .plant-export-panel > p { color: #65746c; font-size: 0.65rem; font-weight: 750; line-height: 1.45; }
+  .plant-export-panel > .plant-export-status { border-left: 3px solid #688c74; padding-left: 0.55rem; color: #31503d; }
 
   @media (max-width: 700px) {
     .plant-export-panel > div { grid-template-columns: 1fr; }
