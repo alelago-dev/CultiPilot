@@ -93,7 +93,7 @@ PlantCare puede incorporar mediciones periodicas asociadas a una planta o espaci
 
 Las mediciones conservan fecha, hora y origen (`manual`, `device` o `sensor`) para construir series historicas y analizar evolucion. En la ficha expandida de cada maceta se pueden registrar localmente temperatura, humedad ambiental, humedad de sustrato y PPFD. Esos datos forman parte del snapshot del usuario y se sincronizan junto con sus plantas cuando la cuenta esta conectada.
 
-`assessPlantEnvironment` calcula un VPD de aire estimado a partir de temperatura y humedad relativa y lo compara con una banda orientativa segun la etapa declarada. La interfaz diferencia la medicion original del valor `calculated`, muestra la banda utilizada y avisa cuando falta temperatura, humedad o PPFD. El VPD de aire no reemplaza un calculo basado en temperatura foliar.
+`assessPlantEnvironment` calcula un VPD estimado y lo compara con una banda orientativa segun la etapa declarada. Si el usuario registra temperatura foliar, calcula VPD foliar con temperatura ambiental, foliar y humedad relativa. Si falta ese dato, muestra VPD del aire sin inventar una diferencia fija entre hoja y ambiente. La interfaz diferencia la medicion original del valor `calculated`, muestra la banda utilizada y avisa cuando falta temperatura, humedad o PPFD.
 
 El esquema `plant_measurements` queda preparado para que un ESP32, Raspberry Pi u otro gateway escriba mediciones futuras con `source = 'sensor'`. La conexion de hardware y sus credenciales no estan incluidas todavia; nunca se debe exponer una clave `service_role` en el sensor o en el navegador.
 

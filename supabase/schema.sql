@@ -93,6 +93,7 @@ create table if not exists public.plant_measurements (
   measured_at timestamptz not null default now(),
   source text not null check (source in ('manual', 'sensor', 'device')),
   temperature_c numeric,
+  leaf_temperature_c numeric,
   ambient_humidity_percent numeric,
   substrate_moisture_percent numeric,
   height_cm numeric,
@@ -106,6 +107,9 @@ create table if not exists public.plant_measurements (
 
 alter table public.plant_measurements
   add column if not exists ppfd_umol_m2_s numeric check (ppfd_umol_m2_s is null or ppfd_umol_m2_s >= 0);
+
+alter table public.plant_measurements
+  add column if not exists leaf_temperature_c numeric;
 
 create table if not exists public.plant_insights (
   id uuid primary key default gen_random_uuid(),

@@ -77,6 +77,7 @@ export type PlantMeasurement = {
   measuredAt: string;
   source: "device" | "manual" | "sensor";
   temperatureC?: number;
+  leafTemperatureC?: number;
   ambientHumidityPercent?: number;
   substrateMoisturePercent?: number;
   heightCm?: number;

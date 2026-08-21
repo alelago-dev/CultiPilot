@@ -2964,7 +2964,7 @@ function PlantEnvironmentPanel({
           value={latestMeasurement?.ambientHumidityPercent === undefined ? "Sin dato" : `${latestMeasurement.ambientHumidityPercent}%`}
         />
         <EnvironmentMetric
-          label="VPD estimado"
+          label={assessment.vpdBasis === "leaf" ? "VPD foliar estimado" : "VPD de aire estimado"}
           status={assessment.vpdStatus}
           value={assessment.vpdKpa === undefined ? "Faltan datos" : `${assessment.vpdKpa} kPa`}
           target={`${assessment.target.vpdMin}-${assessment.target.vpdMax} kPa`}
@@ -2980,6 +2980,12 @@ function PlantEnvironmentPanel({
           }
         />
       </div>
+
+      <p className="plant-environment-basis">
+        {assessment.vpdBasis === "leaf"
+          ? "Se uso la temperatura foliar medida."
+          : "Sin temperatura foliar: se muestra VPD del aire y no se supone una diferencia fija con la hoja."}
+      </p>
 
       {assessment.messages.length > 0 ? (
         <div className="plant-environment-alerts">
@@ -3006,7 +3012,7 @@ function PlantEnvironmentPanel({
                   <span>{formatMeasurementSource(measurement.source)}</span>
                 </div>
                 <p>
-                  {measurement.temperatureC ?? "--"} C · {measurement.ambientHumidityPercent ?? "--"}% HR · PPFD {measurement.ppfdUmolM2S ?? "--"}
+                  Aire {measurement.temperatureC ?? "--"} C · Hoja {measurement.leafTemperatureC ?? "--"} C · {measurement.ambientHumidityPercent ?? "--"}% HR · PPFD {measurement.ppfdUmolM2S ?? "--"}
                 </p>
                 <button
                   aria-label={`Eliminar medicion del ${formatMeasurementDate(measurement.measuredAt)}`}
@@ -3037,6 +3043,7 @@ function PlantMeasurementForm({
   const [measuredAt, setMeasuredAt] = useState(() => getLocalDateTimeValue());
   const [source, setSource] = useState<PlantMeasurement["source"]>("manual");
   const [temperature, setTemperature] = useState("");
+  const [leafTemperature, setLeafTemperature] = useState("");
   const [humidity, setHumidity] = useState("");
   const [substrateMoisture, setSubstrateMoisture] = useState("");
   const [ppfd, setPpfd] = useState("");
@@ -3045,12 +3052,13 @@ function PlantMeasurementForm({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!temperature && !humidity && !substrateMoisture && !ppfd) return;
+    if (!temperature && !leafTemperature && !humidity && !substrateMoisture && !ppfd) return;
 
     onAddMeasurement({
       ambientHumidityPercent: parseOptionalNumber(humidity),
       id: `measurement-${plant.id}-${Date.now()}`,
       measuredAt: new Date(measuredAt).toISOString(),
+      leafTemperatureC: parseOptionalNumber(leafTemperature),
       observations: observations.trim() || undefined,
       plantId: plant.id,
       ppfdUmolM2S: parseOptionalNumber(ppfd),
@@ -3082,6 +3090,10 @@ function PlantMeasurementForm({
       <label>
         Humedad ambiental (%)
         <input className="form-control" inputMode="decimal" max="100" min="0" onChange={(event) => setHumidity(event.target.value)} step="0.1" type="number" value={humidity} />
+      </label>
+      <label>
+        Temperatura de hoja (C, opcional)
+        <input className="form-control" inputMode="decimal" max="60" min="-10" onChange={(event) => setLeafTemperature(event.target.value)} step="0.1" type="number" value={leafTemperature} />
       </label>
       <label>
         Humedad de sustrato (%)

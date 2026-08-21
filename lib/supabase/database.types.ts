@@ -117,6 +117,7 @@ export type Database = {
           measured_at: string;
           source: "manual" | "sensor" | "device";
           temperature_c: number | null;
+          leaf_temperature_c: number | null;
           ambient_humidity_percent: number | null;
           substrate_moisture_percent: number | null;
           height_cm: number | null;
@@ -134,6 +135,7 @@ export type Database = {
           measured_at?: string;
           source: "manual" | "sensor" | "device";
           temperature_c?: number | null;
+          leaf_temperature_c?: number | null;
           ambient_humidity_percent?: number | null;
           substrate_moisture_percent?: number | null;
           height_cm?: number | null;

@@ -1,6 +1,6 @@
 import type { DataPoint, Plant, PlantMeasurement } from "@/lib/types";
 
-export type EnvironmentalStatus = "high" | "in-range" | "low" | "missing";
+export type EnvironmentalStatus = "critical" | "high" | "in-range" | "low" | "missing";
 
 type StageTarget = {
   label: string;
@@ -16,6 +16,7 @@ export type EnvironmentalAssessment = {
   missingInputs: string[];
   ppfdStatus: EnvironmentalStatus;
   target: StageTarget;
+  vpdBasis: "air" | "leaf";
   vpdKpa?: number;
   vpdStatus: EnvironmentalStatus;
 };
@@ -23,8 +24,8 @@ export type EnvironmentalAssessment = {
 const targets: Record<string, StageTarget> = {
   seed: { label: "Semilla / plantin", ppfdMin: 100, ppfdMax: 250, vpdMin: 0.4, vpdMax: 0.8 },
   vegetative: { label: "Vegetativo", ppfdMin: 250, ppfdMax: 600, vpdMin: 0.8, vpdMax: 1.2 },
-  earlyFlower: { label: "Floracion temprana", ppfdMin: 500, ppfdMax: 800, vpdMin: 1.0, vpdMax: 1.3 },
-  lateFlower: { label: "Floracion tardia", ppfdMin: 600, ppfdMax: 900, vpdMin: 1.2, vpdMax: 1.5 },
+  earlyFlower: { label: "Floracion temprana", ppfdMin: 500, ppfdMax: 800, vpdMin: 0.8, vpdMax: 1.2 },
+  lateFlower: { label: "Floracion media / tardia", ppfdMin: 600, ppfdMax: 900, vpdMin: 1.2, vpdMax: 1.6 },
   harvest: { label: "Cosecha", vpdMin: 0.8, vpdMax: 1.2 }
 };
 
@@ -36,14 +37,19 @@ export function assessPlantEnvironment(plant: Plant, measurement?: PlantMeasurem
   if (measurement?.temperatureC === undefined) missingInputs.push("temperatura");
   if (measurement?.ambientHumidityPercent === undefined) missingInputs.push("humedad ambiental");
 
+  const vpdBasis = measurement?.leafTemperatureC === undefined ? "air" : "leaf";
   const vpdKpa =
     measurement?.temperatureC !== undefined && measurement.ambientHumidityPercent !== undefined
-      ? calculateAirVpd(measurement.temperatureC, measurement.ambientHumidityPercent)
+      ? measurement.leafTemperatureC === undefined
+        ? calculateAirVpd(measurement.temperatureC, measurement.ambientHumidityPercent)
+        : calculateLeafVpd(measurement.temperatureC, measurement.leafTemperatureC, measurement.ambientHumidityPercent)
       : undefined;
-  const vpdStatus = compareToRange(vpdKpa, target.vpdMin, target.vpdMax);
+  const vpdStatus = compareToRange(vpdKpa, target.vpdMin, target.vpdMax, { maximum: 1.6, minimum: 0.4 });
   const ppfdStatus = compareToRange(measurement?.ppfdUmolM2S, target.ppfdMin, target.ppfdMax);
 
-  if (vpdStatus === "low") {
+  if (vpdStatus === "critical") {
+    messages.push("VPD en zona de riesgo orientativa: confirmar la medicion y revisar ambiente y ventilacion antes de cambiar equipos.");
+  } else if (vpdStatus === "low") {
     messages.push("VPD orientativo bajo: revisar exceso de humedad, temperatura y renovacion de aire antes de ajustar equipos.");
   } else if (vpdStatus === "high") {
     messages.push("VPD orientativo alto: revisar aire seco, temperatura y ventilacion antes de ajustar equipos.");
@@ -77,8 +83,23 @@ export function assessPlantEnvironment(plant: Plant, measurement?: PlantMeasurem
       },
       {
         capturedAt: measurement?.measuredAt,
-        label: "VPD de aire estimado",
-        note: "Calculado con temperatura del aire y humedad relativa; no reemplaza una medicion de temperatura foliar.",
+        label: "Temperatura foliar",
+        origin:
+          measurement?.leafTemperatureC === undefined
+            ? "missing"
+            : measurement.source === "sensor"
+              ? "measurement"
+              : "user",
+        unit: "C",
+        value: measurement?.leafTemperatureC ?? null
+      },
+      {
+        capturedAt: measurement?.measuredAt,
+        label: vpdBasis === "leaf" ? "VPD foliar estimado" : "VPD de aire estimado",
+        note:
+          vpdBasis === "leaf"
+            ? "Calculado con temperatura ambiental, temperatura foliar y humedad relativa."
+            : "Calculado con temperatura del aire y humedad relativa; no supone que la hoja este mas fria.",
         origin: vpdKpa === undefined ? "missing" : "calculated",
         unit: "kPa",
         value: vpdKpa ?? null
@@ -95,22 +116,39 @@ export function assessPlantEnvironment(plant: Plant, measurement?: PlantMeasurem
     missingInputs,
     ppfdStatus,
     target,
+    vpdBasis,
     vpdKpa,
     vpdStatus
   };
 }
 
 export function calculateAirVpd(temperatureC: number, relativeHumidityPercent: number) {
-  const saturationVaporPressure = 0.6108 * Math.exp((17.27 * temperatureC) / (temperatureC + 237.3));
+  const saturationVaporPressure = calculateSaturationVaporPressure(temperatureC);
   const boundedHumidity = Math.min(100, Math.max(0, relativeHumidityPercent));
   return Number((saturationVaporPressure * (1 - boundedHumidity / 100)).toFixed(2));
 }
 
-function compareToRange(value?: number, minimum?: number, maximum?: number): EnvironmentalStatus {
+export function calculateLeafVpd(airTemperatureC: number, leafTemperatureC: number, relativeHumidityPercent: number) {
+  const boundedHumidity = Math.min(100, Math.max(0, relativeHumidityPercent));
+  const actualVaporPressure = calculateSaturationVaporPressure(airTemperatureC) * (boundedHumidity / 100);
+  return Number((calculateSaturationVaporPressure(leafTemperatureC) - actualVaporPressure).toFixed(2));
+}
+
+function compareToRange(
+  value?: number,
+  minimum?: number,
+  maximum?: number,
+  danger?: { maximum: number; minimum: number }
+): EnvironmentalStatus {
   if (value === undefined || minimum === undefined || maximum === undefined) return "missing";
+  if (danger && (value < danger.minimum || value > danger.maximum)) return "critical";
   if (value < minimum) return "low";
   if (value > maximum) return "high";
   return "in-range";
+}
+
+function calculateSaturationVaporPressure(temperatureC: number) {
+  return 0.6108 * Math.exp((17.27 * temperatureC) / (temperatureC + 237.3));
 }
 
 function getStageTarget(stage: string): StageTarget {
