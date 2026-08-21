@@ -109,6 +109,66 @@ export type Database = {
         };
         Update: Partial<Database["public"]["Tables"]["calendar_events"]["Insert"]>;
       };
+      plant_measurements: {
+        Row: {
+          id: string;
+          user_id: string;
+          plant_id: string;
+          measured_at: string;
+          source: "manual" | "sensor" | "device";
+          temperature_c: number | null;
+          ambient_humidity_percent: number | null;
+          substrate_moisture_percent: number | null;
+          height_cm: number | null;
+          water_amount_ml: number | null;
+          lighting: string | null;
+          observations: string | null;
+          photo_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          plant_id: string;
+          measured_at?: string;
+          source: "manual" | "sensor" | "device";
+          temperature_c?: number | null;
+          ambient_humidity_percent?: number | null;
+          substrate_moisture_percent?: number | null;
+          height_cm?: number | null;
+          water_amount_ml?: number | null;
+          lighting?: string | null;
+          observations?: string | null;
+          photo_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["plant_measurements"]["Insert"]>;
+      };
+      plant_insights: {
+        Row: {
+          id: string;
+          user_id: string;
+          plant_id: string;
+          source: "calculated" | "suggestion";
+          kind: "alert" | "comparison" | "missing-data" | "trend";
+          title: string;
+          body: string;
+          evidence: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          plant_id: string;
+          source: "calculated" | "suggestion";
+          kind: "alert" | "comparison" | "missing-data" | "trend";
+          title: string;
+          body: string;
+          evidence?: Json;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["plant_insights"]["Insert"]>;
+      };
       user_app_snapshots: {
         Row: {
           user_id: string;

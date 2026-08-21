@@ -13,8 +13,8 @@ export type CultivationReferenceRow = {
   watering_notes_en: string;
 };
 
-// Static visual reference only. For regulated crops this data must never drive automatic dates,
-// watering, substrate, lighting, flowering, harvest, drying, or yield plans.
+// Static reference data. It can be shown as catalog-origin information, but it must not
+// silently overwrite user-entered values; any calculation has to label its data source.
 export const CULTIVATION_REFERENCE: CultivationReferenceRow[] = [
   {
     type: "feminized",

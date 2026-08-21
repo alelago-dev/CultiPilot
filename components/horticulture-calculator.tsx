@@ -10,9 +10,10 @@ import {
 } from "@/lib/seed-catalog";
 
 const horticultureSeeds = getHorticultureSeeds();
+const defaultSeedId = horticultureSeeds.find((seed) => !seed.regulated)?.id ?? horticultureSeeds[0]?.id ?? "tomato-roma";
 
 export function HorticultureCalculator() {
-  const [seedId, setSeedId] = useState(horticultureSeeds[0]?.id ?? "tomato-roma");
+  const [seedId, setSeedId] = useState(defaultSeedId);
   const [potLiters, setPotLiters] = useState(12);
   const [lightType, setLightType] = useState<HorticulturePlanInput["lightType"]>("led");
   const [indoorSize, setIndoorSize] = useState<HorticulturePlanInput["indoorSize"]>("medium");
@@ -28,26 +29,13 @@ export function HorticultureCalculator() {
     [indoorSize, lightType, potLiters, seedId]
   );
 
-  if (!plan.automaticEnabled) {
-    return (
-      <Card as="section" aria-labelledby="calculator-title" className="p-4 sm:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <SectionHeader eyebrow="Calculadora" title="Cultivo horticola" />
-          <span className="mode-badge manual">Manual</span>
-        </div>
-        <div className="seed-result mt-5 border-amber-700/20 bg-amber-50/72">
-          <p className="text-sm font-black text-moss-950">{plan.seedLabel}</p>
-          <p className="mt-2 text-sm leading-6 text-stone-700">{plan.note}</p>
-        </div>
-      </Card>
-    );
-  }
-
   return (
     <Card as="section" aria-labelledby="calculator-title" className="p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <SectionHeader eyebrow="Calculadora" title="Cultivo horticola" />
-        <span className="mode-badge automatic">Automatico</span>
+        <SectionHeader eyebrow="Calculadora" title="Motor de cultivo" />
+        <span className={plan.automaticEnabled ? "mode-badge automatic" : "mode-badge manual"}>
+          {plan.automaticEnabled ? "Estimacion activa" : "Faltan datos"}
+        </span>
       </div>
 
       <div className="mt-5 grid gap-3 md:grid-cols-2">
@@ -56,7 +44,7 @@ export function HorticultureCalculator() {
           <select className="form-control" value={seedId} onChange={(event) => setSeedId(event.target.value)}>
             {horticultureSeeds.map((seed) => (
               <option key={seed.id} value={seed.id}>
-                {seed.crop} - {seed.name}
+                {seed.crop} - {seed.name}{seed.regulated ? " · legal/regulado" : ""}
               </option>
             ))}
           </select>
@@ -114,6 +102,26 @@ export function HorticultureCalculator() {
         <p className="text-sm font-black text-moss-950">Ventana estimada</p>
         <p className="mt-1 text-sm leading-6 text-stone-700">{plan.harvestWindow}</p>
         <p className="mt-2 text-xs font-bold leading-5 text-stone-600">{plan.note}</p>
+        {plan.missingInputs.length > 0 ? (
+          <ul className="mt-3 grid gap-1 text-xs font-bold text-stone-600">
+            {plan.missingInputs.map((inputName) => (
+              <li key={inputName}>Falta: {inputName}</li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+
+      <div className="mt-4 rounded-lg border border-moss-950/10 bg-paper/80 p-3">
+        <p className="text-xs font-black uppercase text-stone-500">Procedencia de datos</p>
+        <dl className="mt-2 grid gap-2 sm:grid-cols-2">
+          {plan.dataPoints.map((point) => (
+            <div className="rounded-md bg-white/70 px-2 py-1.5" key={point.label}>
+              <dt className="text-[11px] font-black uppercase text-stone-500">{point.label}</dt>
+              <dd className="text-xs font-bold text-moss-950">{point.value}</dd>
+              <dd className="text-[11px] font-black uppercase text-emerald-800">Origen: {formatSource(point.source)}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
     </Card>
   );
@@ -135,4 +143,13 @@ function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
       <h2 className="mt-1 text-xl font-black tracking-tight text-moss-950 sm:text-2xl">{title}</h2>
     </div>
   );
+}
+
+function formatSource(source: string) {
+  if (source === "catalog") return "catalogo";
+  if (source === "calculated") return "calculado";
+  if (source === "measurement") return "medicion";
+  if (source === "suggestion") return "sugerencia";
+  if (source === "user") return "usuario";
+  return "faltante";
 }

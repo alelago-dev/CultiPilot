@@ -33,7 +33,7 @@ type SeedTab = "finder" | "manual" | "horticultural" | "setups" | "reference";
 const tabs: Array<{ id: SeedTab; label: string }> = [
   { id: "finder", label: "Finder" },
   { id: "manual", label: "Mi cultivo" },
-  { id: "horticultural", label: "Catalogo horticola" },
+  { id: "horticultural", label: "Calculadora" },
   { id: "setups", label: "Setups" },
   { id: "reference", label: "Referencia" }
 ];
@@ -184,8 +184,8 @@ export function SeedsSection({ calendarHref, calendarLinkHref, locale, onCreateM
       </div>
 
       <div className="mt-4 rounded-lg border border-moss-950/10 bg-white/88 p-3 text-sm font-bold leading-6 text-stone-700">
-        Para cannabis o cultivos regulados, las referencias son solo lectura y no completan ni calculan campos. Las
-        estimaciones automaticas quedan limitadas al catalogo horticola no regulado.
+        La clasificacion legal se mantiene como metadato. Las estimaciones dependen de datos suficientes cargados por
+        el usuario, de catalogo o de mediciones; si falta un dato, la app lo indica en vez de inventarlo.
         <span className="mt-2 block">
           ¿Estas registrado en REPROCANN?{" "}
           <Link className="font-black text-emerald-800 underline underline-offset-4" href={"../privacidad/" as Route}>
@@ -307,8 +307,8 @@ function SetupSuggestionsTab() {
       </div>
 
       <div className="mt-4 rounded-lg border border-moss-950/10 bg-white/88 p-3 text-sm font-bold leading-6 text-stone-700">
-        Configura el contexto de cultivo legal para tomar decisiones manuales. La app muestra referencias de espacio y
-        genetica, pero no calcula cosecha, rendimiento, riego ni labores para cultivos regulados.
+        Configura el contexto de cultivo legal para decidir con mejores datos. La app muestra referencias de espacio y
+        genetica; las estimaciones solo se activan cuando existen datos suficientes y siempre quedan marcadas como tales.
       </div>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-[0.75fr_1.25fr]">

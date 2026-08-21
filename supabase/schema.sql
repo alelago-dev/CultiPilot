@@ -86,6 +86,35 @@ create table if not exists public.photos (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.plant_measurements (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  plant_id uuid not null references public.plants(id) on delete cascade,
+  measured_at timestamptz not null default now(),
+  source text not null check (source in ('manual', 'sensor', 'device')),
+  temperature_c numeric,
+  ambient_humidity_percent numeric,
+  substrate_moisture_percent numeric,
+  height_cm numeric,
+  water_amount_ml numeric,
+  lighting text,
+  observations text,
+  photo_id uuid references public.photos(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.plant_insights (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  plant_id uuid not null references public.plants(id) on delete cascade,
+  source text not null check (source in ('calculated', 'suggestion')),
+  kind text not null check (kind in ('alert', 'comparison', 'missing-data', 'trend')),
+  title text not null,
+  body text not null,
+  evidence jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.user_app_snapshots (
   user_id uuid not null references auth.users(id) on delete cascade,
   key text not null default 'primary',
@@ -101,7 +130,14 @@ alter table public.tasks enable row level security;
 alter table public.calendar_events enable row level security;
 alter table public.care_entries enable row level security;
 alter table public.photos enable row level security;
+alter table public.plant_measurements enable row level security;
+alter table public.plant_insights enable row level security;
 alter table public.user_app_snapshots enable row level security;
+
+grant select, insert, update, delete on public.plant_measurements to authenticated;
+grant select, insert, update, delete on public.plant_insights to authenticated;
+grant select, insert, update, delete on public.plant_measurements to service_role;
+grant select, insert, update, delete on public.plant_insights to service_role;
 
 -- Las politicas se borran antes de crearse para que este archivo se pueda
 -- volver a ejecutar sin el error 42710 ("policy already exists").
@@ -112,6 +148,8 @@ drop policy if exists "tasks own rows" on public.tasks;
 drop policy if exists "calendar events own rows" on public.calendar_events;
 drop policy if exists "care entries own rows" on public.care_entries;
 drop policy if exists "photos own rows" on public.photos;
+drop policy if exists "plant measurements own rows" on public.plant_measurements;
+drop policy if exists "plant insights own rows" on public.plant_insights;
 drop policy if exists "app snapshots own rows" on public.user_app_snapshots;
 drop policy if exists "plant photo owners can read" on storage.objects;
 drop policy if exists "plant photo owners can upload" on storage.objects;
@@ -136,6 +174,12 @@ create policy "care entries own rows" on public.care_entries
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 create policy "photos own rows" on public.photos
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create policy "plant measurements own rows" on public.plant_measurements
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create policy "plant insights own rows" on public.plant_insights
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 create policy "app snapshots own rows" on public.user_app_snapshots

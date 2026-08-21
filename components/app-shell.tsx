@@ -1004,6 +1004,7 @@ export function AppShell({
 
   function handleCreateQuickPlant(input: QuickPlantInput) {
     const selectedSeed = seedCatalog.find((seed) => seed.id === input.seedId);
+    const eventSource: CalendarEvent["source"] = selectedSeed?.category === "horticultural" ? "horticultural" : "manual";
     const plantName = input.name.trim() || selectedSeed?.crop || "Nueva planta";
     const potCount = Math.max(1, input.potCount);
     const nextPlants: Plant[] = Array.from({ length: potCount }, (_, index) => {
@@ -1020,7 +1021,7 @@ export function AppShell({
         stage: "Inicio",
         startedAt: input.startDate,
         substrate: input.substrate,
-        variety: selectedSeed?.name ?? "Semilla horticola"
+        variety: selectedSeed?.name ?? "Semilla declarada"
       };
     });
     const nextEvents: CalendarEvent[] = nextPlants.flatMap((plant) => {
@@ -1030,7 +1031,7 @@ export function AppShell({
         id: createEventId("event-review"),
         kind: "review",
         plantId: plant.id,
-        source: "horticultural",
+        source: eventSource,
         startDate: input.startDate,
         title: "Revision inicial"
       }];
@@ -1038,7 +1039,7 @@ export function AppShell({
       if (input.reminderOffset > 0) {
         plantEvents.push({
         completedDates: [],
-        description: `Recordatorio horticola declarado en el alta rapida para ${plant.name}.`,
+        description: `Recordatorio declarado en el alta rapida para ${plant.name}.`,
         id: createEventId("event-water"),
         kind: "watering",
         plantId: plant.id,
@@ -1049,7 +1050,7 @@ export function AppShell({
                 everyDays: input.recurrenceDays
               }
             : undefined,
-        source: "horticultural",
+        source: eventSource,
         startDate: offsetDate(input.startDate, input.reminderOffset),
         title: "Revisar riego"
       });
@@ -1694,8 +1695,8 @@ function FirstCultivationScreen({
           <p className="eyebrow text-mint-50/80">Primer cultivo</p>
           <h1>Configuremos tu cultivo paso a paso</h1>
           <p>
-            Carga banco, registro, genetica, espacio y primeros recordatorios. Para cultivos regulados, todo queda como
-            dato declarado manualmente por el usuario.
+            Carga banco, registro, genetica, espacio y primeros recordatorios. Las sugerencias futuras usaran datos
+            declarados, catalogos, mediciones reales y estimaciones identificadas.
           </p>
         </div>
 
@@ -1793,7 +1794,7 @@ function FirstCultivationScreen({
                   />
                 </div>
                 <div className="rounded-lg border border-moss-950/10 bg-paper/80 p-3 text-sm font-bold leading-6 text-stone-700">
-                  Estos recordatorios no calculan tareas de cultivo. Solo guardan fechas elegidas por el usuario para
+                  Estos recordatorios guardan fechas elegidas por el usuario y dejan trazable el origen del dato para
                   que aparezcan en el calendario.
                 </div>
               </div>
@@ -3926,7 +3927,7 @@ function QuickPlantForm({
   onCreateQuickPlant: (input: QuickPlantInput) => void;
 }) {
   const todayIso = getTodayIso();
-  const horticultureSeeds = seedCatalog.filter((seed) => !seed.regulated);
+  const horticultureSeeds = seedCatalog.filter((seed) => seed.recommendationEnabled);
   const [name, setName] = useState("");
   const [seedId, setSeedId] = useState(horticultureSeeds[0]?.id ?? "tomato-roma");
   const [startDate, setStartDate] = useState(todayIso);
@@ -4505,7 +4506,7 @@ function PlantFact({ label, value }: { label: string; value: string }) {
 }
 
 function SeedSelect({ onChange, value }: { onChange: (value: string) => void; value: string }) {
-  const horticultureSeeds = seedCatalog.filter((seed) => !seed.regulated);
+  const horticultureSeeds = seedCatalog.filter((seed) => seed.recommendationEnabled);
 
   return (
     <label className="grid gap-1 text-sm font-black text-moss-950">
@@ -4513,7 +4514,7 @@ function SeedSelect({ onChange, value }: { onChange: (value: string) => void; va
       <select aria-label="Variedad o semilla" className="form-control" value={value} onChange={(event) => onChange(event.target.value)}>
         {horticultureSeeds.map((seed) => (
           <option key={seed.id} value={seed.id}>
-            {seed.crop} - {seed.name}
+            {seed.crop} - {seed.name}{seed.regulated ? " · legal/regulado" : ""}
           </option>
         ))}
       </select>

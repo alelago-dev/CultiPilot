@@ -12,6 +12,20 @@ export type Dictionary = {
 
 export type GrowMode = "Exterior" | "Interior" | "Invernadero";
 
+export type DataOrigin = "catalog" | "calculated" | "measurement" | "missing" | "suggestion" | "user";
+
+export type DataConfidence = "high" | "low" | "medium" | "unknown";
+
+export type DataPoint<T = string | number | boolean | null> = {
+  capturedAt?: string;
+  confidence?: DataConfidence;
+  label: string;
+  note?: string;
+  origin: DataOrigin;
+  unit?: string;
+  value: T;
+};
+
 export type GrowSpace = {
   id: string;
   name: string;
@@ -55,6 +69,42 @@ export type CareEntry = {
   note: string;
   photoDataUrl?: string;
   tags: string[];
+};
+
+export type PlantMeasurement = {
+  id: string;
+  plantId: string;
+  measuredAt: string;
+  source: "device" | "manual" | "sensor";
+  temperatureC?: number;
+  ambientHumidityPercent?: number;
+  substrateMoisturePercent?: number;
+  heightCm?: number;
+  waterAmountMl?: number;
+  lighting?: string;
+  observations?: string;
+  photoDataUrl?: string;
+};
+
+export type PlantAnalysisContext = {
+  calendarEvents: CalendarEvent[];
+  entries: CareEntry[];
+  measurements: PlantMeasurement[];
+  missingData: string[];
+  plant: Plant;
+  tasks: Task[];
+  timelineSummary: DataPoint[];
+};
+
+export type PlantInsight = {
+  id: string;
+  createdAt: string;
+  plantId: string;
+  title: string;
+  body: string;
+  evidence: DataPoint[];
+  kind: "alert" | "comparison" | "missing-data" | "trend";
+  source: "calculated" | "suggestion";
 };
 
 export type CalendarDay = {

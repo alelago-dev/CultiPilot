@@ -1,3 +1,5 @@
+import type { DataOrigin } from "@/lib/types";
+
 export type SeedClimate = "Templado" | "Calido" | "Fresco" | "Seco" | "Interior controlado";
 
 export type SeedProfile = {
@@ -15,14 +17,24 @@ export type SeedProfile = {
 };
 
 export type HorticulturePlanInput = {
-  indoorSize: "small" | "medium" | "large";
-  lightType: "led" | "sun" | "mixed";
-  potLiters: number;
-  seedId: string;
+  indoorSize?: "small" | "medium" | "large";
+  lightType?: "led" | "sun" | "mixed";
+  potLiters?: number;
+  seedId?: string;
+  userHarvestWindow?: string;
+  userSeedType?: string;
+};
+
+export type HorticulturePlanDataPoint = {
+  label: string;
+  source: DataOrigin;
+  value: string;
 };
 
 export type HorticulturePlan = {
   automaticEnabled: boolean;
+  dataPoints: HorticulturePlanDataPoint[];
+  missingInputs: string[];
   seedLabel: string;
   substrateLiters: string;
   waterCheck: string;
@@ -35,8 +47,8 @@ export type HorticulturePlan = {
 
 export const seedClimateOptions: SeedClimate[] = ["Templado", "Calido", "Fresco", "Seco", "Interior controlado"];
 
-// Business rule: a seed is "regulated" when it belongs to cannabis or any crop that requires legal authorization.
-// Regulated seeds are manual-only: no automatic water, substrate, light, indoor, flowering, harvest, drying, or yield calculations.
+// Business rule: "regulated" is legal metadata only. It does not disable calculations by itself.
+// Calculation availability depends on the available user, catalog, measurement, or estimated data.
 export const seedCatalog: SeedProfile[] = [
   {
     id: "cannabis-photoperiod-regular",
@@ -49,8 +61,8 @@ export const seedCatalog: SeedProfile[] = [
     daysToHarvest: "Definido por el usuario",
     sowingWindow: "Segun normativa local",
     careNote:
-      "Registro disponible solo donde el cultivo sea legal. La app no calcula clima, cosecha ni rendimiento para cannabis.",
-    recommendationEnabled: false
+      "Registro disponible solo donde el cultivo sea legal. Los calculos requieren datos suficientes cargados por el usuario.",
+    recommendationEnabled: true
   },
   {
     id: "cannabis-photoperiod-feminized",
@@ -63,8 +75,8 @@ export const seedCatalog: SeedProfile[] = [
     daysToHarvest: "Definido por el usuario",
     sowingWindow: "Segun normativa local",
     careNote:
-      "Registro disponible solo donde el cultivo sea legal. La app no calcula clima, cosecha ni rendimiento para cannabis.",
-    recommendationEnabled: false
+      "Registro disponible solo donde el cultivo sea legal. Los calculos requieren datos suficientes cargados por el usuario.",
+    recommendationEnabled: true
   },
   {
     id: "cannabis-autoflowering",
@@ -77,8 +89,8 @@ export const seedCatalog: SeedProfile[] = [
     daysToHarvest: "Definido por el usuario",
     sowingWindow: "Segun normativa local",
     careNote:
-      "Registro disponible solo donde el cultivo sea legal. La app no calcula clima, cosecha ni rendimiento para cannabis.",
-    recommendationEnabled: false
+      "Registro disponible solo donde el cultivo sea legal. Los calculos requieren datos suficientes cargados por el usuario.",
+    recommendationEnabled: true
   },
   {
     id: "cannabis-cbd",
@@ -91,8 +103,8 @@ export const seedCatalog: SeedProfile[] = [
     daysToHarvest: "Definido por el usuario",
     sowingWindow: "Segun normativa local",
     careNote:
-      "Registro disponible solo donde el cultivo sea legal. La app no calcula clima, cosecha ni rendimiento para cannabis.",
-    recommendationEnabled: false
+      "Registro disponible solo donde el cultivo sea legal. Los calculos requieren datos suficientes cargados por el usuario.",
+    recommendationEnabled: true
   },
   {
     id: "cannabis-hemp",
@@ -105,8 +117,8 @@ export const seedCatalog: SeedProfile[] = [
     daysToHarvest: "Definido por el usuario",
     sowingWindow: "Segun normativa local",
     careNote:
-      "Registro disponible solo donde el cultivo sea legal. La app no calcula clima, cosecha ni rendimiento para cannabis.",
-    recommendationEnabled: false
+      "Registro disponible solo donde el cultivo sea legal. Los calculos requieren datos suficientes cargados por el usuario.",
+    recommendationEnabled: true
   },
   {
     id: "cannabis-custom",
@@ -119,8 +131,8 @@ export const seedCatalog: SeedProfile[] = [
     daysToHarvest: "Definido por el usuario",
     sowingWindow: "Segun normativa local",
     careNote:
-      "Usa esta opcion para registrar cualquier variedad legal que no figure en el listado. Los datos tecnicos quedan a cargo del usuario.",
-    recommendationEnabled: false
+      "Usa esta opcion para registrar cualquier variedad legal que no figure en el listado. Los calculos dependen de los datos tecnicos que cargue el usuario.",
+    recommendationEnabled: true
   },
   {
     id: "tomato-roma",
@@ -224,53 +236,77 @@ export const seedCatalog: SeedProfile[] = [
     daysToHarvest: "Definido por el usuario",
     sowingWindow: "Segun normativa local",
     careNote:
-      "La app puede guardar el dato si el cultivo es legal, pero no calcula recomendaciones automaticas para cultivos regulados.",
-    recommendationEnabled: false
+      "La app puede guardar el dato si el cultivo es legal. Los calculos solo se activan cuando hay datos suficientes.",
+    recommendationEnabled: true
   }
 ];
 
 export function getRecommendedSeeds(climate: SeedClimate) {
-  return seedCatalog.filter((seed) => !seed.regulated && seed.recommendationEnabled && seed.climates.includes(climate));
+  return seedCatalog.filter((seed) => seed.recommendationEnabled && seed.climates.includes(climate));
 }
 
 export function getHorticultureSeeds() {
-  return seedCatalog.filter((seed) => !seed.regulated && seed.category === "horticultural" && seed.recommendationEnabled);
+  return seedCatalog.filter((seed) => seed.recommendationEnabled);
 }
 
 export function calculateHorticulturePlan(input: HorticulturePlanInput): HorticulturePlan {
-  const seed = seedCatalog.find((item) => item.id === input.seedId) ?? getHorticultureSeeds()[0];
+  const fallbackSeed = getHorticultureSeeds().find((item) => !item.regulated) ?? getHorticultureSeeds()[0];
+  const seed = seedCatalog.find((item) => item.id === input.seedId) ?? fallbackSeed;
+  const missingInputs: string[] = [];
+  const seedType = input.userSeedType || seed?.seedType;
 
-  if (seed.regulated) {
-    return {
-      automaticEnabled: false,
-      seedLabel: `${seed.crop} ${seed.name}`,
-      substrateLiters: "Carga manual del usuario",
-      waterCheck: "Carga manual del usuario",
-      waterAmount: "Carga manual del usuario",
-      lightFit: "Carga manual del usuario",
-      spaceFit: "Carga manual del usuario",
-      harvestWindow: "Carga manual del usuario",
-      note: "Calculo automatico deshabilitado para cultivos regulados. Usar agenda, bitacora y recordatorios manuales."
-    };
-  }
+  if (!seed) missingInputs.push("semilla o variedad");
+  if (!seedType) missingInputs.push("tipo de semilla/cultivo");
+  if (!input.indoorSize) missingInputs.push("tamano de indoor o espacio");
+  if (!input.lightType) missingInputs.push("tipo de luz");
+  if (!Number.isFinite(input.potLiters) || Number(input.potLiters) <= 0) missingInputs.push("litros de maceta");
 
-  const potLiters = Math.max(1, Math.min(input.potLiters, 80));
-  const waterBase = getWaterBaseBySeed(seed.seedType);
-  const lightMultiplier = input.lightType === "led" ? 1.05 : input.lightType === "sun" ? 1.15 : 1;
-  const spaceMultiplier = input.indoorSize === "small" ? 0.88 : input.indoorSize === "large" ? 1.08 : 1;
+  const catalogHarvestWindow = seed?.daysToHarvest ?? "";
+  const harvestWindow =
+    input.userHarvestWindow?.trim() ||
+    (/\d/.test(catalogHarvestWindow) ? catalogHarvestWindow : "");
+
+  if (!harvestWindow) missingInputs.push("ventana de cosecha/ciclo declarada por usuario o catalogo");
+
+  const potLiters = Math.max(1, Math.min(Number(input.potLiters) || 1, 80));
+  const lightType = input.lightType ?? "mixed";
+  const indoorSize = input.indoorSize ?? "medium";
+  const waterBase = getWaterBaseBySeed(seedType || "");
+  const lightMultiplier = lightType === "led" ? 1.05 : lightType === "sun" ? 1.15 : 1;
+  const spaceMultiplier = indoorSize === "small" ? 0.88 : indoorSize === "large" ? 1.08 : 1;
   const waterMin = Math.round(potLiters * waterBase * lightMultiplier * spaceMultiplier);
   const waterMax = Math.round(waterMin * 1.35);
+  const substrateLiters = `${Math.ceil(potLiters * 1.05)} a ${Math.ceil(potLiters * 1.2)} L de mezcla total`;
+  const waterCheck = getWaterCheckBySeed(seedType || "", lightType);
+  const waterAmount = `${waterMin}-${waterMax} ml por registro, ajustando segun humedad real`;
+  const lightFit = getLightFit(seedType || "", lightType);
+  const spaceFit = getSpaceFit(seedType || "", indoorSize);
+  const seedLabel = seed ? `${seed.crop} ${seed.name}` : "Semilla no declarada";
+  const automaticEnabled = missingInputs.length === 0;
+  const harvestSource: DataOrigin = input.userHarvestWindow?.trim() ? "user" : /\d/.test(catalogHarvestWindow) ? "catalog" : "missing";
 
   return {
-    automaticEnabled: true,
-    seedLabel: `${seed.crop} ${seed.name}`,
-    substrateLiters: `${Math.ceil(potLiters * 1.05)} a ${Math.ceil(potLiters * 1.2)} L de mezcla total`,
-    waterCheck: getWaterCheckBySeed(seed.seedType, input.lightType),
-    waterAmount: `${waterMin}-${waterMax} ml por registro, ajustando segun humedad real`,
-    lightFit: getLightFit(seed.seedType, input.lightType),
-    spaceFit: getSpaceFit(seed.seedType, input.indoorSize),
-    harvestWindow: seed.daysToHarvest,
-    note: "Calculo horticola orientativo para cultivos no regulados. Confirmar humedad del sustrato antes de regar."
+    automaticEnabled,
+    dataPoints: [
+      { label: "Semilla", source: seed ? "catalog" : "missing", value: seedLabel },
+      { label: "Maceta", source: input.potLiters ? "user" : "missing", value: `${potLiters} L` },
+      { label: "Luz", source: input.lightType ? "user" : "missing", value: lightType },
+      { label: "Espacio", source: input.indoorSize ? "user" : "missing", value: indoorSize },
+      { label: "Sustrato", source: "calculated", value: substrateLiters },
+      { label: "Riego", source: "calculated", value: waterAmount },
+      { label: "Ventana", source: harvestSource, value: harvestWindow || "Dato faltante" }
+    ],
+    missingInputs,
+    seedLabel,
+    substrateLiters: missingInputs.includes("litros de maceta") ? "Falta declarar litros de maceta" : substrateLiters,
+    waterCheck: missingInputs.includes("tipo de luz") ? "Falta declarar tipo de luz" : waterCheck,
+    waterAmount: missingInputs.includes("litros de maceta") ? "Falta declarar litros de maceta" : waterAmount,
+    lightFit: missingInputs.includes("tipo de luz") ? "Falta declarar tipo de luz" : lightFit,
+    spaceFit: missingInputs.includes("tamano de indoor o espacio") ? "Falta declarar tamano de indoor o espacio" : spaceFit,
+    harvestWindow: harvestWindow || "Falta declarar ventana de cosecha/ciclo",
+    note: automaticEnabled
+      ? "Estimacion basada en datos disponibles. Confirmar con mediciones reales antes de actuar."
+      : `No hay datos suficientes para activar todas las estimaciones. Faltan: ${missingInputs.join(", ")}.`
   };
 }
 
