@@ -1649,6 +1649,25 @@ textarea {
     color: #8430a8;
   }
 
+  .event-note {
+    border-color: rgba(124, 92, 168, 0.28);
+    background: rgba(235, 226, 247, 0.92);
+    color: #50356f;
+  }
+
+  .calendar-journal-day-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid rgba(124, 92, 168, 0.24);
+    border-radius: 0.65rem;
+    background: rgba(245, 239, 251, 0.86);
+    padding: 0.75rem;
+    color: #50356f;
+    font-size: 0.875rem;
+    font-weight: 800;
+  }
+
   .view-toggle {
     display: inline-flex;
     gap: 0.25rem;

@@ -3,7 +3,7 @@
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
-import { Bug, Camera, Droplet, Eye, Leaf, MoonStar, Scissors, Sparkles, type LucideIcon } from "lucide-react";
+import { Bug, Camera, Droplet, Eye, Leaf, MoonStar, NotebookPen, Scissors, Sparkles, type LucideIcon } from "lucide-react";
 
 import { Card } from "@/components/card";
 import { CopyValueButton } from "@/components/copy-button";
@@ -3286,6 +3286,23 @@ function CalendarSection({
           <div className="calendar-grid">
             {days.map((day) => {
               const dayOccurrences = occurrences.filter((occurrence) => occurrence.date === day.isoDate);
+              const dayEntries = entries.filter((entry) => entry.createdAt === day.isoDate);
+              const visibleDayItems = [
+                ...dayOccurrences.map((occurrence) => ({
+                  className: getEventClass(occurrence.kind),
+                  id: occurrence.occurrenceId,
+                  label: displayEventTitle(occurrence.title),
+                  type: "event" as const,
+                  occurrence
+                })),
+                ...dayEntries.map((entry) => ({
+                  className: "event-note",
+                  id: `journal-${entry.id}`,
+                  label: entry.title?.trim() || "Nota de bitacora",
+                  type: "entry" as const,
+                  entry
+                }))
+              ];
 
               return (
                 <button
@@ -3306,36 +3323,38 @@ function CalendarSection({
                   </div>
                   {isCompactGrid ? (
                     <div className="calendar-event-icons">
-                      {dayOccurrences.slice(0, 3).map((occurrence) => {
-                        const OccurrenceIcon = getEventIcon(occurrence.kind, occurrence.title);
+                      {visibleDayItems.slice(0, 3).map((item) => {
+                        const ItemIcon = item.type === "event"
+                          ? getEventIcon(item.occurrence.kind, item.occurrence.title)
+                          : NotebookPen;
 
                         return (
                           <span
                             aria-hidden="true"
-                            className={`calendar-event-icon ${getEventClass(occurrence.kind)}`}
-                            key={occurrence.occurrenceId}
+                            className={`calendar-event-icon ${item.className}`}
+                            key={item.id}
                           >
-                            <OccurrenceIcon size={11} strokeWidth={2.5} />
+                            <ItemIcon size={11} strokeWidth={2.5} />
                           </span>
                         );
                       })}
-                      {dayOccurrences.length > 3 ? (
+                      {visibleDayItems.length > 3 ? (
                         <span aria-hidden="true" className="calendar-event-icon-more">
-                          +{dayOccurrences.length - 3}
+                          +{visibleDayItems.length - 3}
                         </span>
                       ) : null}
-                      {dayOccurrences.length > 0 ? (
-                        <span className="sr-only">{dayOccurrences.map((occurrence) => occurrence.title).join(", ")}</span>
+                      {visibleDayItems.length > 0 ? (
+                        <span className="sr-only">{visibleDayItems.map((item) => item.label).join(", ")}</span>
                       ) : null}
                     </div>
                   ) : (
                     <div className="calendar-event-list">
-                      {dayOccurrences.slice(0, 3).map((occurrence) => (
-                        <span className={`calendar-event ${getEventClass(occurrence.kind)}`} key={occurrence.occurrenceId}>
-                          {displayEventTitle(occurrence.title)}
+                      {visibleDayItems.slice(0, 3).map((item) => (
+                        <span className={`calendar-event ${item.className}`} key={item.id}>
+                          {item.type === "entry" ? "Nota: " : ""}{item.label}
                         </span>
                       ))}
-                      {dayOccurrences.length > 3 ? <span className="calendar-event event-review">+{dayOccurrences.length - 3}</span> : null}
+                      {visibleDayItems.length > 3 ? <span className="calendar-event event-review">+{visibleDayItems.length - 3}</span> : null}
                     </div>
                   )}
                 </button>
@@ -3360,9 +3379,16 @@ function CalendarSection({
                   plant={plants.find((plant) => plant.id === occurrence.plantId)}
                 />
               ))
+            ) : selectedEntries.length > 0 ? (
+              <p className="calendar-journal-day-summary">
+                <NotebookPen aria-hidden="true" size={16} strokeWidth={2.25} />
+                {selectedEntries.length === 1
+                  ? "Hay 1 nota de bitacora en este dia."
+                  : `Hay ${selectedEntries.length} notas de bitacora en este dia.`}
+              </p>
             ) : (
               <p className="rounded-lg border border-moss-950/10 bg-white/70 p-3 text-sm font-bold text-stone-600">
-                No hay eventos para este dia.
+                No hay eventos ni notas para este dia.
               </p>
             )}
           </div>
