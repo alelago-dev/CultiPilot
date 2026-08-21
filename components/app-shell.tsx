@@ -492,6 +492,7 @@ export function AppShell({
   const [viewingShare, setViewingShare] = useState<SharedView | null>(() => readStoredShare());
   const [shareCode, setShareCode] = useState("");
   const [shareMessage, setShareMessage] = useState("");
+  const [sharedNoticeCollapsed, setSharedNoticeCollapsed] = useState(false);
 
   // Freno de mano para el guardado. Es una referencia y no un estado porque el
   // guardado automatico corre dentro de un temporizador: si mirara el estado,
@@ -508,6 +509,9 @@ export function AppShell({
   useEffect(() => {
     isViewingSharedRef.current = viewingShare !== null;
   }, [viewingShare]);
+  useEffect(() => {
+    setSharedNoticeCollapsed(false);
+  }, [viewingShare?.ownerId]);
   // El guardado automatico corre en paralelo al manual y a la carga inicial de
   // sesion. Sin esta marca, su mensaje de exito pisaba el "Guardando..." del
   // boton y el "Sesion iniciada como ..." recien mostrado al entrar.
@@ -1518,13 +1522,22 @@ export function AppShell({
       ) : null}
 
       {viewingShare ? (
-        <div className="shared-view-banner" role="status">
+        <div className={`shared-view-banner ${sharedNoticeCollapsed ? "is-collapsed" : ""}`} role="status">
           <span className="shared-view-banner-text">
-            Estas viendo los cultivos de <strong>{viewingShare.ownerLabel}</strong>. Solo lectura: nada de lo que toques
-            se guarda.
+            <strong>{viewingShare.ownerLabel}</strong>
+            <span>{sharedNoticeCollapsed ? "Solo lectura" : "Estas viendo sus cultivos en solo lectura. Los cambios no se guardan."}</span>
           </span>
+          {sharedNoticeCollapsed ? (
+            <button className="shared-view-banner-ghost" onClick={() => setSharedNoticeCollapsed(false)} type="button">
+              Ver
+            </button>
+          ) : (
+            <button className="shared-view-banner-ghost" onClick={() => setSharedNoticeCollapsed(true)} type="button">
+              Ocultar
+            </button>
+          )}
           <button className="shared-view-banner-button" onClick={handleCloseSharedView} type="button">
-            Volver a los mios
+            Mis cultivos
           </button>
         </div>
       ) : null}

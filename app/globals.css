@@ -5697,59 +5697,99 @@ textarea {
     overflow-wrap: anywhere;
   }
 
-  /* Aviso fijo mientras se miran cultivos ajenos. Va pegado abajo y por encima
-     de todo: mientras dure, nada de lo que se toque se guarda, y eso tiene que
-     estar a la vista siempre, no solo al abrirlo. */
+  /* Aviso fijo mientras se miran cultivos ajenos. Tiene que estar visible, pero
+     en mobile no puede tapar el cultivo: por eso es una barra compacta y
+     colapsable, no una card grande. */
   .shared-view-banner {
     position: fixed;
     left: 50%;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 5.2rem);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 5.05rem);
     z-index: 55;
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    justify-content: center;
-    gap: 0.6rem;
-    width: min(560px, calc(100vw - 1.5rem));
-    padding: 0.7rem 0.9rem;
-    border-radius: 16px;
-    background: #2b1f4a;
+    gap: 0.45rem;
+    width: min(640px, calc(100vw - 1rem));
+    min-height: 44px;
+    padding: 0.42rem 0.5rem 0.42rem 0.7rem;
+    border: 1px solid rgba(244, 240, 255, 0.16);
+    border-radius: 999px;
+    background: rgba(43, 31, 74, 0.94);
     color: #f4f0ff;
-    box-shadow: 0 16px 34px rgba(20, 12, 40, 0.32);
+    box-shadow: 0 10px 22px rgba(20, 12, 40, 0.26);
     transform: translateX(-50%);
+    backdrop-filter: blur(14px);
+  }
+
+  .shared-view-banner.is-collapsed {
+    width: min(360px, calc(100vw - 1rem));
+    min-height: 38px;
+    padding-block: 0.32rem;
   }
 
   @media (min-width: 1024px) {
     .shared-view-banner {
       bottom: 1.2rem;
+      width: min(720px, calc(100vw - 2rem));
     }
   }
 
   .shared-view-banner-text {
-    flex: 1 1 220px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    line-height: 1.4;
+    display: flex;
+    min-width: 0;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.74rem;
+    font-weight: 800;
+    line-height: 1.15;
   }
 
   .shared-view-banner-text strong {
+    overflow: hidden;
+    max-width: 38vw;
+    color: #ffffff;
     font-weight: 900;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .shared-view-banner-text span {
+    overflow: hidden;
+    color: rgba(244, 240, 255, 0.84);
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .shared-view-banner-button {
     flex: none;
-    padding: 0.45rem 0.8rem;
+    padding: 0.42rem 0.68rem;
     border: 0;
     border-radius: 999px;
     background: #f4f0ff;
     color: #2b1f4a;
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     font-weight: 900;
     cursor: pointer;
   }
 
   .shared-view-banner-button:hover {
     background: #ffffff;
+  }
+
+  .shared-view-banner-ghost {
+    flex: none;
+    padding: 0.38rem 0.55rem;
+    border: 1px solid rgba(244, 240, 255, 0.18);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #f4f0ff;
+    font-size: 0.7rem;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .shared-view-banner-ghost:hover {
+    background: rgba(255, 255, 255, 0.16);
   }
 
   /*
