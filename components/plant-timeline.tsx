@@ -8,20 +8,22 @@ import {
   type PlantTimelineItem,
   type PlantTimelineType
 } from "@/lib/timeline";
-import type { CalendarEvent, CareEntry, Plant, Task } from "@/lib/types";
+import type { CalendarEvent, CareEntry, Plant, PlantEnvironmentalAlertSettings, PlantMeasurement, Task } from "@/lib/types";
 
 type PlantTimelineProps = {
   calendarEvents: CalendarEvent[];
   entries: CareEntry[];
+  environmentalAlertSettings?: PlantEnvironmentalAlertSettings;
+  measurements: PlantMeasurement[];
   plant: Plant;
   tasks: Task[];
 };
 
-export function PlantTimeline({ calendarEvents, entries, plant, tasks }: PlantTimelineProps) {
+export function PlantTimeline({ calendarEvents, entries, environmentalAlertSettings, measurements, plant, tasks }: PlantTimelineProps) {
   const [activeFilter, setActiveFilter] = useState<PlantTimelineType | "all">("all");
   const timelineItems = useMemo(
-    () => buildPlantTimeline({ calendarEvents, entries, plant, tasks }),
-    [calendarEvents, entries, plant, tasks]
+    () => buildPlantTimeline({ calendarEvents, entries, environmentalAlertSettings, measurements, plant, tasks }),
+    [calendarEvents, entries, environmentalAlertSettings, measurements, plant, tasks]
   );
   const visibleItems =
     activeFilter === "all" ? timelineItems : timelineItems.filter((item) => item.type === activeFilter);
@@ -56,7 +58,7 @@ export function PlantTimeline({ calendarEvents, entries, plant, tasks }: PlantTi
         ) : (
           <div className="timeline-empty">
             <strong>No hay registros para este filtro.</strong>
-            <span>Cuando agregues notas, tareas, fotos o eventos, van a aparecer aca ordenados por fecha.</span>
+            <span>Cuando agregues notas, mediciones, tareas, fotos o eventos, van a aparecer acá ordenados por fecha.</span>
           </div>
         )}
       </div>
@@ -88,5 +90,5 @@ function formatTimelineDate(isoDate: string) {
   return new Intl.DateTimeFormat("es-AR", {
     day: "2-digit",
     month: "short"
-  }).format(new Date(`${isoDate}T00:00:00`));
+  }).format(new Date(isoDate.includes("T") ? isoDate : `${isoDate}T00:00:00`));
 }

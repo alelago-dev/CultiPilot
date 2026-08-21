@@ -2928,7 +2928,7 @@ function PlantSpaceRow({
       <PlantStageProgress plant={plant} />
       <PlantQuickNote onAddJournalEntry={onAddJournalEntry} plant={plant} />
       <PlantUtilityPanel calendarEvents={calendarEvents} entries={entries} plant={plant} />
-      <PlantTimeline calendarEvents={calendarEvents} entries={entries} plant={plant} tasks={tasks} />
+      <PlantTimeline calendarEvents={calendarEvents} entries={entries} environmentalAlertSettings={environmentalAlertSettings} measurements={measurements} plant={plant} tasks={tasks} />
     </details>
   );
 }

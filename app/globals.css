@@ -3626,6 +3626,14 @@ textarea {
     background: #7e5cb2;
   }
 
+  .timeline-measurement .timeline-dot {
+    background: #3786a8;
+  }
+
+  .timeline-alert .timeline-dot {
+    background: #c45a4a;
+  }
+
   .timeline-stage .timeline-dot {
     background: #6fcf97;
   }

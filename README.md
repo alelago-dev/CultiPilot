@@ -181,7 +181,7 @@ La clave `service_role` nunca debe almacenarse ahi ni exponerse en el navegador.
 
 La base de historial unificado vive en `lib/timeline.ts` y se muestra con `components/plant-timeline.tsx`.
 
-Actualmente combina los datos disponibles de cada planta para construir su historial cronologico. La evolucion futura del timeline puede incorporar mediciones, resultados calculados, alertas y analisis generados por IA.
+Actualmente combina los datos disponibles de cada planta para construir su historial cronologico: inicio declarado, tareas, calendario, bitacora, fotos, mediciones ambientales, VPD calculado y alertas activadas por los limites personalizados actuales. Las alertas historicas se identifican como evaluaciones retrospectivas para no presentarlas como avisos que necesariamente existian al momento de la lectura. La evolucion futura del timeline puede incorporar analisis generados por IA.
 
 ## Arquitectura futura
 

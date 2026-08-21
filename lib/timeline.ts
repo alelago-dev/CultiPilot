@@ -1,9 +1,12 @@
 import { addDays, expandEventOccurrences, getTodayIso } from "@/lib/calendar-events";
-import type { CalendarEvent, CareEntry, Plant, Task } from "@/lib/types";
+import { assessPlantEnvironment } from "@/lib/environment-intelligence";
+import type { CalendarEvent, CareEntry, Plant, PlantEnvironmentalAlertSettings, PlantMeasurement, Task } from "@/lib/types";
 
 export type PlantTimelineType =
   | "event"
+  | "alert"
   | "maintenance"
+  | "measurement"
   | "observation"
   | "photo"
   | "stage"
@@ -18,7 +21,7 @@ export type PlantTimelineItem = {
   date: string;
   badge: string;
   status?: "completed" | "pending";
-  source: "calendar" | "entry" | "plant" | "task";
+  source: "calculated" | "calendar" | "entry" | "measurement" | "plant" | "task";
   photoDataUrl?: string;
 };
 
@@ -27,6 +30,8 @@ export const plantTimelineFilters: Array<{ label: string; value: PlantTimelineTy
   { label: "Notas", value: "observation" },
   { label: "Fotos", value: "photo" },
   { label: "Riego", value: "watering" },
+  { label: "Ambiente", value: "measurement" },
+  { label: "Alertas", value: "alert" },
   { label: "Tareas", value: "task" },
   { label: "Etapas", value: "stage" }
 ];
@@ -34,11 +39,15 @@ export const plantTimelineFilters: Array<{ label: string; value: PlantTimelineTy
 export function buildPlantTimeline({
   calendarEvents,
   entries,
+  environmentalAlertSettings,
+  measurements,
   plant,
   tasks
 }: {
   calendarEvents: CalendarEvent[];
   entries: CareEntry[];
+  environmentalAlertSettings?: PlantEnvironmentalAlertSettings;
+  measurements: PlantMeasurement[];
   plant: Plant;
   tasks: Task[];
 }) {
@@ -81,6 +90,40 @@ export function buildPlantTimeline({
       title: task.title,
       type: task.category === "Riego" ? "watering" : "task"
     }));
+  const plantMeasurements = measurements.filter((measurement) => measurement.plantId === plant.id);
+  const measurementItems: PlantTimelineItem[] = plantMeasurements.map((measurement) => {
+    const assessment = assessPlantEnvironment(plant, measurement);
+    const values = [
+      measurement.temperatureC === undefined ? "" : `${measurement.temperatureC} °C`,
+      measurement.ambientHumidityPercent === undefined ? "" : `${measurement.ambientHumidityPercent}% HR`,
+      assessment.vpdKpa === undefined ? "" : `VPD ${assessment.vpdKpa} kPa calculado (${assessment.vpdBasis === "leaf" ? "foliar" : "aire"})`,
+      measurement.ppfdUmolM2S === undefined ? "" : `PPFD ${measurement.ppfdUmolM2S}`,
+      measurement.observations ?? ""
+    ].filter(Boolean);
+    return {
+      badge: measurement.source === "sensor" ? "Sensor" : "Medición",
+      body: values.join(" · ") || "Registro sin valores ambientales comparables.",
+      date: measurement.measuredAt,
+      id: `measurement-${measurement.id}`,
+      photoDataUrl: measurement.photoDataUrl,
+      source: "measurement",
+      title: "Medición ambiental",
+      type: "measurement"
+    };
+  });
+  const alertItems: PlantTimelineItem[] = plantMeasurements.flatMap((measurement) => {
+    const assessment = assessPlantEnvironment(plant, measurement);
+    const exceeded = getExceededEnvironmentalLimits(environmentalAlertSettings, measurement, assessment.vpdKpa);
+    return exceeded.length === 0 ? [] : [{
+      badge: "Alerta calculada",
+      body: `${exceeded.join(" · ")}. Evaluación retrospectiva con los límites personalizados configurados actualmente.`,
+      date: measurement.measuredAt,
+      id: `alert-${measurement.id}`,
+      source: "calculated" as const,
+      title: "Límite ambiental superado",
+      type: "alert" as const
+    }];
+  });
   const plantItems: PlantTimelineItem[] = [
     {
       badge: "Inicio",
@@ -93,10 +136,26 @@ export function buildPlantTimeline({
     }
   ];
 
-  return [...calendarItems, ...entryItems, ...taskItems, ...plantItems].sort((first, second) => {
+  return [...calendarItems, ...entryItems, ...taskItems, ...measurementItems, ...alertItems, ...plantItems].sort((first, second) => {
     const dateOrder = second.date.localeCompare(first.date);
     return dateOrder === 0 ? first.title.localeCompare(second.title) : dateOrder;
   });
+}
+
+function getExceededEnvironmentalLimits(settings: PlantEnvironmentalAlertSettings | undefined, measurement: PlantMeasurement, vpdKpa: number | undefined) {
+  if (!settings) return [];
+  const alerts: string[] = [];
+  addRangeAlert(alerts, "Temperatura", measurement.temperatureC, settings.temperatureMinC, settings.temperatureMaxC, "°C");
+  addRangeAlert(alerts, "Humedad", measurement.ambientHumidityPercent, settings.humidityMinPercent, settings.humidityMaxPercent, "%");
+  addRangeAlert(alerts, "VPD calculado", vpdKpa, settings.vpdMinKpa, settings.vpdMaxKpa, " kPa");
+  addRangeAlert(alerts, "Sustrato", measurement.substrateMoisturePercent, settings.substrateMoistureMinPercent, settings.substrateMoistureMaxPercent, "%");
+  return alerts;
+}
+
+function addRangeAlert(alerts: string[], label: string, value: number | undefined, minimum: number | undefined, maximum: number | undefined, unit: string) {
+  if (value === undefined) return;
+  if (minimum !== undefined && value < minimum) alerts.push(`${label} ${value}${unit}, menor que ${minimum}${unit}`);
+  if (maximum !== undefined && value > maximum) alerts.push(`${label} ${value}${unit}, mayor que ${maximum}${unit}`);
 }
 
 function mapCalendarKindToTimelineType(kind: CalendarEvent["kind"]): PlantTimelineType {
