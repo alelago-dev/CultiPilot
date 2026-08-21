@@ -2884,6 +2884,7 @@ function PlantSpaceRow({
           </div>
           <PlantGeneticSummary genetic={plantGenetic} onOpenGenetic={onOpenGenetic} plant={plant} />
           <PlantCalculationSummary genetic={plantGenetic} plant={plant} />
+          <PlantDataCalculations measurements={measurements} onUpdatePlant={onUpdatePlant} plant={plant} />
           <PlantEnvironmentPanel
             measurements={measurements}
             alertSettings={environmentalAlertSettings}
@@ -3410,6 +3411,70 @@ function PlantCalculationSummary({ genetic, plant }: { genetic?: GeneticReferenc
     </section>
   );
 }
+
+function PlantDataCalculations({ measurements, onUpdatePlant, plant }: { measurements: PlantMeasurement[]; onUpdatePlant: (plantId: string, updates: Partial<Plant>) => void; plant: Plant }) {
+  const [photoperiodHours, setPhotoperiodHours] = useState(plant.photoperiodHours?.toString() ?? "");
+  const [savedMessage, setSavedMessage] = useState("");
+  const sorted = [...measurements].sort((first, second) => second.measuredAt.localeCompare(first.measuredAt));
+  const latestPpfdMeasurement = sorted.find((measurement) => measurement.ppfdUmolM2S !== undefined);
+  const latestIrrigation = sorted.find((measurement) => hasCalculationIrrigationData(measurement));
+  const declaredHours = parseOptionalNumber(photoperiodHours);
+  const dli = latestPpfdMeasurement?.ppfdUmolM2S !== undefined && declaredHours !== undefined ? Number(((latestPpfdMeasurement.ppfdUmolM2S * declaredHours * 3600) / 1_000_000).toFixed(2)) : undefined;
+  const drainagePercent = latestIrrigation?.waterAmountMl !== undefined && latestIrrigation.waterAmountMl > 0 && latestIrrigation.runoffAmountMl !== undefined ? Number(((latestIrrigation.runoffAmountMl / latestIrrigation.waterAmountMl) * 100).toFixed(1)) : undefined;
+  const phDifference = calculateDifference(latestIrrigation?.runoffPh, latestIrrigation?.irrigationPh);
+  const ecDifference = calculateDifference(latestIrrigation?.runoffEcMsCm, latestIrrigation?.irrigationEcMsCm);
+  const today = getTodayIso();
+  const waterSevenDays = sumWaterSince(sorted, offsetDate(today, -6));
+  const waterThirtyDays = sumWaterSince(sorted, offsetDate(today, -29));
+  const recentMeasurements = sorted.filter((measurement) => measurement.measuredAt.slice(0, 10) >= offsetDate(today, -29));
+  const temperatureRange = getRecordedRange(recentMeasurements.flatMap((measurement) => measurement.temperatureC === undefined ? [] : [measurement.temperatureC]));
+  const humidityRange = getRecordedRange(recentMeasurements.flatMap((measurement) => measurement.ambientHumidityPercent === undefined ? [] : [measurement.ambientHumidityPercent]));
+
+  function savePhotoperiod() {
+    if (declaredHours !== undefined && (declaredHours <= 0 || declaredHours > 24)) { setSavedMessage("Las horas de luz deben ser mayores que 0 y no superar 24."); return; }
+    onUpdatePlant(plant.id, { photoperiodHours: declaredHours });
+    setSavedMessage(declaredHours === undefined ? "Fotoperiodo eliminado." : "Fotoperiodo declarado guardado.");
+  }
+
+  return (
+    <section className="plant-data-calculations" aria-label={`Cálculos de ${plant.name}`}>
+      <header><div><p className="plant-calculation-eyebrow">Fórmulas y datos</p><h4>Cálculos de esta maceta</h4></div><span className="pill pill-blue">Sin valores supuestos</span></header>
+      <div className="calculation-photoperiod-input">
+        <label>Horas de luz declaradas<input className="form-control" inputMode="decimal" max="24" min="0.01" onChange={(event) => { setPhotoperiodHours(event.target.value); setSavedMessage(""); }} step="0.25" type="number" value={photoperiodHours} /></label>
+        <button className="secondary-button" onClick={savePhotoperiod} type="button">Guardar horas</button>
+        {savedMessage ? <span role="status">{savedMessage}</span> : null}
+      </div>
+      <div className="calculation-result-grid">
+        <CalculationResult formula="DLI = PPFD × horas × 3600 ÷ 1.000.000" label="DLI calculado" missing={[latestPpfdMeasurement ? "" : "PPFD medido", declaredHours === undefined ? "horas de luz declaradas" : ""].filter(Boolean)} source={latestPpfdMeasurement ? `PPFD del ${formatMeasurementDate(latestPpfdMeasurement.measuredAt)} + dato declarado` : ""} value={dli === undefined ? undefined : `${dli} mol/m²/día`} />
+        <CalculationResult formula="Drenaje ÷ agua aplicada × 100" label="Porcentaje de drenaje" missing={getDrainageMissingInputs(latestIrrigation)} source={latestIrrigation ? `Registro del ${formatMeasurementDate(latestIrrigation.measuredAt)}` : ""} value={drainagePercent === undefined ? undefined : `${drainagePercent}%`} />
+        <CalculationResult formula="pH drenaje − pH de entrada" label="Diferencia de pH" missing={getDifferenceMissingInputs(latestIrrigation?.irrigationPh, latestIrrigation?.runoffPh, "pH de entrada", "pH de drenaje")} source={latestIrrigation ? `Registro del ${formatMeasurementDate(latestIrrigation.measuredAt)}` : ""} value={phDifference === undefined ? undefined : formatSignedNumber(phDifference)} />
+        <CalculationResult formula="EC drenaje − EC de entrada" label="Diferencia de EC" missing={getDifferenceMissingInputs(latestIrrigation?.irrigationEcMsCm, latestIrrigation?.runoffEcMsCm, "EC de entrada", "EC de drenaje")} source={latestIrrigation ? `Registro del ${formatMeasurementDate(latestIrrigation.measuredAt)}` : ""} value={ecDifference === undefined ? undefined : `${formatSignedNumber(ecDifference)} mS/cm`} />
+      </div>
+      <dl className="calculation-history-totals">
+        <PlantFact label="Agua últimos 7 días" value={`${waterSevenDays.total} ml (${waterSevenDays.records} registros)`} />
+        <PlantFact label="Agua últimos 30 días" value={`${waterThirtyDays.total} ml (${waterThirtyDays.records} registros)`} />
+        <PlantFact label="Temperatura últimos 30 días" value={temperatureRange ? `${temperatureRange.minimum}–${temperatureRange.maximum} °C (${temperatureRange.count})` : "Sin mediciones"} />
+        <PlantFact label="Humedad últimos 30 días" value={humidityRange ? `${humidityRange.minimum}–${humidityRange.maximum}% (${humidityRange.count})` : "Sin mediciones"} />
+      </dl>
+      <p className="calculation-disclaimer">Resultados calculados a partir de datos medidos o declarados. No son mediciones nuevas ni recomendaciones de dosis.</p>
+    </section>
+  );
+}
+
+function CalculationResult({ formula, label, missing, source, value }: { formula: string; label: string; missing: string[]; source: string; value?: string }) {
+  return <article className={value ? "has-result" : "is-missing"}><span>{label}</span><strong>{value ?? "Faltan datos"}</strong><small>{formula}</small>{value ? <p>Fuente: {source}</p> : <p>Falta: {missing.join(", ") || "datos comparables del mismo registro"}.</p>}</article>;
+}
+
+function hasCalculationIrrigationData(measurement: PlantMeasurement) {
+  return [measurement.waterAmountMl, measurement.runoffAmountMl, measurement.irrigationPh, measurement.runoffPh, measurement.irrigationEcMsCm, measurement.runoffEcMsCm].some((value) => value !== undefined);
+}
+
+function calculateDifference(output: number | undefined, input: number | undefined) { return output === undefined || input === undefined ? undefined : Number((output - input).toFixed(2)); }
+function getDrainageMissingInputs(measurement?: PlantMeasurement) { if (!measurement) return ["agua aplicada", "drenaje medido en el mismo registro"]; return [measurement.waterAmountMl === undefined ? "agua aplicada" : "", measurement.runoffAmountMl === undefined ? "drenaje medido" : ""].filter(Boolean); }
+function getDifferenceMissingInputs(input: number | undefined, output: number | undefined, inputLabel: string, outputLabel: string) { return [input === undefined ? inputLabel : "", output === undefined ? outputLabel : ""].filter(Boolean); }
+function formatSignedNumber(value: number) { return `${value > 0 ? "+" : ""}${value}`; }
+function sumWaterSince(measurements: PlantMeasurement[], startDate: string) { const values = measurements.filter((measurement) => measurement.measuredAt.slice(0, 10) >= startDate && measurement.waterAmountMl !== undefined); return { records: values.length, total: Number(values.reduce((total, measurement) => total + (measurement.waterAmountMl ?? 0), 0).toFixed(1)) }; }
+function getRecordedRange(values: number[]) { return values.length === 0 ? undefined : { count: values.length, maximum: Math.max(...values), minimum: Math.min(...values) }; }
 
 function PlantEnvironmentPanel({
   alertSettings,

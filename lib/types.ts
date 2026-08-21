@@ -45,6 +45,7 @@ export type Plant = {
   pot: string;
   substrate: string;
   lighting: string;
+  photoperiodHours?: number;
   bank?: string;
   legalRecordStatus?: string;
   setup?: string;

@@ -6082,6 +6082,28 @@ textarea {
     padding-top: 0.9rem;
   }
 
+  .plant-data-calculations { display: grid; gap: 0.7rem; margin-top: 0.85rem; border-top: 1px solid rgba(49, 72, 62, 0.18); padding-top: 0.9rem; }
+  .plant-data-calculations > header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.6rem; }
+  .plant-data-calculations > header h4 { margin-top: 0.15rem; color: #13231b; font-size: 1rem; font-weight: 900; }
+  .calculation-photoperiod-input { display: flex; flex-wrap: wrap; align-items: end; gap: 0.55rem; border-radius: 8px; background: rgba(236, 244, 240, 0.72); padding: 0.65rem; }
+  .calculation-photoperiod-input label { display: grid; flex: 1; min-width: 12rem; gap: 0.25rem; color: #31483e; font-size: 0.68rem; font-weight: 850; }
+  .calculation-photoperiod-input > span { width: 100%; color: #245a64; font-size: 0.65rem; font-weight: 800; }
+  .calculation-result-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+  .calculation-result-grid article { display: grid; align-content: start; gap: 0.25rem; min-width: 0; border: 1px solid rgba(49, 72, 62, 0.16); border-radius: 9px; background: rgba(255, 255, 255, 0.7); padding: 0.65rem; }
+  .calculation-result-grid article.has-result { border-color: rgba(61, 145, 95, 0.34); background: rgba(229, 246, 235, 0.72); }
+  .calculation-result-grid article.is-missing { opacity: 0.78; }
+  .calculation-result-grid span,
+  .calculation-result-grid small { color: #65746c; font-size: 0.64rem; font-weight: 850; }
+  .calculation-result-grid strong { color: #13231b; font-size: 0.92rem; }
+  .calculation-result-grid p { color: #55655d; font-size: 0.64rem; font-weight: 750; line-height: 1.4; }
+  .calculation-history-totals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem; }
+  .calculation-disclaimer { color: #65746c; font-size: 0.65rem; font-weight: 800; line-height: 1.4; }
+
+  @media (max-width: 560px) {
+    .calculation-result-grid,
+    .calculation-history-totals { grid-template-columns: 1fr; }
+  }
+
   .plant-weekly-summary {
     display: grid;
     gap: 0.7rem;
