@@ -1740,6 +1740,7 @@ export function AppShell({
           calendarEvents={eventState}
           tasks={taskState}
           plants={plantState}
+          measurements={measurementState}
           streakCount={streakCount}
           weatherStatus={weatherStatus}
           onUseDeviceWeather={handleUseDeviceWeather}
@@ -2036,6 +2037,7 @@ function TodaySection({
   onToggleTask,
   openTasks,
   plants,
+  measurements,
   streakCount,
   tasks,
   weather,
@@ -2054,6 +2056,7 @@ function TodaySection({
   onToggleTask: (item: AgendaItem) => void;
   openTasks: number;
   plants: Plant[];
+  measurements: PlantMeasurement[];
   streakCount: number;
   tasks: Task[];
   weather: WeatherReadiness;
@@ -2108,6 +2111,7 @@ function TodaySection({
             onSignOut={onSignOut}
           />
         </div>
+        <EnvironmentalQuickAccess locale={locale} measurements={measurements} plants={plants} />
       </section>
 
       <section className="mx-auto grid max-w-7xl gap-5 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
@@ -2173,6 +2177,27 @@ function TodaySection({
         </div>
       </section>
     </>
+  );
+}
+
+function EnvironmentalQuickAccess({ locale, measurements, plants }: { locale: Locale; measurements: PlantMeasurement[]; plants: Plant[] }) {
+  const measuredPlantIds = new Set(measurements.map((measurement) => measurement.plantId));
+  const pendingCount = plants.filter((plant) => !measuredPlantIds.has(plant.id)).length;
+
+  return (
+    <Card as="section" className="environment-quick-access mt-5 p-4 sm:p-5">
+      <div>
+        <p className="eyebrow">Carga rápida</p>
+        <h2>Mediciones ambientales</h2>
+        <p>Registrá temperatura y humedad por maceta para calcular VPD. La temperatura foliar y los demás datos son opcionales.</p>
+      </div>
+      <div className="environment-quick-access-action">
+        <span>{pendingCount > 0 ? `${pendingCount} maceta${pendingCount === 1 ? "" : "s"} sin mediciones` : "Todas las macetas tienen historial"}</span>
+        <Link className="primary-button" href={`${getInternalSectionHref(locale, "spaces")}#mediciones-ambientales` as Route}>
+          Registrar medición
+        </Link>
+      </div>
+    </Card>
   );
 }
 
@@ -2576,6 +2601,7 @@ function SpacesSection({
   const [referenceGeneticId, setReferenceGeneticId] = useState("");
   const [referencePotCount, setReferencePotCount] = useState(4);
   const [popupGenetic, setPopupGenetic] = useState<GeneticReferenceEntry | null>(null);
+  const [measurementPlantId, setMeasurementPlantId] = useState(plants[0]?.id ?? "");
   const normalizedQuery = query.trim().toLowerCase();
   const selectedReferenceGenetic = geneticsCatalogAlphabetically.find((genetic) => genetic.id === referenceGeneticId);
   const visibleSpaces = spaces
@@ -2605,6 +2631,31 @@ function SpacesSection({
           />
         </label>
       </div>
+
+      <Card as="section" className="mt-5 p-4 sm:p-5" id="mediciones-ambientales">
+        <SectionHeader eyebrow="Carga por maceta" title="Mediciones ambientales" />
+        <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-stone-700">
+          Elegí una maceta y cargá una lectura manual. Temperatura y humedad permiten calcular VPD; el resto de los campos es opcional.
+        </p>
+        {plants.length > 0 ? (
+          <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(220px,0.45fr)_1fr]">
+            <label className="grid content-start gap-1 text-sm font-black text-moss-950">
+              Planta o maceta
+              <select className="form-control" onChange={(event) => setMeasurementPlantId(event.target.value)} value={measurementPlantId}>
+                {plants.map((plant) => <option key={plant.id} value={plant.id}>{plant.name} · {plant.pot}</option>)}
+              </select>
+            </label>
+            {plants.find((plant) => plant.id === measurementPlantId) ? (
+              <PlantMeasurementForm
+                onAddMeasurement={onAddMeasurement}
+                onDone={() => undefined}
+                plant={plants.find((plant) => plant.id === measurementPlantId)!}
+                resetAfterSave
+              />
+            ) : null}
+          </div>
+        ) : <EmptyState body="Creá una planta o maceta antes de registrar mediciones." title="No hay macetas disponibles" />}
+      </Card>
 
       <div className="genetics-reference-panel mt-5 rounded-lg border p-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -3139,6 +3190,7 @@ function PlantEnvironmentPanel({
   const sortedMeasurements = [...measurements].sort((first, second) => second.measuredAt.localeCompare(first.measuredAt));
   const latestMeasurement = sortedMeasurements[0];
   const assessment = assessPlantEnvironment(plant, latestMeasurement);
+  const vpdTrend = getVpdTrend(plant, sortedMeasurements);
   const [isAdding, setIsAdding] = useState(false);
 
   return (
@@ -3169,7 +3221,7 @@ function PlantEnvironmentPanel({
           label={assessment.vpdBasis === "leaf" ? "VPD foliar estimado" : "VPD de aire estimado"}
           status={assessment.vpdStatus}
           value={assessment.vpdKpa === undefined ? "Faltan datos" : `${assessment.vpdKpa} kPa`}
-          target={`${assessment.target.vpdMin}-${assessment.target.vpdMax} kPa`}
+          target={assessment.target.vpdMin === undefined ? "Sin referencia para esta etapa" : `${assessment.target.vpdMin}-${assessment.target.vpdMax} kPa`}
         />
         <EnvironmentMetric
           label="PPFD"
@@ -3187,6 +3239,9 @@ function PlantEnvironmentPanel({
         {assessment.vpdBasis === "leaf"
           ? "Se uso la temperatura foliar medida."
           : "Sin temperatura foliar: se muestra VPD del aire y no se supone una diferencia fija con la hoja."}
+      </p>
+      <p className="plant-environment-basis">
+        Fórmula: presión de vapor saturado (Tetens) menos presión real de vapor. Resultado calculado, no medido. Tendencia: {vpdTrend}.
       </p>
 
       {assessment.messages.length > 0 ? (
@@ -3408,11 +3463,13 @@ function formatSuggestionDate(isoDate: string) {
 function PlantMeasurementForm({
   onAddMeasurement,
   onDone,
-  plant
+  plant,
+  resetAfterSave = false
 }: {
   onAddMeasurement: (measurement: PlantMeasurement) => void;
   onDone: () => void;
   plant: Plant;
+  resetAfterSave?: boolean;
 }) {
   const [measuredAt, setMeasuredAt] = useState(() => getLocalDateTimeValue());
   const [source, setSource] = useState<PlantMeasurement["source"]>("manual");
@@ -3421,12 +3478,15 @@ function PlantMeasurementForm({
   const [humidity, setHumidity] = useState("");
   const [substrateMoisture, setSubstrateMoisture] = useState("");
   const [ppfd, setPpfd] = useState("");
+  const [height, setHeight] = useState("");
+  const [waterAmount, setWaterAmount] = useState("");
   const [observations, setObservations] = useState("");
+  const [photoDataUrl, setPhotoDataUrl] = useState("");
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!temperature && !leafTemperature && !humidity && !substrateMoisture && !ppfd) return;
+    if (!temperature && !leafTemperature && !humidity && !substrateMoisture && !ppfd && !height && !waterAmount && !observations && !photoDataUrl) return;
 
     onAddMeasurement({
       ambientHumidityPercent: parseOptionalNumber(humidity),
@@ -3434,13 +3494,19 @@ function PlantMeasurementForm({
       measuredAt: new Date(measuredAt).toISOString(),
       leafTemperatureC: parseOptionalNumber(leafTemperature),
       observations: observations.trim() || undefined,
+      photoDataUrl: photoDataUrl || undefined,
       plantId: plant.id,
       ppfdUmolM2S: parseOptionalNumber(ppfd),
       source,
       substrateMoisturePercent: parseOptionalNumber(substrateMoisture),
-      temperatureC: parseOptionalNumber(temperature)
+      temperatureC: parseOptionalNumber(temperature),
+      heightCm: parseOptionalNumber(height),
+      waterAmountMl: parseOptionalNumber(waterAmount)
     });
-    onDone();
+    if (resetAfterSave) {
+      setMeasuredAt(getLocalDateTimeValue()); setTemperature(""); setLeafTemperature(""); setHumidity("");
+      setSubstrateMoisture(""); setPpfd(""); setHeight(""); setWaterAmount(""); setObservations(""); setPhotoDataUrl("");
+    } else onDone();
   }
 
   return (
@@ -3477,6 +3543,21 @@ function PlantMeasurementForm({
         PPFD (umol/m2/s)
         <input className="form-control" inputMode="numeric" min="0" onChange={(event) => setPpfd(event.target.value)} step="1" type="number" value={ppfd} />
       </label>
+      <label>
+        Altura (cm, opcional)
+        <input className="form-control" inputMode="decimal" min="0" onChange={(event) => setHeight(event.target.value)} step="0.1" type="number" value={height} />
+      </label>
+      <label>
+        Agua (ml, opcional)
+        <input className="form-control" inputMode="decimal" min="0" onChange={(event) => setWaterAmount(event.target.value)} step="1" type="number" value={waterAmount} />
+      </label>
+      <label className="plant-measurement-notes">
+        Foto (opcional)
+        <input accept="image/*" className="form-control" onChange={async (event) => {
+          const file = event.target.files?.[0];
+          setPhotoDataUrl(file ? await readPhotoFileAsDataUrl(file) : "");
+        }} type="file" />
+      </label>
       <label className="plant-measurement-notes">
         Observaciones
         <textarea className="form-control" onChange={(event) => setObservations(event.target.value)} rows={2} value={observations} />
@@ -3484,6 +3565,17 @@ function PlantMeasurementForm({
       <button className="primary-button" type="submit">Guardar medicion</button>
     </form>
   );
+}
+
+function getVpdTrend(plant: Plant, measurements: PlantMeasurement[]) {
+  const values = measurements
+    .map((measurement) => assessPlantEnvironment(plant, measurement).vpdKpa)
+    .filter((value): value is number => value !== undefined)
+    .slice(0, 2);
+  if (values.length < 2) return "faltan al menos dos lecturas comparables";
+  const difference = values[0] - values[1];
+  if (Math.abs(difference) < 0.05) return "estable frente a la lectura anterior";
+  return difference > 0 ? "en aumento frente a la lectura anterior" : "en descenso frente a la lectura anterior";
 }
 
 function EnvironmentMetric({

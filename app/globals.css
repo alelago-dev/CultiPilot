@@ -6082,6 +6082,42 @@ textarea {
     padding-top: 0.9rem;
   }
 
+  .environment-quick-access {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .environment-quick-access h2 {
+    margin-top: 0.25rem;
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: var(--color-moss-950);
+  }
+
+  .environment-quick-access p:last-child {
+    margin-top: 0.35rem;
+    color: rgb(68 64 60);
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+  }
+
+  .environment-quick-access-action {
+    display: grid;
+    gap: 0.5rem;
+    min-width: max-content;
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: rgb(87 83 78);
+  }
+
+  @media (max-width: 640px) {
+    .environment-quick-access { align-items: stretch; flex-direction: column; }
+    .environment-quick-access-action { min-width: 0; }
+  }
+
   .plant-environment-header {
     display: flex;
     flex-wrap: wrap;

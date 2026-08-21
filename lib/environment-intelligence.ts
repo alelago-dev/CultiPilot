@@ -6,8 +6,8 @@ type StageTarget = {
   label: string;
   ppfdMax?: number;
   ppfdMin?: number;
-  vpdMax: number;
-  vpdMin: number;
+  vpdMax?: number;
+  vpdMin?: number;
 };
 
 export type EnvironmentalAssessment = {
@@ -47,7 +47,9 @@ export function assessPlantEnvironment(plant: Plant, measurement?: PlantMeasurem
   const vpdStatus = compareToRange(vpdKpa, target.vpdMin, target.vpdMax, { maximum: 1.6, minimum: 0.4 });
   const ppfdStatus = compareToRange(measurement?.ppfdUmolM2S, target.ppfdMin, target.ppfdMax);
 
-  if (vpdStatus === "critical") {
+  if (target.vpdMin === undefined || target.vpdMax === undefined) {
+    messages.push(`No hay una banda VPD asociada a la etapa declarada "${plant.stage}". El VPD se calcula, pero no se clasifica.`);
+  } else if (vpdStatus === "critical") {
     messages.push("VPD en zona de riesgo orientativa: confirmar la medicion y revisar ambiente y ventilacion antes de cambiar equipos.");
   } else if (vpdStatus === "low") {
     messages.push("VPD orientativo bajo: revisar exceso de humedad, temperatura y renovacion de aire antes de ajustar equipos.");
@@ -158,5 +160,6 @@ function getStageTarget(stage: string): StageTarget {
   if (normalized.includes("flor")) return targets.earlyFlower;
   if (normalized.includes("veget") || normalized.includes("crecimiento")) return targets.vegetative;
   if (normalized.includes("cosecha") || normalized.includes("secado")) return targets.harvest;
-  return targets.seed;
+  if (normalized.includes("semilla") || normalized.includes("plantin") || normalized.includes("plántula")) return targets.seed;
+  return { label: `Etapa declarada: ${stage || "sin informar"}` };
 }
