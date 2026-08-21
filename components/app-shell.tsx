@@ -2856,6 +2856,13 @@ function PlantSpaceRow({
             onDeleteMeasurement={onDeleteMeasurement}
             plant={plant}
           />
+          <PlantWeeklySummary
+            calendarEvents={calendarEvents}
+            entries={entries}
+            measurements={measurements}
+            plant={plant}
+            tasks={tasks}
+          />
           <PlantSensorPanel
             devices={sensorDevices}
             onCreateSensorDevice={onCreateSensorDevice}
@@ -2886,6 +2893,87 @@ function PlantSpaceRow({
       <PlantTimeline calendarEvents={calendarEvents} entries={entries} plant={plant} tasks={tasks} />
     </details>
   );
+}
+
+function PlantWeeklySummary({
+  calendarEvents,
+  entries,
+  measurements,
+  plant,
+  tasks
+}: {
+  calendarEvents: CalendarEvent[];
+  entries: CareEntry[];
+  measurements: PlantMeasurement[];
+  plant: Plant;
+  tasks: Task[];
+}) {
+  const today = getTodayIso();
+  const startDate = offsetDate(today, -6);
+  const isInWindow = (value: string) => {
+    const date = value.slice(0, 10);
+    return date >= startDate && date <= today;
+  };
+  const weeklyMeasurements = measurements.filter((measurement) => isInWindow(measurement.measuredAt));
+  const weeklyEntries = entries.filter((entry) => entry.plantId === plant.id && isInWindow(entry.createdAt));
+  const irrigationCount = weeklyMeasurements.filter((measurement) => measurement.waterAmountMl !== undefined).length;
+  const photoCount = weeklyMeasurements.filter((measurement) => measurement.photoDataUrl).length + weeklyEntries.filter((entry) => entry.photoDataUrl).length;
+  const noteCount = weeklyEntries.length + weeklyMeasurements.filter((measurement) => measurement.observations).length;
+  const completedActions = calendarEvents
+    .filter((event) => event.plantId === plant.id)
+    .flatMap((event) => event.completedDates)
+    .filter(isInWindow).length;
+  const openTasks = tasks.filter((task) => task.plantId === plant.id && task.status === "open").length;
+  const chronological = [...weeklyMeasurements].sort((first, second) => first.measuredAt.localeCompare(second.measuredAt));
+  const vpdValues = chronological.flatMap((measurement) => {
+    const value = assessPlantEnvironment(plant, measurement).vpdKpa;
+    return value === undefined ? [] : [value];
+  });
+  const latestMeasurement = chronological.at(-1);
+  const latestAssessment = assessPlantEnvironment(plant, latestMeasurement);
+  const missingEnvironment = latestAssessment.missingInputs.filter((item) => item !== "PPFD a nivel de la copa");
+  const vpdSummary = getWeeklyVpdSummary(vpdValues);
+  const hasActivity = weeklyMeasurements.length + weeklyEntries.length + completedActions > 0;
+
+  return (
+    <section className="plant-weekly-summary" aria-label={`Resumen semanal de ${plant.name}`}>
+      <header>
+        <div>
+          <p className="plant-calculation-eyebrow">Resumen verificable</p>
+          <h4>Últimos 7 días</h4>
+          <span>{formatDisplayDate(startDate)} al {formatDisplayDate(today)} · etapa declarada: {plant.stage}</span>
+        </div>
+        <span className="pill pill-blue">{hasActivity ? "Con actividad" : "Sin registros"}</span>
+      </header>
+      <dl className="plant-weekly-metrics">
+        <WeeklyMetric label="Mediciones" value={weeklyMeasurements.length} />
+        <WeeklyMetric label="Riegos registrados" value={irrigationCount} />
+        <WeeklyMetric label="Notas" value={noteCount} />
+        <WeeklyMetric label="Fotos" value={photoCount} />
+        <WeeklyMetric label="Acciones hechas" value={completedActions} />
+        <WeeklyMetric label="Pendientes actuales" value={openTasks} />
+      </dl>
+      <div className="plant-weekly-findings">
+        <p><strong>VPD:</strong> {vpdSummary}</p>
+        {missingEnvironment.length > 0 ? <p><strong>Falta para calcular VPD:</strong> {missingEnvironment.join(", ")} en la última lectura.</p> : null}
+        {!hasActivity ? <p>No se agregaron fechas ni valores: este resumen solo cuenta registros existentes dentro del período.</p> : null}
+      </div>
+    </section>
+  );
+}
+
+function WeeklyMetric({ label, value }: { label: string; value: number }) {
+  return <div><dt>{label}</dt><dd>{value}</dd></div>;
+}
+
+function getWeeklyVpdSummary(values: number[]) {
+  if (values.length === 0) return "sin lecturas suficientes de temperatura y humedad";
+  if (values.length === 1) return `${values[0]} kPa calculado en una única lectura; todavía no hay tendencia`;
+  const first = values[0];
+  const latest = values.at(-1) ?? first;
+  const difference = latest - first;
+  const direction = Math.abs(difference) < 0.05 ? "estable" : difference > 0 ? "en aumento" : "en descenso";
+  return `${direction}, de ${first} a ${latest} kPa entre la primera y la última lectura comparable`;
 }
 
 const plantStageOptions = ["Semilla", "Plantin", "Vegetativo", "Floracion temprana", "Floracion tardia", "Cosecha"];
