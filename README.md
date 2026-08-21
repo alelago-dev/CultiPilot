@@ -98,6 +98,8 @@ Las mediciones conservan fecha, hora y origen (`manual`, `device` o `sensor`) pa
 
 El panel `Calculos de esta maceta` obtiene DLI desde PPFD medido y horas de luz declaradas, porcentaje de drenaje desde agua aplicada y drenaje del mismo registro, diferencias de pH/EC y totales o rangos historicos. Cada tarjeta publica la formula, la fuente y los datos faltantes. No convierte EC a ppm, no inventa mediciones y no calcula dosis.
 
+Cada maceta puede exportarse por ultimos 7 dias, ultimos 30 dias, ciclo registrado o historial completo. CSV contiene las mediciones en formato tabular; el libro XML compatible con Excel separa Resumen, Mediciones, Riegos, Bitacora, Calendario y Tareas, manteniendo numeros como valores numericos y declarando el origen de los resultados. Las fotos no se incrustan: solo se informa su presencia para limitar el tamano y la exposicion del archivo.
+
 Cada maceta incluye un resumen movil de los ultimos siete dias. Cuenta mediciones, riegos, notas, fotos y acciones completadas con fechas existentes; muestra las tareas abiertas como pendientes actuales porque no tienen una fecha de ejecucion confirmada. La tendencia VPD compara solamente la primera y la ultima lectura calculable del periodo y explicita cuando faltan datos.
 
 Cada maceta puede cerrar y archivar su ciclo con una fecha y nota declaradas por el usuario. El cierre no borra mediciones, riegos, fotos ni bitacora y puede revertirse. Espacios separa los ciclos cerrados de los activos y permite comparar duracion registrada, cantidad de datos y VPD promedio calculado solamente sobre lecturas disponibles.

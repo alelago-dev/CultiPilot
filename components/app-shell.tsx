@@ -2885,6 +2885,7 @@ function PlantSpaceRow({
           <PlantGeneticSummary genetic={plantGenetic} onOpenGenetic={onOpenGenetic} plant={plant} />
           <PlantCalculationSummary genetic={plantGenetic} plant={plant} />
           <PlantDataCalculations measurements={measurements} onUpdatePlant={onUpdatePlant} plant={plant} />
+          <PlantExportPanel calendarEvents={calendarEvents} entries={entries} measurements={measurements} plant={plant} tasks={tasks} />
           <PlantEnvironmentPanel
             measurements={measurements}
             alertSettings={environmentalAlertSettings}
@@ -3464,6 +3465,83 @@ function PlantDataCalculations({ measurements, onUpdatePlant, plant }: { measure
 function CalculationResult({ formula, label, missing, source, value }: { formula: string; label: string; missing: string[]; source: string; value?: string }) {
   return <article className={value ? "has-result" : "is-missing"}><span>{label}</span><strong>{value ?? "Faltan datos"}</strong><small>{formula}</small>{value ? <p>Fuente: {source}</p> : <p>Falta: {missing.join(", ") || "datos comparables del mismo registro"}.</p>}</article>;
 }
+
+type ExportPeriod = "7-days" | "30-days" | "cycle" | "all";
+type ExportCell = { type?: "DateTime" | "Number" | "String"; value: number | string | undefined };
+
+function PlantExportPanel({ calendarEvents, entries, measurements, plant, tasks }: { calendarEvents: CalendarEvent[]; entries: CareEntry[]; measurements: PlantMeasurement[]; plant: Plant; tasks: Task[] }) {
+  const [period, setPeriod] = useState<ExportPeriod>("cycle");
+  const bounds = getExportPeriodBounds(period, plant);
+  const filteredMeasurements = measurements.filter((measurement) => isDateInExportBounds(measurement.measuredAt, bounds));
+  const filteredEntries = entries.filter((entry) => entry.plantId === plant.id && isDateInExportBounds(entry.createdAt, bounds));
+  const filteredEvents = calendarEvents.filter((event) => event.plantId === plant.id && isDateInExportBounds(event.startDate, bounds));
+  const filteredTasks = tasks.filter((task) => task.plantId === plant.id && (period === "all" || (task.dueDate ? isDateInExportBounds(task.dueDate, bounds) : false)));
+
+  function exportCsv() {
+    const rows = buildMeasurementExportRows(filteredMeasurements, plant);
+    downloadTextFile(`plantcare-${sanitizeFilename(plant.name)}-${period}.csv`, `\uFEFF${rows.map((row) => row.map(toCsvCell).join(",")).join("\r\n")}`, "text/csv;charset=utf-8");
+  }
+
+  function exportExcel() {
+    const workbook = buildExcelXmlWorkbook({ bounds, calendarEvents: filteredEvents, entries: filteredEntries, measurements: filteredMeasurements, period, plant, tasks: filteredTasks });
+    downloadTextFile(`plantcare-${sanitizeFilename(plant.name)}-${period}.xml`, workbook, "application/vnd.ms-excel;charset=utf-8");
+  }
+
+  return (
+    <section className="plant-export-panel" aria-label={`Exportar datos de ${plant.name}`}>
+      <header><div><p className="plant-calculation-eyebrow">Respaldo auditable</p><h4>Exportar esta maceta</h4></div><span className="pill pill-blue">{formatDisplayDate(bounds.start)} → {formatDisplayDate(bounds.end)}</span></header>
+      <div>
+        <label>Período<select className="form-control" onChange={(event) => setPeriod(event.target.value as ExportPeriod)} value={period}><option value="7-days">Últimos 7 días</option><option value="30-days">Últimos 30 días</option><option value="cycle">Ciclo registrado</option><option value="all">Todo el historial</option></select></label>
+        <button className="secondary-button" disabled={filteredMeasurements.length === 0} onClick={exportCsv} type="button">CSV de mediciones</button>
+        <button className="primary-button" onClick={exportExcel} type="button">Libro para Excel</button>
+      </div>
+      <p>Excel incluye Resumen, Mediciones, Riegos, Bitácora, Calendario y Tareas. Las fotos se indican como presentes, pero no se incrustan para evitar archivos excesivos.</p>
+    </section>
+  );
+}
+
+function getExportPeriodBounds(period: ExportPeriod, plant: Plant) {
+  const today = getTodayIso();
+  if (period === "7-days") return { end: today, start: offsetDate(today, -6) };
+  if (period === "30-days") return { end: today, start: offsetDate(today, -29) };
+  if (period === "cycle") return { end: plant.completedAt ?? today, start: plant.startedAt || today };
+  return { end: "9999-12-31", start: "1970-01-01" };
+}
+
+function isDateInExportBounds(value: string, bounds: { end: string; start: string }) { const date = value.slice(0, 10); return date >= bounds.start && date <= bounds.end; }
+
+function buildMeasurementExportRows(measurements: PlantMeasurement[], plant: Plant): Array<Array<number | string | undefined>> {
+  return [["Fecha/hora", "Origen", "Temperatura °C", "Temperatura foliar °C", "Humedad %", "VPD calculado kPa", "Base VPD", "Sustrato %", "PPFD µmol/m²/s", "Altura cm", "Observaciones", "Foto presente"], ...measurements.map((measurement) => {
+    const assessment = assessPlantEnvironment(plant, measurement);
+    return [measurement.measuredAt, formatMeasurementSource(measurement.source), measurement.temperatureC, measurement.leafTemperatureC, measurement.ambientHumidityPercent, assessment.vpdKpa, assessment.vpdBasis === "leaf" ? "foliar" : "aire", measurement.substrateMoisturePercent, measurement.ppfdUmolM2S, measurement.heightCm, measurement.observations, measurement.photoDataUrl ? "Sí" : "No"];
+  })];
+}
+
+function buildExcelXmlWorkbook({ bounds, calendarEvents, entries, measurements, period, plant, tasks }: { bounds: { end: string; start: string }; calendarEvents: CalendarEvent[]; entries: CareEntry[]; measurements: PlantMeasurement[]; period: ExportPeriod; plant: Plant; tasks: Task[] }) {
+  const measurementRows = buildMeasurementExportRows(measurements, plant).map((row, rowIndex) => row.map((value, columnIndex) => ({ type: rowIndex === 0 ? "String" : columnIndex === 0 && value ? "DateTime" : typeof value === "number" ? "Number" : "String", value: rowIndex > 0 && columnIndex === 0 && value ? toExcelDateTime(String(value)) : value }) satisfies ExportCell));
+  const irrigationRows: ExportCell[][] = [["Fecha/hora", "Agua ml", "pH entrada", "EC entrada mS/cm", "PPM entrada", "Drenaje ml", "Drenaje % calculado", "pH drenaje", "Diferencia pH calculada", "EC drenaje mS/cm", "Diferencia EC calculada"].map((value) => ({ value }))];
+  measurements.filter(hasCalculationIrrigationData).forEach((measurement) => irrigationRows.push([
+    { type: "DateTime", value: measurement.measuredAt }, { type: "Number", value: measurement.waterAmountMl }, { type: "Number", value: measurement.irrigationPh }, { type: "Number", value: measurement.irrigationEcMsCm }, { type: "Number", value: measurement.irrigationPpm }, { type: "Number", value: measurement.runoffAmountMl },
+    { type: "Number", value: measurement.waterAmountMl && measurement.runoffAmountMl !== undefined ? Number(((measurement.runoffAmountMl / measurement.waterAmountMl) * 100).toFixed(1)) : undefined }, { type: "Number", value: measurement.runoffPh }, { type: "Number", value: calculateDifference(measurement.runoffPh, measurement.irrigationPh) }, { type: "Number", value: measurement.runoffEcMsCm }, { type: "Number", value: calculateDifference(measurement.runoffEcMsCm, measurement.irrigationEcMsCm) }
+  ]));
+  const sheets = [
+    { name: "Resumen", rows: [[{ value: "Campo" }, { value: "Valor" }, { value: "Origen" }], ...[["Maceta", plant.name, "usuario"], ["Variedad", plant.variety, "usuario"], ["Etapa", plant.stage, "usuario"], ["Inicio", plant.startedAt, "usuario"], ["Cierre", plant.completedAt, plant.completedAt ? "usuario" : "faltante"], ["Período exportado", `${bounds.start} a ${bounds.end}`, "selección de usuario"], ["Fotoperiodo horas", plant.photoperiodHours, plant.photoperiodHours === undefined ? "faltante" : "usuario"], ["Registros de medición", measurements.length, "calculado"]].map((row) => row.map((value) => ({ type: typeof value === "number" ? "Number" : "String", value }) satisfies ExportCell))] },
+    { name: "Mediciones", rows: measurementRows },
+    { name: "Riegos", rows: irrigationRows },
+    { name: "Bitacora", rows: exportRows(["Fecha/hora", "Título", "Nota", "Etiquetas", "Foto presente"], entries.map((entry) => [entry.createdAt, entry.title, entry.note, entry.tags.join("; "), entry.photoDataUrl ? "Sí" : "No"]), [0]) },
+    { name: "Calendario", rows: exportRows(["Fecha inicial", "Título", "Descripción", "Tipo", "Recurrencia", "Fechas completadas"], calendarEvents.map((event) => [event.startDate, event.title, event.description, event.kind, event.recurrence?.active ? `Cada ${event.recurrence.everyDays} días` : "No", event.completedDates.join("; ")]), [0]) },
+    { name: "Tareas", rows: exportRows(["Fecha", "Título", "Descripción", "Estado", "Frecuencia", "Categoría"], tasks.map((task) => [task.dueDate, task.title, task.description, task.status, task.frequency, task.category]), [0]) }
+  ];
+  return `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><DocumentProperties xmlns="urn:schemas-microsoft-com:office:office"><Title>${escapeXml(`PlantCare ${plant.name}`)}</Title><Description>${escapeXml(`Exportación ${period}; valores medidos, declarados y calculados diferenciados`)}</Description></DocumentProperties><Styles><Style ss:ID="Header"><Font ss:Bold="1"/><Interior ss:Color="#DDEFE6" ss:Pattern="Solid"/></Style></Styles>${sheets.map(toExcelWorksheet).join("")}</Workbook>`;
+}
+
+function exportRows(headers: string[], rows: Array<Array<number | string | undefined>>, dateColumns: number[] = []): ExportCell[][] { return [headers.map((value) => ({ type: "String", value }) satisfies ExportCell), ...rows.map((row) => row.map((value, columnIndex) => ({ type: dateColumns.includes(columnIndex) && value ? "DateTime" : typeof value === "number" ? "Number" : "String", value: dateColumns.includes(columnIndex) && value ? toExcelDateTime(String(value)) : value }) satisfies ExportCell))]; }
+function toExcelDateTime(value: string) { return value.includes("T") ? value : `${value}T00:00:00.000`; }
+function toExcelWorksheet(sheet: { name: string; rows: ExportCell[][] }) { return `<Worksheet ss:Name="${escapeXml(sheet.name)}"><Table>${sheet.rows.map((row, rowIndex) => `<Row>${row.map((cell) => `<Cell${rowIndex === 0 ? ' ss:StyleID="Header"' : ""}><Data ss:Type="${cell.type ?? "String"}">${escapeXml(cell.value ?? "")}</Data></Cell>`).join("")}</Row>`).join("")}</Table></Worksheet>`; }
+function escapeXml(value: number | string) { return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;"); }
+function toCsvCell(value: number | string | undefined) { if (value === undefined) return ""; const text = String(value); return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text; }
+function sanitizeFilename(value: string) { return normalizeLookupText(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "maceta"; }
+function downloadTextFile(filename: string, content: string, type: string) { const blob = new Blob([content], { type }); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = filename; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url); }
 
 function hasCalculationIrrigationData(measurement: PlantMeasurement) {
   return [measurement.waterAmountMl, measurement.runoffAmountMl, measurement.irrigationPh, measurement.runoffPh, measurement.irrigationEcMsCm, measurement.runoffEcMsCm].some((value) => value !== undefined);
