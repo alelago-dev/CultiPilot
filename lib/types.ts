@@ -149,6 +149,29 @@ export type InventoryItem = {
   sourceUrl?: string;
 };
 
+export type InventoryMovement = {
+  id: string;
+  inventoryItemId: string;
+  itemName: string;
+  occurredAt: string;
+  kind: "initial" | "adjustment" | "consumption";
+  quantityDelta: number;
+  quantityAfter: number;
+  unit: string;
+  reason: string;
+  plantIds?: string[];
+  unitCost?: number;
+  totalCost?: number;
+  currency?: string;
+};
+
+export type InventoryMovementContext = {
+  kind?: InventoryMovement["kind"];
+  occurredAt?: string;
+  reason?: string;
+  plantIds?: string[];
+};
+
 export type ProductCatalogItem = {
   id: string;
   name: string;

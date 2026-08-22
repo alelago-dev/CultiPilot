@@ -6220,6 +6220,14 @@ textarea {
   .inventory-list article > div:last-child { display: flex; gap: 0.4rem; }
   .inventory-list strong, .inventory-alerts strong { color: #183126; font-size: 0.8rem; }
   .inventory-list span, .inventory-alerts p { color: #65746c; font-size: 0.68rem; font-weight: 750; }
+  .inventory-movements { display: grid; gap: 0.55rem; border-top: 1px solid rgba(49,72,62,.16); padding-top: 0.75rem; }
+  .inventory-movements h4 { color: #183126; font-size: 0.9rem; font-weight: 900; }
+  .inventory-movements > div { display: grid; gap: 0.42rem; }
+  .inventory-movements article { display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; border-left: 3px solid #6e9278; border-radius: 8px; background: rgba(238,244,240,.72); padding: 0.58rem 0.68rem; }
+  .inventory-movements article > div { display: grid; gap: 0.1rem; }
+  .inventory-movements strong { color: #244535; font-size: 0.73rem; }
+  .inventory-movements p, .inventory-movements small { color: #65746c; font-size: 0.63rem; font-weight: 750; }
+  .inventory-movements article > span { white-space: nowrap; color: #176b4d; font-size: 0.72rem; font-weight: 900; }
   .inventory-alerts > div { display: grid; gap: 0.45rem; margin-top: 0.7rem; }
   .inventory-alerts > p { margin-top: 0.65rem; }
   .batch-irrigation-panel, .batch-irrigation-panel form { display: grid; gap: 0.75rem; }

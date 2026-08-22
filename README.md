@@ -104,6 +104,12 @@ El catalogo privado de productos permite transcribir nombre, marca, categoria, c
 
 Una referencia puede vincularse a una existencia del inventario conservando su fuente, lote y vencimiento opcionales. Desde alli puede usarse en una receta propia y descontarse mediante el riego por lote, manteniendo separados el dato publicado, la existencia declarada y la aplicacion realmente registrada. Catalogo e inventario se sincronizan dentro del snapshot privado de cada usuario; no agregan tablas publicas ni cambian las politicas RLS existentes.
 
+Cada cambio futuro de cantidad genera un movimiento de inventario con fecha, diferencia, saldo resultante y motivo. Los consumos por riego conservan las macetas involucradas y la fecha del registro; los ajustes `+1` y `-1` se identifican como movimientos manuales. La app no reconstruye movimientos anteriores a esta funcionalidad porque no existe evidencia suficiente para atribuirles fecha o causa.
+
+Cuando una existencia vinculada usa la misma unidad que el contenido del producto y la referencia incluye precio y cantidad, el riego muestra y registra el costo matematico del consumo (`cantidad usada × precio / contenido`). Si falta precio, contenido o coincide una unidad diferente, informa que no es calculable. El valor es historico y no representa un precio de mercado actualizado.
+
+Hoy tambien muestra existencias con vencimiento declarado dentro de los proximos 30 dias o con una fecha ya pasada. El aviso no estima estabilidad, seguridad ni vida util: reproduce exclusivamente la fecha cargada por el usuario.
+
 Las inspecciones estructuradas registran por maceta el tipo y la zona observada, severidad declarada, nota, foto opcional, fecha de seguimiento y estado abierto o resuelto. Son observaciones del usuario y no diagnosticos automaticos. Recetas e inspecciones forman parte del snapshot sincronizado.
 
 `assessPlantEnvironment` calcula un VPD estimado y lo compara con una banda orientativa segun la etapa declarada. Si el usuario registra temperatura foliar, calcula VPD foliar con temperatura ambiental, foliar y humedad relativa. Si falta ese dato, muestra VPD del aire sin inventar una diferencia fija entre hoja y ambiente. El formulario muestra el VPD en vivo antes de guardar y la ficha presenta tendencias de temperatura, humedad y VPD usando exclusivamente las lecturas registradas, sin completar huecos. La interfaz diferencia la medicion original del valor `calculated`, muestra la banda utilizada y avisa cuando falta temperatura, humedad o PPFD.
