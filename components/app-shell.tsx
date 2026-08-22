@@ -54,6 +54,7 @@ import type {
   PlantEnvironmentalAlertSettings,
   PlantMeasurement,
   PlantInspection,
+  ProductCatalogItem,
   SensorDevice,
   Task
 } from "@/lib/types";
@@ -125,6 +126,7 @@ type AppSnapshot = {
   tasks: Task[];
   irrigationRecipes: IrrigationRecipe[];
   inventoryItems: InventoryItem[];
+  productCatalog: ProductCatalogItem[];
 };
 
 // El tono define el color y el icono del cartel de estado de la cuenta, para
@@ -510,6 +512,7 @@ const storageKeys = {
   inspections: "plantcare-plant-inspections",
   irrigationRecipes: "plantcare-irrigation-recipes",
   inventoryItems: "plantcare-inventory-items",
+  productCatalog: "plantcare-product-catalog",
   environmentalAlerts: "plantcare-environmental-alerts",
   onboarding: "plantcare-onboarding-complete",
   plants: "plantcare-plants",
@@ -540,6 +543,7 @@ export function AppShell({
   const [inspectionState, setInspectionState] = useStoredState<PlantInspection[]>(storageKeys.inspections, []);
   const [irrigationRecipeState, setIrrigationRecipeState] = useStoredState<IrrigationRecipe[]>(storageKeys.irrigationRecipes, []);
   const [inventoryItemState, setInventoryItemState] = useStoredState<InventoryItem[]>(storageKeys.inventoryItems, []);
+  const [productCatalogState, setProductCatalogState] = useStoredState<ProductCatalogItem[]>(storageKeys.productCatalog, []);
   const [environmentalAlertState, setEnvironmentalAlertState] = useStoredState<PlantEnvironmentalAlertSettings[]>(storageKeys.environmentalAlerts, []);
   const [acknowledgedEnvironmentalAlerts, setAcknowledgedEnvironmentalAlerts] = useStoredState<string[]>(storageKeys.acknowledgedEnvironmentalAlerts, []);
   const [weather, setWeather] = useState<WeatherReadiness>(() => getStoredWeatherSnapshot() ?? getWeatherReadiness("Ubicacion sin conectar"));
@@ -654,6 +658,7 @@ export function AppShell({
       inspections: inspectionState,
       irrigationRecipes: irrigationRecipeState,
       inventoryItems: inventoryItemState,
+      productCatalog: productCatalogState,
       plants: plantState,
       savedAt: new Date().toISOString(),
       tasks: taskState
@@ -692,6 +697,7 @@ export function AppShell({
     if (snapshot.inspections) { setInspectionState(snapshot.inspections); persistStoredState(storageKeys.inspections, snapshot.inspections); }
     if (snapshot.irrigationRecipes) { setIrrigationRecipeState(snapshot.irrigationRecipes); persistStoredState(storageKeys.irrigationRecipes, snapshot.irrigationRecipes); }
     if (snapshot.inventoryItems) { setInventoryItemState(snapshot.inventoryItems); persistStoredState(storageKeys.inventoryItems, snapshot.inventoryItems); }
+    if (snapshot.productCatalog) { setProductCatalogState(snapshot.productCatalog); persistStoredState(storageKeys.productCatalog, snapshot.productCatalog); }
     if (snapshot.environmentalAlerts) {
       setEnvironmentalAlertState(snapshot.environmentalAlerts);
       persistStoredState(storageKeys.environmentalAlerts, snapshot.environmentalAlerts);
@@ -1320,6 +1326,11 @@ export function AppShell({
     setInventoryItemState(nextItems); persistStoredState(storageKeys.inventoryItems, nextItems);
   }
 
+  function handleSaveProductCatalogItem(item: ProductCatalogItem) {
+    const nextItems = productCatalogState.some((existing) => existing.id === item.id) ? productCatalogState.map((existing) => existing.id === item.id ? item : existing) : [...productCatalogState, item];
+    setProductCatalogState(nextItems); persistStoredState(storageKeys.productCatalog, nextItems);
+  }
+
   function handleSaveInspection(inspection: PlantInspection) {
     const nextInspections = inspectionState.some((item) => item.id === inspection.id) ? inspectionState.map((item) => item.id === inspection.id ? inspection : item) : [inspection, ...inspectionState];
     setInspectionState(nextInspections); persistStoredState(storageKeys.inspections, nextInspections);
@@ -1671,7 +1682,7 @@ export function AppShell({
     return () => window.clearTimeout(timeoutId);
     // saveRemoteSnapshot reads the current snapshot from state; these dependencies are the autosave trigger surface.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountStatus.userId, acknowledgedEnvironmentalAlerts, entryState, environmentalAlertState, eventState, habitDates, inspectionState, inventoryItemState, irrigationRecipeState, measurementState, plantState, remoteSyncReady, taskState, viewingShare]);
+  }, [accountStatus.userId, acknowledgedEnvironmentalAlerts, entryState, environmentalAlertState, eventState, habitDates, inspectionState, inventoryItemState, irrigationRecipeState, measurementState, plantState, productCatalogState, remoteSyncReady, taskState, viewingShare]);
 
   useEffect(() => {
     if (!accountStatus.isSignedIn || !accountStatus.userId || viewingShare) {
@@ -1696,6 +1707,7 @@ export function AppShell({
     setInspectionState([]);
     setIrrigationRecipeState([]);
     setInventoryItemState([]);
+    setProductCatalogState([]);
     setEnvironmentalAlertState([]);
     setAcknowledgedEnvironmentalAlerts([]);
     persistStoredState(storageKeys.plants, []);
@@ -1707,6 +1719,7 @@ export function AppShell({
     persistStoredState(storageKeys.inspections, []);
     persistStoredState(storageKeys.irrigationRecipes, []);
     persistStoredState(storageKeys.inventoryItems, []);
+    persistStoredState(storageKeys.productCatalog, []);
     persistStoredState(storageKeys.environmentalAlerts, []);
     persistStoredState(storageKeys.acknowledgedEnvironmentalAlerts, []);
     removeStoredState(storageKeys.calendarDate);
@@ -1861,12 +1874,14 @@ export function AppShell({
           inspections={inspectionState}
           irrigationRecipes={irrigationRecipeState}
           inventoryItems={inventoryItemState}
+          productCatalog={productCatalogState}
           onAddJournalEntry={handleAddJournalEntry}
           onAddCalendarEvent={handleAddCalendarEvent}
           onAddMeasurement={handleAddMeasurement}
           onSaveInspection={handleSaveInspection}
           onSaveIrrigationRecipe={handleSaveIrrigationRecipe}
           onSaveInventoryItem={handleSaveInventoryItem}
+          onSaveProductCatalogItem={handleSaveProductCatalogItem}
           onDeleteMeasurement={handleDeleteMeasurement}
           onUpdateEnvironmentalAlerts={handleUpdateEnvironmentalAlerts}
           onCreateSensorDevice={handleCreateSensorDevice}
@@ -2739,6 +2754,7 @@ function SpacesSection({
   inspections,
   irrigationRecipes,
   inventoryItems,
+  productCatalog,
   measurements,
   onAddCalendarEvent,
   onAddJournalEntry,
@@ -2746,6 +2762,7 @@ function SpacesSection({
   onSaveInspection,
   onSaveIrrigationRecipe,
   onSaveInventoryItem,
+  onSaveProductCatalogItem,
   onDeleteMeasurement,
   onUpdateEnvironmentalAlerts,
   onCreateSensorDevice,
@@ -2765,6 +2782,7 @@ function SpacesSection({
   inspections: PlantInspection[];
   irrigationRecipes: IrrigationRecipe[];
   inventoryItems: InventoryItem[];
+  productCatalog: ProductCatalogItem[];
   measurements: PlantMeasurement[];
   onAddCalendarEvent: (event: CalendarEvent) => void;
   onAddJournalEntry: (entry: CareEntry) => void;
@@ -2772,6 +2790,7 @@ function SpacesSection({
   onSaveInspection: (inspection: PlantInspection) => void;
   onSaveIrrigationRecipe: (recipe: IrrigationRecipe) => void;
   onSaveInventoryItem: (item: InventoryItem) => void;
+  onSaveProductCatalogItem: (item: ProductCatalogItem) => void;
   onDeleteMeasurement: (measurementId: string) => void;
   onUpdateEnvironmentalAlerts: (settings: PlantEnvironmentalAlertSettings) => void;
   onCreateSensorDevice: (plantId: string, name: string) => Promise<string | null>;
@@ -2847,7 +2866,8 @@ function SpacesSection({
         ) : <EmptyState body="Creá una planta o maceta antes de registrar mediciones." title="No hay macetas disponibles" />}
       </Card>
 
-      <InventoryPanel items={inventoryItems} onSaveItem={onSaveInventoryItem} />
+      <ProductCatalogPanel items={productCatalog} onSaveItem={onSaveProductCatalogItem} plants={activePlants} />
+      <InventoryPanel items={inventoryItems} onSaveItem={onSaveInventoryItem} products={productCatalog} />
       <BatchIrrigationPanel inventoryItems={inventoryItems} onAddMeasurement={onAddMeasurement} onSaveInventoryItem={onSaveInventoryItem} onSaveRecipe={onSaveIrrigationRecipe} plants={activePlants} recipes={irrigationRecipes} />
 
       <div className="genetics-reference-panel mt-5 rounded-lg border p-4">
@@ -3237,10 +3257,18 @@ function PlantDataCoverage({ measurements, plant }: { measurements: PlantMeasure
   return <section className="plant-data-coverage" aria-label={`Cobertura de datos de ${plant.name}`}><header><div><p className="plant-calculation-eyebrow">Calidad del historial</p><h4>Cobertura de los últimos 30 días</h4><span>Cuenta solamente campos realmente registrados desde {formatDisplayDate(startDate)}.</span></div><span className="pill pill-blue">{covered} de {coverage.length} variables</span></header><dl>{coverage.map(([label, count]) => <div className={count === 0 ? "is-missing" : ""} key={label}><dt>{label}</dt><dd>{count === 0 ? "Sin datos" : `${count} registro${count === 1 ? "" : "s"}`}</dd></div>)}</dl><p>La ausencia de una variable no implica un problema de cultivo; solo indica que no fue registrada durante esta ventana.</p></section>;
 }
 
-function InventoryPanel({ items, onSaveItem }: { items: InventoryItem[]; onSaveItem: (item: InventoryItem) => void }) {
-  const [name, setName] = useState(""); const [category, setCategory] = useState<InventoryItem["category"]>("nutrient"); const [quantity, setQuantity] = useState(""); const [unit, setUnit] = useState("ml"); const [minimum, setMinimum] = useState(""); const [status, setStatus] = useState("");
-  function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const parsedQuantity = parseOptionalNumber(quantity); if (!name.trim() || parsedQuantity === undefined) return; onSaveItem({ category, id: `inventory-${Date.now()}`, minimumQuantity: parseOptionalNumber(minimum), name: name.trim(), quantity: parsedQuantity, unit: unit.trim() || "unidad" }); setName(""); setQuantity(""); setMinimum(""); setStatus("Insumo guardado en tu inventario."); }
-  return <Card as="section" className="inventory-panel mt-5 p-4 sm:p-5"><SectionHeader eyebrow="Control propio" title="Inventario de insumos" /><p>Las cantidades y mínimos los define el usuario. PlantCare no recomienda productos ni existencias necesarias.</p><form onSubmit={submit}><label>Nombre<input className="form-control" onChange={(event) => setName(event.target.value)} required value={name} /></label><label>Categoría<select className="form-control" onChange={(event) => setCategory(event.target.value as InventoryItem["category"])} value={category}><option value="nutrient">Nutriente</option><option value="substrate">Sustrato</option><option value="treatment">Tratamiento</option><option value="other">Otro</option></select></label><label>Cantidad<input className="form-control" min="0" onChange={(event) => setQuantity(event.target.value)} required step="0.01" type="number" value={quantity} /></label><label>Unidad<input className="form-control" onChange={(event) => setUnit(event.target.value)} value={unit} /></label><label>Mínimo para aviso<input className="form-control" min="0" onChange={(event) => setMinimum(event.target.value)} step="0.01" type="number" value={minimum} /></label><button className="primary-button" type="submit">Agregar insumo</button></form><div className="inventory-list">{items.map((item) => <article key={item.id}><div><strong>{item.name}</strong><span>{item.quantity} {item.unit}{item.minimumQuantity === undefined ? "" : ` · mínimo ${item.minimumQuantity}`}</span></div><div><button className="text-button" onClick={() => onSaveItem({ ...item, quantity: Number((item.quantity + 1).toFixed(2)) })} type="button">+1</button><button className="text-button" disabled={item.quantity <= 0} onClick={() => onSaveItem({ ...item, quantity: Number(Math.max(0, item.quantity - 1).toFixed(2)) })} type="button">−1</button></div></article>)}</div>{status ? <p role="status">{status}</p> : null}</Card>;
+function ProductCatalogPanel({ items, onSaveItem, plants }: { items: ProductCatalogItem[]; onSaveItem: (item: ProductCatalogItem) => void; plants: Plant[] }) {
+  const [name, setName] = useState(""); const [brand, setBrand] = useState(""); const [category, setCategory] = useState<ProductCatalogItem["category"]>("nutrient"); const [composition, setComposition] = useState(""); const [stages, setStages] = useState(""); const [mode, setMode] = useState<Plant["mode"] | "">(""); const [packageQuantity, setPackageQuantity] = useState(""); const [packageUnit, setPackageUnit] = useState("ml"); const [price, setPrice] = useState(""); const [currency, setCurrency] = useState("ARS"); const [sourceUrl, setSourceUrl] = useState(""); const [sourceCheckedAt, setSourceCheckedAt] = useState(getTodayIso()); const [selectedPlantId, setSelectedPlantId] = useState(plants[0]?.id ?? ""); const [status, setStatus] = useState("");
+  const selectedPlant = plants.find((plant) => plant.id === selectedPlantId);
+  function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const cleanSource = sourceUrl.trim(); if (cleanSource && !/^https?:\/\//i.test(cleanSource)) { setStatus("La fuente debe comenzar con http:// o https://."); return; } onSaveItem({ brand: brand.trim() || undefined, category, compatibleModes: mode ? [mode] : [], compatibleStages: stages.split(",").map((item) => item.trim()).filter(Boolean), composition: composition.trim() || undefined, currency: price ? currency.trim().toUpperCase() || undefined : undefined, id: `product-${Date.now()}`, name: name.trim(), packageQuantity: parseOptionalNumber(packageQuantity), packageUnit: packageUnit.trim() || undefined, price: parseOptionalNumber(price), sourceCheckedAt: cleanSource ? sourceCheckedAt || undefined : undefined, sourceUrl: cleanSource || undefined }); setName(""); setBrand(""); setComposition(""); setStages(""); setPrice(""); setSourceUrl(""); setStatus("Producto agregado al catálogo privado."); }
+  return <Card as="section" className="product-catalog-panel mt-5 p-4 sm:p-5"><SectionHeader eyebrow="Referencia declarada" title="Catálogo y comparación de productos" /><p>Guardá datos de la etiqueta o de una fuente verificable. PlantCare compara compatibilidad declarada y precio unitario; no prescribe dosis ni diagnostica necesidades.</p><form onSubmit={submit}><label>Producto<input className="form-control" onChange={(event) => setName(event.target.value)} required value={name} /></label><label>Marca opcional<input className="form-control" onChange={(event) => setBrand(event.target.value)} value={brand} /></label><label>Categoría<select className="form-control" onChange={(event) => setCategory(event.target.value as ProductCatalogItem["category"])} value={category}><option value="nutrient">Nutriente</option><option value="substrate">Sustrato</option><option value="treatment">Tratamiento</option><option value="other">Otro</option></select></label><label>Composición declarada<input className="form-control" onChange={(event) => setComposition(event.target.value)} placeholder="Copiar etiqueta, sin inferir" value={composition} /></label><label>Etapas declaradas<input className="form-control" onChange={(event) => setStages(event.target.value)} placeholder="Vegetativo, floración" value={stages} /></label><label>Modalidad declarada<select className="form-control" onChange={(event) => setMode(event.target.value as Plant["mode"] | "")} value={mode}><option value="">Sin especificar</option><option value="Interior">Interior</option><option value="Exterior">Exterior</option><option value="Invernadero">Invernadero</option></select></label><label>Contenido<input className="form-control" min="0" onChange={(event) => setPackageQuantity(event.target.value)} step="0.01" type="number" value={packageQuantity} /></label><label>Unidad<input className="form-control" onChange={(event) => setPackageUnit(event.target.value)} value={packageUnit} /></label><label>Precio<input className="form-control" min="0" onChange={(event) => setPrice(event.target.value)} step="0.01" type="number" value={price} /></label><label>Moneda<input className="form-control" onChange={(event) => setCurrency(event.target.value)} value={currency} /></label><label>Fuente<input className="form-control" onChange={(event) => setSourceUrl(event.target.value)} placeholder="https://..." type="url" value={sourceUrl} /></label><label>Fuente revisada<input className="form-control" onChange={(event) => setSourceCheckedAt(event.target.value)} type="date" value={sourceCheckedAt} /></label><button className="primary-button" type="submit">Guardar referencia</button></form>{status ? <p role="status">{status}</p> : null}<div className="product-comparison"><label>Comparar para una maceta<select className="form-control" onChange={(event) => setSelectedPlantId(event.target.value)} value={selectedPlantId}><option value="">Sin seleccionar</option>{plants.map((plant) => <option key={plant.id} value={plant.id}>{plant.name} · {plant.stage} · {plant.mode}</option>)}</select></label><div>{items.map((item) => { const normalizedStage = selectedPlant?.stage.trim().toLowerCase() ?? ""; const stageMatch = item.compatibleStages.length === 0 || !selectedPlant ? undefined : item.compatibleStages.some((stage) => normalizedStage.includes(stage.toLowerCase()) || stage.toLowerCase().includes(normalizedStage)); const modeMatch = item.compatibleModes.length === 0 || !selectedPlant ? undefined : item.compatibleModes.includes(selectedPlant.mode); const unitPrice = item.price !== undefined && item.packageQuantity ? item.price / item.packageQuantity : undefined; const missing = [!item.composition && "composición", item.price === undefined && "precio", !item.packageQuantity && "contenido", !item.sourceUrl && "fuente", item.compatibleStages.length === 0 && "etapa compatible", item.compatibleModes.length === 0 && "modalidad compatible"].filter(Boolean) as string[]; return <article key={item.id}><header><div><strong>{item.name}</strong><span>{item.brand || "Marca no declarada"} · {item.category}</span></div><span className={`pill ${stageMatch === false || modeMatch === false ? "pill-amber" : stageMatch && modeMatch ? "pill-green" : "pill-blue"}`}>{stageMatch === false || modeMatch === false ? "Revisar compatibilidad" : stageMatch && modeMatch ? "Coincide con lo declarado" : "Compatibilidad incompleta"}</span></header><p>{item.composition || "Composición no registrada."}</p><dl><div><dt>Precio</dt><dd>{item.price === undefined ? "Sin dato" : `${item.currency || ""} ${item.price}`}</dd></div><div><dt>Precio unitario</dt><dd>{unitPrice === undefined ? "No calculable" : `${item.currency || ""} ${unitPrice.toFixed(2)} / ${item.packageUnit || "unidad"}`}</dd></div><div><dt>Etapa</dt><dd>{stageMatch === undefined ? "No declarada" : stageMatch ? "Compatible declarada" : "No coincide"}</dd></div><div><dt>Modalidad</dt><dd>{modeMatch === undefined ? "No declarada" : modeMatch ? "Compatible declarada" : "No coincide"}</dd></div></dl>{missing.length ? <small>Datos faltantes: {missing.join(", ")}.</small> : null}{item.sourceUrl ? <a href={item.sourceUrl} rel="noreferrer" target="_blank">Ver fuente{item.sourceCheckedAt ? ` · revisada ${formatDisplayDate(item.sourceCheckedAt)}` : ""}</a> : null}</article>; })}</div></div></Card>;
+}
+
+function InventoryPanel({ items, onSaveItem, products }: { items: InventoryItem[]; onSaveItem: (item: InventoryItem) => void; products: ProductCatalogItem[] }) {
+  const [catalogProductId, setCatalogProductId] = useState(""); const [name, setName] = useState(""); const [category, setCategory] = useState<InventoryItem["category"]>("nutrient"); const [quantity, setQuantity] = useState(""); const [unit, setUnit] = useState("ml"); const [minimum, setMinimum] = useState(""); const [lotNumber, setLotNumber] = useState(""); const [expiresAt, setExpiresAt] = useState(""); const [status, setStatus] = useState("");
+  function selectProduct(id: string) { setCatalogProductId(id); const product = products.find((item) => item.id === id); if (!product) return; setName(product.name); setCategory(product.category); setUnit(product.packageUnit || "unidad"); }
+  function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const parsedQuantity = parseOptionalNumber(quantity); if (!name.trim() || parsedQuantity === undefined) return; const product = products.find((item) => item.id === catalogProductId); onSaveItem({ catalogProductId: product?.id, category, expiresAt: expiresAt || undefined, id: `inventory-${Date.now()}`, lotNumber: lotNumber.trim() || undefined, minimumQuantity: parseOptionalNumber(minimum), name: name.trim(), quantity: parsedQuantity, sourceUrl: product?.sourceUrl, unit: unit.trim() || "unidad" }); setCatalogProductId(""); setName(""); setQuantity(""); setMinimum(""); setLotNumber(""); setExpiresAt(""); setStatus("Insumo guardado en tu inventario."); }
+  return <Card as="section" className="inventory-panel mt-5 p-4 sm:p-5"><SectionHeader eyebrow="Control propio" title="Inventario de insumos" /><p>Podés vincular una referencia del catálogo o cargar un insumo libre. Cantidades, lotes, vencimientos y mínimos siempre son declarados por el usuario.</p><form onSubmit={submit}><label>Producto del catálogo<select className="form-control" onChange={(event) => selectProduct(event.target.value)} value={catalogProductId}><option value="">Carga libre</option>{products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}</select></label><label>Nombre<input className="form-control" onChange={(event) => setName(event.target.value)} required value={name} /></label><label>Categoría<select className="form-control" onChange={(event) => setCategory(event.target.value as InventoryItem["category"])} value={category}><option value="nutrient">Nutriente</option><option value="substrate">Sustrato</option><option value="treatment">Tratamiento</option><option value="other">Otro</option></select></label><label>Cantidad<input className="form-control" min="0" onChange={(event) => setQuantity(event.target.value)} required step="0.01" type="number" value={quantity} /></label><label>Unidad<input className="form-control" onChange={(event) => setUnit(event.target.value)} value={unit} /></label><label>Mínimo para aviso<input className="form-control" min="0" onChange={(event) => setMinimum(event.target.value)} step="0.01" type="number" value={minimum} /></label><label>Lote opcional<input className="form-control" onChange={(event) => setLotNumber(event.target.value)} value={lotNumber} /></label><label>Vencimiento opcional<input className="form-control" onChange={(event) => setExpiresAt(event.target.value)} type="date" value={expiresAt} /></label><button className="primary-button" type="submit">Agregar insumo</button></form><div className="inventory-list">{items.map((item) => <article key={item.id}><div><strong>{item.name}</strong><span>{item.quantity} {item.unit}{item.minimumQuantity === undefined ? "" : ` · mínimo ${item.minimumQuantity}`}{item.lotNumber ? ` · lote ${item.lotNumber}` : ""}{item.expiresAt ? ` · vence ${formatDisplayDate(item.expiresAt)}` : ""}</span></div><div><button className="text-button" onClick={() => onSaveItem({ ...item, quantity: Number((item.quantity + 1).toFixed(2)) })} type="button">+1</button><button className="text-button" disabled={item.quantity <= 0} onClick={() => onSaveItem({ ...item, quantity: Number(Math.max(0, item.quantity - 1).toFixed(2)) })} type="button">−1</button></div></article>)}</div>{status ? <p role="status">{status}</p> : null}</Card>;
 }
 
 function BatchIrrigationPanel({ inventoryItems, onAddMeasurement, onSaveInventoryItem, onSaveRecipe, plants, recipes }: { inventoryItems: InventoryItem[]; onAddMeasurement: (measurement: PlantMeasurement) => void; onSaveInventoryItem: (item: InventoryItem) => void; onSaveRecipe: (recipe: IrrigationRecipe) => void; plants: Plant[]; recipes: IrrigationRecipe[] }) {

@@ -143,6 +143,27 @@ export type InventoryItem = {
   unit: string;
   minimumQuantity?: number;
   notes?: string;
+  catalogProductId?: string;
+  lotNumber?: string;
+  expiresAt?: string;
+  sourceUrl?: string;
+};
+
+export type ProductCatalogItem = {
+  id: string;
+  name: string;
+  brand?: string;
+  category: InventoryItem["category"];
+  composition?: string;
+  compatibleStages: string[];
+  compatibleModes: GrowMode[];
+  packageQuantity?: number;
+  packageUnit?: string;
+  price?: number;
+  currency?: string;
+  sourceUrl?: string;
+  sourceCheckedAt?: string;
+  notes?: string;
 };
 
 export type PlantInspection = {
