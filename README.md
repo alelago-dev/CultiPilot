@@ -175,6 +175,7 @@ Las respuestas generadas mediante IA deben presentarse como asistencia orientati
 10. Sensor: enviar una peticion valida a `ingest-sensor`. Resultado esperado: se crea una medicion con origen `sensor`; un token inexistente o desactivado recibe HTTP 401.
 11. Notificaciones push: con sesion iniciada, activar los avisos en Hoy y llamar a `send-reminders` con el `x-cron-secret` correcto teniendo una tarea vencida. Resultado esperado: llega una notificacion del navegador; sin el header (o con uno incorrecto) la funcion responde HTTP 401.
 12. Comparador de periodos: registrar al menos 3 mediciones por ventana con VPD fuera de rango en el periodo actual y dentro de rango en el anterior. Resultado esperado: aparece una explicacion senalando el corrimiento de VPD; con menos de 3 mediciones comparables por ventana, o sin corrimiento notable, la app dice explicitamente que faltan datos o que no encontro un cambio, en vez de forzar una lectura.
+13. Espacios: crear un espacio nuevo desde "+ Nuevo espacio" (nombre, modalidad, region, privacidad). Editarlo con "Editar espacio" y confirmar que los cambios quedan. Borrar un espacio sin macetas se confirma y desaparece. Borrar un espacio con macetas exige elegir a que otro espacio se mudan (activas y archivadas); al confirmar, las macetas reaparecen bajo el espacio elegido. Con un solo espacio restante no se puede borrar: se muestra un aviso en vez de un boton.
 
 ## Instalacion
 

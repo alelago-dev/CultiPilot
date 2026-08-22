@@ -583,6 +583,7 @@ label:has(> .form-control) {
 
 @media (max-width: 760px) {
   .spaces-command-header { align-items: stretch; }
+  .spaces-command-actions { flex-direction: column; align-items: stretch; }
   .spaces-search-control { width: 100%; }
   .environment-entry-heading { display: grid; }
   .environment-entry-badge { width: fit-content; }
@@ -6060,7 +6061,8 @@ textarea {
      boton estaba roto en vez de deshabilitado a proposito. */
   .primary-button:disabled,
   .secondary-button:disabled,
-  .dark-button:disabled {
+  .dark-button:disabled,
+  .danger-button:disabled {
     cursor: not-allowed;
     opacity: 0.5;
     filter: grayscale(0.3);
@@ -6068,7 +6070,8 @@ textarea {
 
   .primary-button:disabled:hover,
   .secondary-button:disabled:hover,
-  .dark-button:disabled:hover {
+  .dark-button:disabled:hover,
+  .danger-button:disabled:hover {
     transform: none !important;
     box-shadow: none !important;
   }
@@ -7978,4 +7981,73 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
 .trichome-analyzer-status {
   color: var(--pc-muted);
   font-size: 0.78rem;
+}
+
+/*
+ * .space-create-control / .space-manage-controls (Espacios): antes no habia
+ * forma de crear, renombrar ni borrar un espacio -- quedaban fijos a los dos
+ * de demo. Escrito directo con tokens var(--pc-*), mismo criterio que
+ * .trichome-analyzer y compania: no necesita un parche aparte de modo oscuro.
+ */
+.spaces-command-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.space-create-control {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: end;
+}
+
+.space-create-form,
+.space-edit-form {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+  border: 1px solid var(--pc-border);
+  border-radius: var(--pc-radius-sm);
+  background: var(--pc-surface);
+  padding: 0.85rem;
+}
+
+.space-create-form label,
+.space-edit-form label {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--pc-foreground);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.space-manage-controls {
+  border-top: 1px solid var(--pc-border);
+  padding: 0.75rem 1.1rem;
+}
+
+.space-manage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.space-manage-hint {
+  color: var(--pc-muted);
+  font-size: 0.76rem;
+}
+
+.space-reassign-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--pc-foreground);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.space-reassign-picker .form-control {
+  min-height: 2.25rem;
 }

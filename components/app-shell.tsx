@@ -131,6 +131,7 @@ type AppSnapshot = {
   inspections: PlantInspection[];
   plants: Plant[];
   savedAt: string;
+  spaces: GrowSpace[];
   tasks: Task[];
   irrigationRecipes: IrrigationRecipe[];
   inventoryItems: InventoryItem[];
@@ -529,6 +530,7 @@ const storageKeys = {
   onboarding: "plantcare-onboarding-complete",
   plants: "plantcare-plants",
   quickChecks: "plantcare-quick-checks",
+  spaces: "plantcare-spaces",
   tasks: "plantcare-tasks",
   weatherConsent: "plantcare-weather-consent",
   weatherSnapshot: "plantcare-weather-snapshot"
@@ -547,6 +549,10 @@ export function AppShell({
   tasks
 }: AppShellProps) {
   const [plantState, setPlantState] = useStoredState(storageKeys.plants, plants);
+  // Los espacios (invernadero, balcon, etc.) llegaban como prop fija de demo:
+  // no habia forma de crear, renombrar ni borrar uno propio. Ahora es estado
+  // como el resto, con el mismo guardado local + remoto.
+  const [spaceState, setSpaceState] = useStoredState(storageKeys.spaces, spaces);
   const [taskState, setTaskState] = useStoredState(storageKeys.tasks, tasks);
   const [eventState, setEventState] = useStoredState(storageKeys.events, calendarEvents);
   const [entryState, setEntryState] = useStoredState(storageKeys.entries, entries);
@@ -677,6 +683,7 @@ export function AppShell({
       stageTransitions: stageTransitionState,
       plants: plantState,
       savedAt: new Date().toISOString(),
+      spaces: spaceState,
       tasks: taskState
     };
   }
@@ -685,6 +692,10 @@ export function AppShell({
     if (snapshot.acknowledgedEnvironmentalAlerts) {
       setAcknowledgedEnvironmentalAlerts(snapshot.acknowledgedEnvironmentalAlerts);
       persistStoredState(storageKeys.acknowledgedEnvironmentalAlerts, snapshot.acknowledgedEnvironmentalAlerts);
+    }
+    if (snapshot.spaces) {
+      setSpaceState(snapshot.spaces);
+      persistStoredState(storageKeys.spaces, snapshot.spaces);
     }
     if (snapshot.plants) {
       setPlantState(snapshot.plants);
@@ -1100,7 +1111,7 @@ export function AppShell({
       mode: "Interior",
       name: "Cultivo manual",
       pot: "Declarado por usuario",
-      spaceId: spaces[0]?.id ?? "space-patio",
+      spaceId: spaceState[0]?.id ?? "space-patio",
       stage: "Agenda manual",
       startedAt: todayIso,
       substrate: "Declarado por usuario",
@@ -1138,7 +1149,7 @@ export function AppShell({
         name: potCount > 1 ? `${plantName} #${plantNumber}` : plantName,
         pot: input.pot,
         setup: `Maceta ${plantNumber} de ${potCount}`,
-        spaceId: spaces[0]?.id ?? "space-patio",
+        spaceId: spaceState[0]?.id ?? "space-patio",
         stage: "Inicio",
         startedAt: input.startDate,
         substrate: input.substrate,
@@ -1210,7 +1221,7 @@ export function AppShell({
         name: potCount > 1 ? `${plantName} #${plantNumber}` : plantName,
         pot: input.pot,
         setup: `${input.setup} - Maceta ${plantNumber} de ${potCount}`,
-        spaceId: spaces[0]?.id ?? "space-patio",
+        spaceId: spaceState[0]?.id ?? "space-patio",
         stage: "Inicio declarado",
         startedAt: input.startDate,
         substrate: input.substrate,
@@ -1288,6 +1299,38 @@ export function AppShell({
     const nextPlants = [plant, ...plantState];
     setPlantState(nextPlants);
     persistStoredState(storageKeys.plants, nextPlants);
+  }
+
+  function handleCreateSpace(space: GrowSpace) {
+    const nextSpaces = [...spaceState, space];
+    setSpaceState(nextSpaces);
+    persistStoredState(storageKeys.spaces, nextSpaces);
+  }
+
+  function handleUpdateSpace(spaceId: string, updates: Partial<GrowSpace>) {
+    const nextSpaces = spaceState.map((space) => (space.id === spaceId ? { ...space, ...updates } : space));
+    setSpaceState(nextSpaces);
+    persistStoredState(storageKeys.spaces, nextSpaces);
+  }
+
+  // Nunca se borra un espacio con macetas adentro sin decir a donde van: si
+  // no llega reassignToSpaceId y hay macetas, no hace nada. Tampoco deja
+  // borrar el ultimo espacio (siempre tiene que quedar al menos uno).
+  function handleDeleteSpace(spaceId: string, reassignToSpaceId?: string) {
+    if (spaceState.length <= 1) return;
+
+    const hasPlants = plantState.some((plant) => plant.spaceId === spaceId);
+    if (hasPlants && (!reassignToSpaceId || reassignToSpaceId === spaceId)) return;
+
+    const nextSpaces = spaceState.filter((space) => space.id !== spaceId);
+    setSpaceState(nextSpaces);
+    persistStoredState(storageKeys.spaces, nextSpaces);
+
+    if (hasPlants && reassignToSpaceId) {
+      const nextPlants = plantState.map((plant) => (plant.spaceId === spaceId ? { ...plant, spaceId: reassignToSpaceId } : plant));
+      setPlantState(nextPlants);
+      persistStoredState(storageKeys.plants, nextPlants);
+    }
   }
 
   function handleAddJournalEntry(entry: CareEntry) {
@@ -1715,7 +1758,7 @@ export function AppShell({
     return () => window.clearTimeout(timeoutId);
     // saveRemoteSnapshot reads the current snapshot from state; these dependencies are the autosave trigger surface.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountStatus.userId, acknowledgedEnvironmentalAlerts, entryState, environmentalAlertState, eventState, habitDates, inspectionState, inventoryItemState, inventoryMovementState, irrigationRecipeState, measurementState, plantState, productCatalogState, remoteSyncReady, stageTransitionState, taskState, viewingShare]);
+  }, [accountStatus.userId, acknowledgedEnvironmentalAlerts, entryState, environmentalAlertState, eventState, habitDates, inspectionState, inventoryItemState, inventoryMovementState, irrigationRecipeState, measurementState, plantState, productCatalogState, remoteSyncReady, spaceState, stageTransitionState, taskState, viewingShare]);
 
   useEffect(() => {
     if (!accountStatus.isSignedIn || !accountStatus.userId || viewingShare) {
@@ -1930,13 +1973,16 @@ export function AppShell({
           onUpdateEnvironmentalAlerts={handleUpdateEnvironmentalAlerts}
           onCreateSensorDevice={handleCreateSensorDevice}
           onCreatePlant={handleCreatePlant}
+          onCreateSpace={handleCreateSpace}
+          onDeleteSpace={handleDeleteSpace}
           onRefreshSensors={refreshSensorData}
           onToggleSensorDevice={handleToggleSensorDevice}
           onUpdatePlant={handleUpdatePlant}
+          onUpdateSpace={handleUpdateSpace}
           plants={plantState}
           sensorDevices={sensorDevices}
           sensorStatus={sensorStatus}
-          spaces={spaces}
+          spaces={spaceState}
           tasks={taskState}
         />
       ) : null}
@@ -2827,9 +2873,12 @@ function SpacesSection({
   onUpdateEnvironmentalAlerts,
   onCreateSensorDevice,
   onCreatePlant,
+  onCreateSpace,
+  onDeleteSpace,
   onRefreshSensors,
   onToggleSensorDevice,
   onUpdatePlant,
+  onUpdateSpace,
   plants,
   sensorDevices,
   sensorStatus,
@@ -2859,9 +2908,12 @@ function SpacesSection({
   onUpdateEnvironmentalAlerts: (settings: PlantEnvironmentalAlertSettings) => void;
   onCreateSensorDevice: (plantId: string, name: string) => Promise<string | null>;
   onCreatePlant: (plant: Plant) => void;
+  onCreateSpace: (space: GrowSpace) => void;
+  onDeleteSpace: (spaceId: string, reassignToSpaceId?: string) => void;
   onRefreshSensors: () => Promise<void>;
   onToggleSensorDevice: (deviceId: string, active: boolean) => Promise<void>;
   onUpdatePlant: (plantId: string, updates: Partial<Plant>) => void;
+  onUpdateSpace: (spaceId: string, updates: Partial<GrowSpace>) => void;
   plants: Plant[];
   sensorDevices: SensorDevice[];
   sensorStatus: string;
@@ -2884,8 +2936,12 @@ function SpacesSection({
         const matchesPlant = [plant.name, plant.variety, plant.stage].join(" ").toLowerCase().includes(normalizedQuery);
         return plant.lifecycle !== "archived" && plant.spaceId === space.id && (!normalizedQuery || matchesSpace || matchesPlant);
       });
+      // Cuenta todas las macetas del espacio (activas y archivadas): una
+      // maceta archivada tambien necesita que la reasignen antes de poder
+      // borrar el espacio, aunque no aparezca en la lista de abajo.
+      const totalPlantCount = plants.filter((plant) => plant.spaceId === space.id).length;
 
-      return { ...space, plants: matchingPlants };
+      return { ...space, plants: matchingPlants, totalPlantCount };
     })
     .filter((space) => !normalizedQuery || space.name.toLowerCase().includes(normalizedQuery) || space.plants.length > 0);
 
@@ -2896,6 +2952,7 @@ function SpacesSection({
           <SectionHeader eyebrow="Cultivos" title="Espacios y plantas" />
           <p className="spaces-command-copy">Explorá cada ambiente, abrí una maceta para ver su historial o registrá una medición sin perder contexto.</p>
         </div>
+        <div className="spaces-command-actions">
         <label className="spaces-search-control">
           Buscar
           <input
@@ -2907,6 +2964,8 @@ function SpacesSection({
             value={query}
           />
         </label>
+        <CreateSpaceForm onCreateSpace={onCreateSpace} />
+        </div>
       </div>
 
       <Card as="section" className="environment-entry-card mt-5 p-4 sm:p-5" id="mediciones-ambientales" variant="elevated">
@@ -3021,6 +3080,13 @@ function SpacesSection({
                   <span>{space.privacyLevel}</span>
                 </div>
               </div>
+              <SpaceManageControls
+                allSpaces={spaces}
+                onDeleteSpace={onDeleteSpace}
+                onUpdateSpace={onUpdateSpace}
+                space={space}
+                totalPlantCount={space.totalPlantCount}
+              />
               <div className="grid gap-0 divide-y divide-moss-950/10 p-4">
                 {space.plants.map((plant) => (
                     <PlantSpaceRow
@@ -3067,6 +3133,173 @@ function SpacesSection({
 
       {popupGenetic ? <GeneticInfoPopup genetic={popupGenetic} onClose={() => setPopupGenetic(null)} /> : null}
     </section>
+  );
+}
+
+function CreateSpaceForm({ onCreateSpace }: { onCreateSpace: (space: GrowSpace) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [mode, setMode] = useState<GrowSpace["mode"]>("Exterior");
+  const [region, setRegion] = useState("");
+  const [privacyLevel, setPrivacyLevel] = useState<GrowSpace["privacyLevel"]>("Region aproximada");
+  const [message, setMessage] = useState("");
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!name.trim()) return;
+
+    onCreateSpace({
+      id: createEventId("space"),
+      mode,
+      name: name.trim(),
+      privacyLevel,
+      region: region.trim() || "Sin declarar"
+    });
+    setName("");
+    setRegion("");
+    setMessage("Espacio creado.");
+    setIsOpen(false);
+  }
+
+  return (
+    <div className="space-create-control">
+      <button className="secondary-button" onClick={() => setIsOpen((current) => !current)} type="button">
+        {isOpen ? "Cancelar" : "+ Nuevo espacio"}
+      </button>
+      {isOpen ? (
+        <form className="space-create-form" onSubmit={submit}>
+          <label>
+            Nombre
+            <input className="form-control" onChange={(event) => setName(event.target.value)} placeholder="Ej: Carpa 60x60" required value={name} />
+          </label>
+          <label>
+            Modalidad
+            <select className="form-control" onChange={(event) => setMode(event.target.value as GrowSpace["mode"])} value={mode}>
+              <option value="Exterior">Exterior</option>
+              <option value="Interior">Interior</option>
+              <option value="Invernadero">Invernadero</option>
+            </select>
+          </label>
+          <label>
+            Región declarada
+            <input className="form-control" onChange={(event) => setRegion(event.target.value)} placeholder="Ej: Zona sur, CABA" value={region} />
+          </label>
+          <label>
+            Privacidad
+            <select className="form-control" onChange={(event) => setPrivacyLevel(event.target.value as GrowSpace["privacyLevel"])} value={privacyLevel}>
+              <option value="Region aproximada">Región aproximada</option>
+              <option value="Interior privado">Interior privado</option>
+            </select>
+          </label>
+          <button className="primary-button" type="submit">Crear espacio</button>
+        </form>
+      ) : null}
+      {message ? <p role="status">{message}</p> : null}
+    </div>
+  );
+}
+
+// Cada card de espacio ofrece editar sus datos y borrarlo. Nunca se elimina
+// en silencio con macetas adentro: si hay al menos una (activa o archivada),
+// primero hay que elegir a que otro espacio se mudan.
+function SpaceManageControls({
+  allSpaces,
+  onDeleteSpace,
+  onUpdateSpace,
+  space,
+  totalPlantCount
+}: {
+  allSpaces: GrowSpace[];
+  onDeleteSpace: (spaceId: string, reassignToSpaceId?: string) => void;
+  onUpdateSpace: (spaceId: string, updates: Partial<GrowSpace>) => void;
+  space: GrowSpace;
+  totalPlantCount: number;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [name, setName] = useState(space.name);
+  const [mode, setMode] = useState<GrowSpace["mode"]>(space.mode);
+  const [region, setRegion] = useState(space.region);
+  const [privacyLevel, setPrivacyLevel] = useState<GrowSpace["privacyLevel"]>(space.privacyLevel);
+  const otherSpaces = allSpaces.filter((item) => item.id !== space.id);
+  const [reassignToSpaceId, setReassignToSpaceId] = useState(otherSpaces[0]?.id ?? "");
+  const hasPlants = totalPlantCount > 0;
+  const canDelete = allSpaces.length > 1 && (!hasPlants || Boolean(reassignToSpaceId));
+
+  function saveEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!name.trim()) return;
+
+    onUpdateSpace(space.id, { mode, name: name.trim(), privacyLevel, region: region.trim() || "Sin declarar" });
+    setIsEditing(false);
+  }
+
+  function handleDelete() {
+    if (!canDelete) return;
+
+    const targetName = otherSpaces.find((item) => item.id === reassignToSpaceId)?.name ?? "otro espacio";
+    const confirmMessage = hasPlants
+      ? `Eliminar "${space.name}"? Sus ${totalPlantCount} maceta${totalPlantCount === 1 ? "" : "s"} (incluidas las archivadas) se mueven a "${targetName}".`
+      : `Eliminar el espacio "${space.name}"? No tiene macetas. Esta acción no se puede deshacer.`;
+    const confirmed = window.confirm(confirmMessage);
+
+    if (!confirmed) return;
+
+    onDeleteSpace(space.id, hasPlants ? reassignToSpaceId : undefined);
+  }
+
+  return (
+    <div className="space-manage-controls">
+      <div className="space-manage-actions">
+        <button className="text-button" onClick={() => setIsEditing((current) => !current)} type="button">
+          {isEditing ? "Cancelar edición" : "Editar espacio"}
+        </button>
+        {allSpaces.length > 1 ? (
+          <>
+            {hasPlants ? (
+              <label className="space-reassign-picker">
+                Mover macetas a
+                <select className="form-control" onChange={(event) => setReassignToSpaceId(event.target.value)} value={reassignToSpaceId}>
+                  {otherSpaces.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+              </label>
+            ) : null}
+            <button className="danger-button" disabled={!canDelete} onClick={handleDelete} type="button">
+              Eliminar espacio
+            </button>
+          </>
+        ) : (
+          <span className="space-manage-hint">No se puede borrar: tiene que quedar al menos un espacio.</span>
+        )}
+      </div>
+      {isEditing ? (
+        <form className="space-edit-form" onSubmit={saveEdit}>
+          <label>
+            Nombre
+            <input className="form-control" onChange={(event) => setName(event.target.value)} required value={name} />
+          </label>
+          <label>
+            Modalidad
+            <select className="form-control" onChange={(event) => setMode(event.target.value as GrowSpace["mode"])} value={mode}>
+              <option value="Exterior">Exterior</option>
+              <option value="Interior">Interior</option>
+              <option value="Invernadero">Invernadero</option>
+            </select>
+          </label>
+          <label>
+            Región declarada
+            <input className="form-control" onChange={(event) => setRegion(event.target.value)} value={region} />
+          </label>
+          <label>
+            Privacidad
+            <select className="form-control" onChange={(event) => setPrivacyLevel(event.target.value as GrowSpace["privacyLevel"])} value={privacyLevel}>
+              <option value="Region aproximada">Región aproximada</option>
+              <option value="Interior privado">Interior privado</option>
+            </select>
+          </label>
+          <button className="secondary-button" type="submit">Guardar cambios</button>
+        </form>
+      ) : null}
+    </div>
   );
 }
 
