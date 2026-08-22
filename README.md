@@ -126,6 +126,10 @@ Hoy muestra por maceta cuándo se guardo la ultima medicion y su origen, sin imp
 
 Cada maceta puede cerrar y archivar su ciclo con una fecha y nota declaradas por el usuario. El cierre no borra mediciones, riegos, fotos ni bitacora y puede revertirse. Espacios separa los ciclos cerrados de los activos y permite comparar duracion registrada, cantidad de datos y VPD promedio calculado solamente sobre lecturas disponibles.
 
+Cada maceta activa puede registrar cambios de etapa con etapa anterior, etapa nueva, fecha y nota opcional declaradas. La accion actualiza la etapa vigente y conserva una transicion independiente que aparece en la linea de tiempo. El inicio del ciclo no se reetiqueta retroactivamente con la etapa actual y la app no reconstruye etapas anteriores sin evidencia.
+
+Hoy muestra los dias calendario transcurridos desde la ultima transicion declarada de cada maceta. Si no existe una fecha de cambio, indica que falta el dato en lugar de usar automaticamente la fecha de inicio o estimar una etapa. El resumen no determina cuando corresponde realizar la proxima transicion.
+
 El cierre de ciclo tambien admite resultado general declarado, pesos humedo y seco opcionales y aprendizajes escritos por el usuario. El resumen archivado distingue esos resultados de los calculos historicos. Desde un ciclo cerrado se puede crear una maceta nueva copiando solo su configuracion tecnica y declarando nombre, fecha y etapa inicial; la nueva maceta recibe un identificador independiente y nunca hereda tareas, mediciones, fotos, inspecciones ni resultados.
 
 Las alertas personalizadas permiten que el usuario defina por maceta limites minimos y maximos de temperatura, humedad ambiental, VPD calculado y humedad de sustrato. No hay umbrales personalizados implicitos. Cada aviso cita el valor, el limite configurado y la fecha/hora de la ultima medicion que lo activo; los limites forman parte del snapshot sincronizado.

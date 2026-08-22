@@ -6230,6 +6230,13 @@ textarea {
   .inventory-movements article > span { white-space: nowrap; color: #176b4d; font-size: 0.72rem; font-weight: 900; }
   .inventory-alerts > div { display: grid; gap: 0.45rem; margin-top: 0.7rem; }
   .inventory-alerts > p { margin-top: 0.65rem; }
+  .today-stage-summary > div { display: grid; gap: 0.45rem; margin-top: 0.7rem; }
+  .today-stage-summary a { display: grid; gap: 0.25rem; border: 1px solid rgba(49,72,62,.14); border-radius: 9px; background: rgba(255,255,255,.7); padding: 0.65rem; }
+  .today-stage-summary a > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.4rem; }
+  .today-stage-summary strong { color: #183126; font-size: 0.8rem; }
+  .today-stage-summary span { color: #176b4d; font-size: 0.68rem; font-weight: 900; }
+  .today-stage-summary p { color: #65746c; font-size: 0.68rem; font-weight: 750; }
+  .today-stage-summary > p { margin-top: 0.65rem; }
   .batch-irrigation-panel, .batch-irrigation-panel form { display: grid; gap: 0.75rem; }
   .batch-irrigation-panel > p, .batch-irrigation-panel form > p { color: #596a61; font-size: 0.75rem; font-weight: 750; }
   .batch-irrigation-panel fieldset { border: 0; }
@@ -6242,6 +6249,18 @@ textarea {
   .batch-inventory-row span { color: #34513f; font-size: .7rem; font-weight: 850; }
   .batch-recipe-row { display: grid; align-items: end; gap: .5rem; }
   .plant-inspection-panel { display: grid; gap: .65rem; margin-top: .85rem; border-top: 1px solid rgba(49,72,62,.18); padding-top: .9rem; }
+  .plant-stage-history { display: grid; gap: .65rem; margin-top: .85rem; border-top: 1px solid rgba(49,72,62,.18); padding-top: .9rem; }
+  .plant-stage-history > header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: .6rem; }
+  .plant-stage-history h4 { margin-top: .15rem; color: #13231b; font-size: 1rem; font-weight: 900; }
+  .plant-stage-history header span, .plant-stage-history > p { display: block; color: #65746c; font-size: .68rem; font-weight: 800; }
+  .plant-stage-history form { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .5rem; border-radius: 9px; background: rgba(238,244,240,.75); padding: .7rem; }
+  .plant-stage-history form label { display: grid; gap: .22rem; color: #31483e; font-size: .68rem; font-weight: 850; }
+  .plant-stage-history form .stage-note { grid-column: 1/-1; }
+  .stage-history-list { display: grid; gap: .42rem; }
+  .stage-history-list article { display: flex; align-items: center; justify-content: space-between; gap: .6rem; border-left: 3px solid #6e9278; border-radius: 8px; background: rgba(238,244,240,.72); padding: .58rem .68rem; }
+  .stage-history-list strong { color: #244535; font-size: .75rem; }
+  .stage-history-list p, .stage-history-list span { color: #65746c; font-size: .63rem; font-weight: 750; }
+  .stage-history-list span { white-space: nowrap; }
   .plant-inspection-panel > header { display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:.6rem; }
   .plant-inspection-panel h4 { margin-top:.15rem; color:#13231b; font-size:1rem; font-weight:900; }
   .plant-inspection-panel header span { display:block; color:#65746c; font-size:.68rem; font-weight:800; }

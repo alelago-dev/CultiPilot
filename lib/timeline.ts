@@ -1,6 +1,6 @@
 import { addDays, expandEventOccurrences, getTodayIso } from "@/lib/calendar-events";
 import { assessPlantEnvironment, getConfiguredEnvironmentalAlerts } from "@/lib/environment-intelligence";
-import type { CalendarEvent, CareEntry, Plant, PlantEnvironmentalAlertSettings, PlantMeasurement, Task } from "@/lib/types";
+import type { CalendarEvent, CareEntry, Plant, PlantEnvironmentalAlertSettings, PlantMeasurement, PlantStageTransition, Task } from "@/lib/types";
 
 export type PlantTimelineType =
   | "event"
@@ -21,7 +21,7 @@ export type PlantTimelineItem = {
   date: string;
   badge: string;
   status?: "completed" | "pending";
-  source: "calculated" | "calendar" | "entry" | "measurement" | "plant" | "task";
+  source: "calculated" | "calendar" | "entry" | "measurement" | "plant" | "stage-transition" | "task";
   photoDataUrl?: string;
 };
 
@@ -42,6 +42,7 @@ export function buildPlantTimeline({
   environmentalAlertSettings,
   measurements,
   plant,
+  stageTransitions,
   tasks
 }: {
   calendarEvents: CalendarEvent[];
@@ -49,6 +50,7 @@ export function buildPlantTimeline({
   environmentalAlertSettings?: PlantEnvironmentalAlertSettings;
   measurements: PlantMeasurement[];
   plant: Plant;
+  stageTransitions: PlantStageTransition[];
   tasks: Task[];
 }) {
   const today = getTodayIso();
@@ -127,7 +129,7 @@ export function buildPlantTimeline({
   const plantItems: PlantTimelineItem[] = [
     {
       badge: "Inicio",
-      body: `Inicio declarado para ${plant.variety}. Etapa actual: ${plant.stage}.`,
+      body: `Inicio declarado para ${plant.variety}.`,
       date: plant.startedAt,
       id: `plant-start-${plant.id}`,
       source: "plant",
@@ -135,8 +137,9 @@ export function buildPlantTimeline({
       type: "stage"
     }
   ];
+  const stageItems: PlantTimelineItem[] = stageTransitions.filter((transition) => transition.plantId === plant.id).map((transition) => ({ badge: "Declarada por usuario", body: `${transition.fromStage} → ${transition.toStage}.${transition.note ? ` ${transition.note}` : ""}`, date: transition.changedAt, id: `stage-${transition.id}`, source: "stage-transition", title: "Cambio de etapa", type: "stage" }));
 
-  return [...calendarItems, ...entryItems, ...taskItems, ...measurementItems, ...alertItems, ...plantItems].sort((first, second) => {
+  return [...calendarItems, ...entryItems, ...taskItems, ...measurementItems, ...alertItems, ...plantItems, ...stageItems].sort((first, second) => {
     const dateOrder = second.date.localeCompare(first.date);
     return dateOrder === 0 ? first.title.localeCompare(second.title) : dateOrder;
   });

@@ -58,6 +58,16 @@ export type Plant = {
   lessonsLearned?: string;
 };
 
+export type PlantStageTransition = {
+  id: string;
+  plantId: string;
+  fromStage: string;
+  toStage: string;
+  changedAt: string;
+  note?: string;
+  source: "user";
+};
+
 export type Task = {
   id: string;
   title: string;

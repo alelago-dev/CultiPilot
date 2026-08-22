@@ -55,6 +55,7 @@ import type {
   Plant,
   PlantEnvironmentalAlertSettings,
   PlantMeasurement,
+  PlantStageTransition,
   PlantInspection,
   ProductCatalogItem,
   SensorDevice,
@@ -130,6 +131,7 @@ type AppSnapshot = {
   inventoryItems: InventoryItem[];
   inventoryMovements: InventoryMovement[];
   productCatalog: ProductCatalogItem[];
+  stageTransitions: PlantStageTransition[];
 };
 
 // El tono define el color y el icono del cartel de estado de la cuenta, para
@@ -517,6 +519,7 @@ const storageKeys = {
   inventoryItems: "plantcare-inventory-items",
   inventoryMovements: "plantcare-inventory-movements",
   productCatalog: "plantcare-product-catalog",
+  stageTransitions: "plantcare-stage-transitions",
   environmentalAlerts: "plantcare-environmental-alerts",
   onboarding: "plantcare-onboarding-complete",
   plants: "plantcare-plants",
@@ -549,6 +552,7 @@ export function AppShell({
   const [inventoryItemState, setInventoryItemState] = useStoredState<InventoryItem[]>(storageKeys.inventoryItems, []);
   const [inventoryMovementState, setInventoryMovementState] = useStoredState<InventoryMovement[]>(storageKeys.inventoryMovements, []);
   const [productCatalogState, setProductCatalogState] = useStoredState<ProductCatalogItem[]>(storageKeys.productCatalog, []);
+  const [stageTransitionState, setStageTransitionState] = useStoredState<PlantStageTransition[]>(storageKeys.stageTransitions, []);
   const [environmentalAlertState, setEnvironmentalAlertState] = useStoredState<PlantEnvironmentalAlertSettings[]>(storageKeys.environmentalAlerts, []);
   const [acknowledgedEnvironmentalAlerts, setAcknowledgedEnvironmentalAlerts] = useStoredState<string[]>(storageKeys.acknowledgedEnvironmentalAlerts, []);
   const [weather, setWeather] = useState<WeatherReadiness>(() => getStoredWeatherSnapshot() ?? getWeatherReadiness("Ubicacion sin conectar"));
@@ -665,6 +669,7 @@ export function AppShell({
       inventoryItems: inventoryItemState,
       inventoryMovements: inventoryMovementState,
       productCatalog: productCatalogState,
+      stageTransitions: stageTransitionState,
       plants: plantState,
       savedAt: new Date().toISOString(),
       tasks: taskState
@@ -705,6 +710,7 @@ export function AppShell({
     if (snapshot.inventoryItems) { setInventoryItemState(snapshot.inventoryItems); persistStoredState(storageKeys.inventoryItems, snapshot.inventoryItems); }
     if (snapshot.inventoryMovements) { setInventoryMovementState(snapshot.inventoryMovements); persistStoredState(storageKeys.inventoryMovements, snapshot.inventoryMovements); }
     if (snapshot.productCatalog) { setProductCatalogState(snapshot.productCatalog); persistStoredState(storageKeys.productCatalog, snapshot.productCatalog); }
+    if (snapshot.stageTransitions) { setStageTransitionState(snapshot.stageTransitions); persistStoredState(storageKeys.stageTransitions, snapshot.stageTransitions); }
     if (snapshot.environmentalAlerts) {
       setEnvironmentalAlertState(snapshot.environmentalAlerts);
       persistStoredState(storageKeys.environmentalAlerts, snapshot.environmentalAlerts);
@@ -1347,6 +1353,12 @@ export function AppShell({
     setProductCatalogState(nextItems); persistStoredState(storageKeys.productCatalog, nextItems);
   }
 
+  function handleSaveStageTransition(transition: PlantStageTransition) {
+    const nextTransitions = [transition, ...stageTransitionState.filter((item) => item.id !== transition.id)];
+    setStageTransitionState(nextTransitions); persistStoredState(storageKeys.stageTransitions, nextTransitions);
+    handleUpdatePlant(transition.plantId, { stage: transition.toStage });
+  }
+
   function handleSaveInspection(inspection: PlantInspection) {
     const nextInspections = inspectionState.some((item) => item.id === inspection.id) ? inspectionState.map((item) => item.id === inspection.id ? inspection : item) : [inspection, ...inspectionState];
     setInspectionState(nextInspections); persistStoredState(storageKeys.inspections, nextInspections);
@@ -1698,7 +1710,7 @@ export function AppShell({
     return () => window.clearTimeout(timeoutId);
     // saveRemoteSnapshot reads the current snapshot from state; these dependencies are the autosave trigger surface.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountStatus.userId, acknowledgedEnvironmentalAlerts, entryState, environmentalAlertState, eventState, habitDates, inspectionState, inventoryItemState, inventoryMovementState, irrigationRecipeState, measurementState, plantState, productCatalogState, remoteSyncReady, taskState, viewingShare]);
+  }, [accountStatus.userId, acknowledgedEnvironmentalAlerts, entryState, environmentalAlertState, eventState, habitDates, inspectionState, inventoryItemState, inventoryMovementState, irrigationRecipeState, measurementState, plantState, productCatalogState, remoteSyncReady, stageTransitionState, taskState, viewingShare]);
 
   useEffect(() => {
     if (!accountStatus.isSignedIn || !accountStatus.userId || viewingShare) {
@@ -1725,6 +1737,7 @@ export function AppShell({
     setInventoryItemState([]);
     setInventoryMovementState([]);
     setProductCatalogState([]);
+    setStageTransitionState([]);
     setEnvironmentalAlertState([]);
     setAcknowledgedEnvironmentalAlerts([]);
     persistStoredState(storageKeys.plants, []);
@@ -1738,6 +1751,7 @@ export function AppShell({
     persistStoredState(storageKeys.inventoryItems, []);
     persistStoredState(storageKeys.inventoryMovements, []);
     persistStoredState(storageKeys.productCatalog, []);
+    persistStoredState(storageKeys.stageTransitions, []);
     persistStoredState(storageKeys.environmentalAlerts, []);
     persistStoredState(storageKeys.acknowledgedEnvironmentalAlerts, []);
     removeStoredState(storageKeys.calendarDate);
@@ -1867,6 +1881,7 @@ export function AppShell({
           calendarEvents={eventState}
           tasks={taskState}
           plants={plantState.filter((plant) => plant.lifecycle !== "archived")}
+          stageTransitions={stageTransitionState}
           measurements={measurementState}
           streakCount={streakCount}
           weatherStatus={weatherStatus}
@@ -1894,6 +1909,7 @@ export function AppShell({
           inventoryItems={inventoryItemState}
           inventoryMovements={inventoryMovementState}
           productCatalog={productCatalogState}
+          stageTransitions={stageTransitionState}
           onAddJournalEntry={handleAddJournalEntry}
           onAddCalendarEvent={handleAddCalendarEvent}
           onAddMeasurement={handleAddMeasurement}
@@ -1901,6 +1917,7 @@ export function AppShell({
           onSaveIrrigationRecipe={handleSaveIrrigationRecipe}
           onSaveInventoryItem={handleSaveInventoryItem}
           onSaveProductCatalogItem={handleSaveProductCatalogItem}
+          onSaveStageTransition={handleSaveStageTransition}
           onDeleteMeasurement={handleDeleteMeasurement}
           onUpdateEnvironmentalAlerts={handleUpdateEnvironmentalAlerts}
           onCreateSensorDevice={handleCreateSensorDevice}
@@ -2182,6 +2199,7 @@ function TodaySection({
   onToggleTask,
   openTasks,
   plants,
+  stageTransitions,
   measurements,
   streakCount,
   tasks,
@@ -2207,6 +2225,7 @@ function TodaySection({
   onToggleTask: (item: AgendaItem) => void;
   openTasks: number;
   plants: Plant[];
+  stageTransitions: PlantStageTransition[];
   measurements: PlantMeasurement[];
   streakCount: number;
   tasks: Task[];
@@ -2263,6 +2282,7 @@ function TodaySection({
           />
         </div>
         <EnvironmentalQuickAccess locale={locale} measurements={measurements} plants={plants} />
+        <TodayStageSummary locale={locale} plants={plants} transitions={stageTransitions} />
         <TodayEnvironmentalAlerts acknowledgedAlerts={acknowledgedEnvironmentalAlerts} environmentalAlerts={environmentalAlerts} locale={locale} measurements={measurements} onAcknowledge={onAcknowledgeEnvironmentalAlert} plants={plants} />
         <TodayInspectionFollowUps inspections={inspections} locale={locale} plants={plants} />
         <TodayInventoryAlerts inventoryItems={inventoryItems} onSaveInventoryItem={onSaveInventoryItem} />
@@ -2332,6 +2352,12 @@ function TodaySection({
       </section>
     </>
   );
+}
+
+function TodayStageSummary({ locale, plants, transitions }: { locale: Locale; plants: Plant[]; transitions: PlantStageTransition[] }) {
+  if (plants.length === 0) return null;
+  const today = parseIsoDate(getTodayIso()).getTime();
+  return <Card as="section" className="today-stage-summary mt-3 p-4 sm:p-5"><SectionHeader eyebrow="Etapas declaradas" title="Tiempo en la etapa actual" /><div>{plants.map((plant) => { const latest = transitions.filter((item) => item.plantId === plant.id).sort((first, second) => second.changedAt.localeCompare(first.changedAt))[0]; const days = latest ? Math.max(0, Math.floor((today - parseIsoDate(latest.changedAt.slice(0, 10)).getTime()) / 86_400_000)) : undefined; return <a href={`${getInternalSectionHref(locale, "spaces")}#${plant.id}`} key={plant.id}><div><strong>{plant.name}</strong><span>{plant.stage}</span></div><p>{latest ? `${days} día${days === 1 ? "" : "s"} desde el cambio declarado el ${formatDisplayDate(latest.changedAt.slice(0, 10))}` : "Sin una fecha de cambio de etapa registrada."}</p></a>; })}</div><p>Este resumen cuenta días calendario desde fechas declaradas. No estima cuándo debería cambiar la etapa.</p></Card>;
 }
 
 function TodayInventoryAlerts({ inventoryItems, onSaveInventoryItem }: { inventoryItems: InventoryItem[]; onSaveInventoryItem: (item: InventoryItem, context?: InventoryMovementContext) => void }) {
@@ -2777,11 +2803,13 @@ function SpacesSection({
   inventoryItems,
   inventoryMovements,
   productCatalog,
+  stageTransitions,
   measurements,
   onAddCalendarEvent,
   onAddJournalEntry,
   onAddMeasurement,
   onSaveInspection,
+  onSaveStageTransition,
   onSaveIrrigationRecipe,
   onSaveInventoryItem,
   onSaveProductCatalogItem,
@@ -2806,6 +2834,7 @@ function SpacesSection({
   inventoryItems: InventoryItem[];
   inventoryMovements: InventoryMovement[];
   productCatalog: ProductCatalogItem[];
+  stageTransitions: PlantStageTransition[];
   measurements: PlantMeasurement[];
   onAddCalendarEvent: (event: CalendarEvent) => void;
   onAddJournalEntry: (entry: CareEntry) => void;
@@ -2814,6 +2843,7 @@ function SpacesSection({
   onSaveIrrigationRecipe: (recipe: IrrigationRecipe) => void;
   onSaveInventoryItem: (item: InventoryItem, context?: InventoryMovementContext) => void;
   onSaveProductCatalogItem: (item: ProductCatalogItem) => void;
+  onSaveStageTransition: (transition: PlantStageTransition) => void;
   onDeleteMeasurement: (measurementId: string) => void;
   onUpdateEnvironmentalAlerts: (settings: PlantEnvironmentalAlertSettings) => void;
   onCreateSensorDevice: (plantId: string, name: string) => Promise<string | null>;
@@ -2978,11 +3008,13 @@ function SpacesSection({
                       environmentalAlertSettings={environmentalAlerts.find((settings) => settings.plantId === plant.id)}
                       measurements={measurements.filter((measurement) => measurement.plantId === plant.id)}
                       inspections={inspections.filter((inspection) => inspection.plantId === plant.id)}
+                      stageTransitions={stageTransitions.filter((transition) => transition.plantId === plant.id)}
                       key={plant.id}
                       onAddJournalEntry={onAddJournalEntry}
                       onAddCalendarEvent={onAddCalendarEvent}
                       onAddMeasurement={onAddMeasurement}
                       onSaveInspection={onSaveInspection}
+                      onSaveStageTransition={onSaveStageTransition}
                       onDeleteMeasurement={onDeleteMeasurement}
                       onUpdateEnvironmentalAlerts={onUpdateEnvironmentalAlerts}
                       onCreateSensorDevice={onCreateSensorDevice}
@@ -3026,6 +3058,7 @@ function PlantSpaceRow({
   onAddJournalEntry,
   onAddMeasurement,
   onSaveInspection,
+  onSaveStageTransition,
   onDeleteMeasurement,
   onUpdateEnvironmentalAlerts,
   onCreateSensorDevice,
@@ -3034,6 +3067,7 @@ function PlantSpaceRow({
   onToggleSensorDevice,
   onUpdatePlant,
   plant,
+  stageTransitions,
   sensorDevices,
   sensorStatus,
   tasks
@@ -3047,6 +3081,7 @@ function PlantSpaceRow({
   onAddJournalEntry: (entry: CareEntry) => void;
   onAddMeasurement: (measurement: PlantMeasurement) => void;
   onSaveInspection: (inspection: PlantInspection) => void;
+  onSaveStageTransition: (transition: PlantStageTransition) => void;
   onDeleteMeasurement: (measurementId: string) => void;
   onUpdateEnvironmentalAlerts: (settings: PlantEnvironmentalAlertSettings) => void;
   onCreateSensorDevice: (plantId: string, name: string) => Promise<string | null>;
@@ -3055,6 +3090,7 @@ function PlantSpaceRow({
   onToggleSensorDevice: (deviceId: string, active: boolean) => Promise<void>;
   onUpdatePlant: (plantId: string, updates: Partial<Plant>) => void;
   plant: Plant;
+  stageTransitions: PlantStageTransition[];
   sensorDevices: SensorDevice[];
   sensorStatus: string;
   tasks: Task[];
@@ -3103,6 +3139,7 @@ function PlantSpaceRow({
             plant={plant}
           />
           <PlantInspectionPanel inspections={inspections} onSaveInspection={onSaveInspection} plant={plant} />
+          <PlantStageHistoryPanel onSaveTransition={onSaveStageTransition} plant={plant} transitions={stageTransitions} />
           <PlantWeeklySummary
             calendarEvents={calendarEvents}
             entries={entries}
@@ -3139,9 +3176,16 @@ function PlantSpaceRow({
       <PlantStageProgress plant={plant} />
       <PlantQuickNote onAddJournalEntry={onAddJournalEntry} plant={plant} />
       <PlantUtilityPanel calendarEvents={calendarEvents} entries={entries} plant={plant} />
-      <PlantTimeline calendarEvents={calendarEvents} entries={entries} environmentalAlertSettings={environmentalAlertSettings} measurements={measurements} plant={plant} tasks={tasks} />
+      <PlantTimeline calendarEvents={calendarEvents} entries={entries} environmentalAlertSettings={environmentalAlertSettings} measurements={measurements} plant={plant} stageTransitions={stageTransitions} tasks={tasks} />
     </details>
   );
+}
+
+function PlantStageHistoryPanel({ onSaveTransition, plant, transitions }: { onSaveTransition: (transition: PlantStageTransition) => void; plant: Plant; transitions: PlantStageTransition[] }) {
+  const [isAdding, setIsAdding] = useState(false); const [toStage, setToStage] = useState(""); const [changedAt, setChangedAt] = useState(getTodayIso()); const [note, setNote] = useState(""); const [status, setStatus] = useState("");
+  const sorted = [...transitions].sort((first, second) => second.changedAt.localeCompare(first.changedAt));
+  function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); if (!toStage.trim()) return; if (toStage.trim().toLowerCase() === plant.stage.trim().toLowerCase()) { setStatus("La nueva etapa debe ser diferente de la etapa actual."); return; } onSaveTransition({ changedAt, fromStage: plant.stage, id: `stage-${plant.id}-${Date.now()}`, note: note.trim() || undefined, plantId: plant.id, source: "user", toStage: toStage.trim() }); setToStage(""); setNote(""); setIsAdding(false); setStatus("Cambio de etapa registrado con la fecha declarada."); }
+  return <section className="plant-stage-history"><header><div><p className="plant-calculation-eyebrow">Fenología declarada</p><h4>Historial de etapas</h4><span>Etapa actual: {plant.stage}</span></div><button className="secondary-button" onClick={() => setIsAdding((current) => !current)} type="button">{isAdding ? "Cancelar" : "Registrar cambio"}</button></header>{isAdding ? <form onSubmit={submit}><label>Nueva etapa<input className="form-control" onChange={(event) => setToStage(event.target.value)} placeholder="Nombre declarado por el usuario" required value={toStage} /></label><label>Fecha del cambio<input className="form-control" max={getTodayIso()} min={plant.startedAt} onChange={(event) => setChangedAt(event.target.value)} required type="date" value={changedAt} /></label><label className="stage-note">Nota opcional<textarea className="form-control" onChange={(event) => setNote(event.target.value)} rows={2} value={note} /></label><button className="primary-button" type="submit">Guardar cambio de etapa</button></form> : null}{status ? <p role="status">{status}</p> : null}<div className="stage-history-list">{sorted.length ? sorted.map((transition) => <article key={transition.id}><div><strong>{transition.fromStage} → {transition.toStage}</strong><p>{transition.note || "Sin nota adicional."}</p></div><span>{formatDisplayDate(transition.changedAt.slice(0, 10))} · usuario</span></article>) : <p>No hay cambios de etapa fechados. La etapa actual no recibe una fecha retroactiva.</p>}</div></section>;
 }
 
 function PlantWeeklySummary({

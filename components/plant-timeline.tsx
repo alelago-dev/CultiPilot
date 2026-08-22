@@ -8,7 +8,7 @@ import {
   type PlantTimelineItem,
   type PlantTimelineType
 } from "@/lib/timeline";
-import type { CalendarEvent, CareEntry, Plant, PlantEnvironmentalAlertSettings, PlantMeasurement, Task } from "@/lib/types";
+import type { CalendarEvent, CareEntry, Plant, PlantEnvironmentalAlertSettings, PlantMeasurement, PlantStageTransition, Task } from "@/lib/types";
 
 type PlantTimelineProps = {
   calendarEvents: CalendarEvent[];
@@ -16,14 +16,15 @@ type PlantTimelineProps = {
   environmentalAlertSettings?: PlantEnvironmentalAlertSettings;
   measurements: PlantMeasurement[];
   plant: Plant;
+  stageTransitions: PlantStageTransition[];
   tasks: Task[];
 };
 
-export function PlantTimeline({ calendarEvents, entries, environmentalAlertSettings, measurements, plant, tasks }: PlantTimelineProps) {
+export function PlantTimeline({ calendarEvents, entries, environmentalAlertSettings, measurements, plant, stageTransitions, tasks }: PlantTimelineProps) {
   const [activeFilter, setActiveFilter] = useState<PlantTimelineType | "all">("all");
   const timelineItems = useMemo(
-    () => buildPlantTimeline({ calendarEvents, entries, environmentalAlertSettings, measurements, plant, tasks }),
-    [calendarEvents, entries, environmentalAlertSettings, measurements, plant, tasks]
+    () => buildPlantTimeline({ calendarEvents, entries, environmentalAlertSettings, measurements, plant, stageTransitions, tasks }),
+    [calendarEvents, entries, environmentalAlertSettings, measurements, plant, stageTransitions, tasks]
   );
   const visibleItems =
     activeFilter === "all" ? timelineItems : timelineItems.filter((item) => item.type === activeFilter);
