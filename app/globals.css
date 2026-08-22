@@ -6218,6 +6218,12 @@ textarea {
   .inspection-followups strong { color:#4d3b22; font-size:.78rem; }
   .inspection-followups p { color:#66563e; font-size:.7rem; }
   .inspection-followups small { color:#786b57; font-size:.62rem; font-weight:800; }
+  .archived-cycle-lessons { border-left:3px solid #6e9278; background:rgba(234,244,237,.72); padding:.55rem .65rem; color:#34513f; font-size:.72rem; line-height:1.45; }
+  .archived-cycle-actions { display:grid; gap:.45rem; }
+  .clone-cycle-control { display:grid; gap:.45rem; }
+  .clone-cycle-control form { display:grid; gap:.5rem; border-radius:8px; background:rgba(238,244,240,.76); padding:.65rem; }
+  .clone-cycle-control label { display:grid; gap:.2rem; color:#31483e; font-size:.66rem; font-weight:850; }
+  .clone-cycle-control p { color:#617168; font-size:.64rem; font-weight:750; line-height:1.4; }
   @media(min-width:800px){.batch-irrigation-fields{grid-template-columns:repeat(6,minmax(0,1fr))}.batch-recipe-row{grid-template-columns:1fr 1fr auto auto}}
 
   @media (min-width: 900px) {

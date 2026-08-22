@@ -52,6 +52,10 @@ export type Plant = {
   lifecycle?: "active" | "archived";
   completedAt?: string;
   closingNotes?: string;
+  finalWetWeightG?: number;
+  finalDryWeightG?: number;
+  cycleOutcome?: "completed" | "partial" | "stopped";
+  lessonsLearned?: string;
 };
 
 export type Task = {

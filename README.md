@@ -114,6 +114,8 @@ Hoy muestra por maceta cuándo se guardo la ultima medicion y su origen, sin imp
 
 Cada maceta puede cerrar y archivar su ciclo con una fecha y nota declaradas por el usuario. El cierre no borra mediciones, riegos, fotos ni bitacora y puede revertirse. Espacios separa los ciclos cerrados de los activos y permite comparar duracion registrada, cantidad de datos y VPD promedio calculado solamente sobre lecturas disponibles.
 
+El cierre de ciclo tambien admite resultado general declarado, pesos humedo y seco opcionales y aprendizajes escritos por el usuario. El resumen archivado distingue esos resultados de los calculos historicos. Desde un ciclo cerrado se puede crear una maceta nueva copiando solo su configuracion tecnica y declarando nombre, fecha y etapa inicial; la nueva maceta recibe un identificador independiente y nunca hereda tareas, mediciones, fotos, inspecciones ni resultados.
+
 Las alertas personalizadas permiten que el usuario defina por maceta limites minimos y maximos de temperatura, humedad ambiental, VPD calculado y humedad de sustrato. No hay umbrales personalizados implicitos. Cada aviso cita el valor, el limite configurado y la fecha/hora de la ultima medicion que lo activo; los limites forman parte del snapshot sincronizado.
 
 Hoy reúne las alertas activas de todas las macetas y enlaza directamente a cada ficha. El resumen y la ficha usan la misma funcion de comparacion para evitar resultados distintos; solo evalúan la ultima lectura contra limites definidos por el usuario y no controlan equipos automaticamente.

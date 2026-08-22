@@ -1254,6 +1254,12 @@ export function AppShell({
     persistStoredState(storageKeys.plants, nextPlants);
   }
 
+  function handleCreatePlant(plant: Plant) {
+    const nextPlants = [plant, ...plantState];
+    setPlantState(nextPlants);
+    persistStoredState(storageKeys.plants, nextPlants);
+  }
+
   function handleAddJournalEntry(entry: CareEntry) {
     const nextEntries = [entry, ...entryState];
 
@@ -1847,6 +1853,7 @@ export function AppShell({
           onDeleteMeasurement={handleDeleteMeasurement}
           onUpdateEnvironmentalAlerts={handleUpdateEnvironmentalAlerts}
           onCreateSensorDevice={handleCreateSensorDevice}
+          onCreatePlant={handleCreatePlant}
           onRefreshSensors={refreshSensorData}
           onToggleSensorDevice={handleToggleSensorDevice}
           onUpdatePlant={handleUpdatePlant}
@@ -2712,6 +2719,7 @@ function SpacesSection({
   onDeleteMeasurement,
   onUpdateEnvironmentalAlerts,
   onCreateSensorDevice,
+  onCreatePlant,
   onRefreshSensors,
   onToggleSensorDevice,
   onUpdatePlant,
@@ -2735,6 +2743,7 @@ function SpacesSection({
   onDeleteMeasurement: (measurementId: string) => void;
   onUpdateEnvironmentalAlerts: (settings: PlantEnvironmentalAlertSettings) => void;
   onCreateSensorDevice: (plantId: string, name: string) => Promise<string | null>;
+  onCreatePlant: (plant: Plant) => void;
   onRefreshSensors: () => Promise<void>;
   onToggleSensorDevice: (deviceId: string, active: boolean) => Promise<void>;
   onUpdatePlant: (plantId: string, updates: Partial<Plant>) => void;
@@ -2924,7 +2933,7 @@ function SpacesSection({
         )}
       </div>
 
-      <ArchivedCyclesPanel entries={entries} measurements={measurements} onUpdatePlant={onUpdatePlant} plants={archivedPlants} />
+      <ArchivedCyclesPanel entries={entries} measurements={measurements} onCreatePlant={onCreatePlant} onUpdatePlant={onUpdatePlant} plants={archivedPlants} />
 
       {popupGenetic ? <GeneticInfoPopup genetic={popupGenetic} onClose={() => setPopupGenetic(null)} /> : null}
     </section>
@@ -3218,11 +3227,15 @@ function PlantCycleControls({ onUpdatePlant, plant }: { onUpdatePlant: (plantId:
   const [isClosing, setIsClosing] = useState(false);
   const [completedAt, setCompletedAt] = useState(getTodayIso());
   const [closingNotes, setClosingNotes] = useState("");
+  const [wetWeight, setWetWeight] = useState("");
+  const [dryWeight, setDryWeight] = useState("");
+  const [cycleOutcome, setCycleOutcome] = useState<NonNullable<Plant["cycleOutcome"]>>("completed");
+  const [lessonsLearned, setLessonsLearned] = useState("");
 
   function closeCycle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!completedAt) return;
-    onUpdatePlant(plant.id, { closingNotes: closingNotes.trim() || undefined, completedAt, lifecycle: "archived" });
+    onUpdatePlant(plant.id, { closingNotes: closingNotes.trim() || undefined, completedAt, cycleOutcome, finalDryWeightG: parseOptionalNumber(dryWeight), finalWetWeightG: parseOptionalNumber(wetWeight), lessonsLearned: lessonsLearned.trim() || undefined, lifecycle: "archived" });
     setIsClosing(false);
   }
 
@@ -3235,7 +3248,11 @@ function PlantCycleControls({ onUpdatePlant, plant }: { onUpdatePlant: (plantId:
         <form onSubmit={closeCycle}>
           <p>El historial no se borra. La fecha y la nota quedan declaradas por vos.</p>
           <label>Fecha de cierre<input className="form-control" max={getTodayIso()} onChange={(event) => setCompletedAt(event.target.value)} required type="date" value={completedAt} /></label>
+          <label>Resultado declarado<select className="form-control" onChange={(event) => setCycleOutcome(event.target.value as NonNullable<Plant["cycleOutcome"]>)} value={cycleOutcome}><option value="completed">Completado</option><option value="partial">Resultado parcial</option><option value="stopped">Interrumpido</option></select></label>
+          <label>Peso húmedo final (g, opcional)<input className="form-control" min="0" onChange={(event) => setWetWeight(event.target.value)} step="0.1" type="number" value={wetWeight} /></label>
+          <label>Peso seco final (g, opcional)<input className="form-control" min="0" onChange={(event) => setDryWeight(event.target.value)} step="0.1" type="number" value={dryWeight} /></label>
           <label>Nota de cierre (opcional)<textarea className="form-control" onChange={(event) => setClosingNotes(event.target.value)} rows={2} value={closingNotes} /></label>
+          <label>Aprendizajes para el próximo ciclo<textarea className="form-control" onChange={(event) => setLessonsLearned(event.target.value)} rows={2} value={lessonsLearned} /></label>
           <button className="secondary-button" type="submit">Confirmar cierre</button>
         </form>
       ) : null}
@@ -3246,11 +3263,13 @@ function PlantCycleControls({ onUpdatePlant, plant }: { onUpdatePlant: (plantId:
 function ArchivedCyclesPanel({
   entries,
   measurements,
+  onCreatePlant,
   onUpdatePlant,
   plants
 }: {
   entries: CareEntry[];
   measurements: PlantMeasurement[];
+  onCreatePlant: (plant: Plant) => void;
   onUpdatePlant: (plantId: string, updates: Partial<Plant>) => void;
   plants: Plant[];
 }) {
@@ -3269,8 +3288,8 @@ function ArchivedCyclesPanel({
         <CycleSelector label="Segundo ciclo" onChange={setSecondId} plants={plants} value={second.id} />
       </div>
       <div className="archived-cycle-comparison">
-        <ArchivedCycleCard entries={entries} measurements={measurements} onReopen={() => onUpdatePlant(first.id, { closingNotes: undefined, completedAt: undefined, lifecycle: "active" })} plant={first} />
-        <ArchivedCycleCard entries={entries} measurements={measurements} onReopen={() => onUpdatePlant(second.id, { closingNotes: undefined, completedAt: undefined, lifecycle: "active" })} plant={second} />
+        <ArchivedCycleCard entries={entries} measurements={measurements} onClone={onCreatePlant} onReopen={() => onUpdatePlant(first.id, { closingNotes: undefined, completedAt: undefined, cycleOutcome: undefined, finalDryWeightG: undefined, finalWetWeightG: undefined, lessonsLearned: undefined, lifecycle: "active" })} plant={first} />
+        <ArchivedCycleCard entries={entries} measurements={measurements} onClone={onCreatePlant} onReopen={() => onUpdatePlant(second.id, { closingNotes: undefined, completedAt: undefined, cycleOutcome: undefined, finalDryWeightG: undefined, finalWetWeightG: undefined, lessonsLearned: undefined, lifecycle: "active" })} plant={second} />
       </div>
     </Card>
   );
@@ -3280,7 +3299,7 @@ function CycleSelector({ label, onChange, plants, value }: { label: string; onCh
   return <label>{label}<select className="form-control" onChange={(event) => onChange(event.target.value)} value={value}>{plants.map((plant) => <option key={plant.id} value={plant.id}>{plant.name} · {plant.startedAt} → {plant.completedAt}</option>)}</select></label>;
 }
 
-function ArchivedCycleCard({ entries, measurements, onReopen, plant }: { entries: CareEntry[]; measurements: PlantMeasurement[]; onReopen: () => void; plant: Plant }) {
+function ArchivedCycleCard({ entries, measurements, onClone, onReopen, plant }: { entries: CareEntry[]; measurements: PlantMeasurement[]; onClone: (plant: Plant) => void; onReopen: () => void; plant: Plant }) {
   const plantMeasurements = measurements.filter((measurement) => measurement.plantId === plant.id);
   const plantEntries = entries.filter((entry) => entry.plantId === plant.id);
   const irrigationCount = plantMeasurements.filter((measurement) => measurement.waterAmountMl !== undefined).length;
@@ -3303,11 +3322,21 @@ function ArchivedCycleCard({ entries, measurements, onReopen, plant }: { entries
         <PlantFact label="Fotos" value={photoCount.toString()} />
         <PlantFact label="Notas" value={plantEntries.length.toString()} />
         <PlantFact label="VPD promedio calculado" value={averageVpd === undefined ? "Sin datos suficientes" : `${averageVpd} kPa (${vpdValues.length} lecturas)`} />
+        <PlantFact label="Resultado declarado" value={plant.cycleOutcome === "completed" ? "Completado" : plant.cycleOutcome === "partial" ? "Parcial" : plant.cycleOutcome === "stopped" ? "Interrumpido" : "Sin declarar"} />
+        <PlantFact label="Peso húmedo declarado" value={plant.finalWetWeightG === undefined ? "Sin dato" : `${plant.finalWetWeightG} g`} />
+        <PlantFact label="Peso seco declarado" value={plant.finalDryWeightG === undefined ? "Sin dato" : `${plant.finalDryWeightG} g`} />
       </dl>
       {plant.closingNotes ? <p className="archived-cycle-notes">{plant.closingNotes}</p> : null}
-      <button className="text-button" onClick={onReopen} type="button">Reabrir ciclo</button>
+      {plant.lessonsLearned ? <p className="archived-cycle-lessons"><strong>Aprendizajes:</strong> {plant.lessonsLearned}</p> : null}
+      <div className="archived-cycle-actions"><button className="text-button" onClick={onReopen} type="button">Reabrir ciclo</button><CloneCycleForm onClone={onClone} plant={plant} /></div>
     </article>
   );
+}
+
+function CloneCycleForm({ onClone, plant }: { onClone: (plant: Plant) => void; plant: Plant }) {
+  const [isOpen, setIsOpen] = useState(false); const [name, setName] = useState(`${plant.name} nuevo ciclo`); const [startDate, setStartDate] = useState(getTodayIso()); const [stage, setStage] = useState(plantStageOptions[0]); const [message, setMessage] = useState("");
+  function clone(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const cloned: Plant = { bank: plant.bank, id: `plant-clone-${Date.now()}`, legalRecordStatus: plant.legalRecordStatus, lifecycle: "active", lighting: plant.lighting, mode: plant.mode, name: name.trim() || `${plant.name} nuevo ciclo`, photoperiodHours: plant.photoperiodHours, pot: plant.pot, setup: plant.setup, spaceId: plant.spaceId, stage, startedAt: startDate, substrate: plant.substrate, variety: plant.variety }; onClone(cloned); setMessage("Nueva maceta creada sin copiar historial ni resultados."); setIsOpen(false); }
+  return <div className="clone-cycle-control"><button className="text-button" onClick={() => setIsOpen((current) => !current)} type="button">{isOpen ? "Cancelar clonación" : "Nuevo ciclo con esta configuración"}</button>{isOpen ? <form onSubmit={clone}><label>Nombre de la nueva maceta<input className="form-control" onChange={(event) => setName(event.target.value)} required value={name} /></label><label>Fecha de inicio<input className="form-control" onChange={(event) => setStartDate(event.target.value)} required type="date" value={startDate} /></label><label>Etapa inicial declarada<select className="form-control" onChange={(event) => setStage(event.target.value)} value={stage}>{plantStageOptions.map((option) => <option key={option}>{option}</option>)}</select></label><p>Se copian variedad, espacio, maceta, sustrato, luz y setup. No se copian tareas, mediciones, fotos, inspecciones ni resultados.</p><button className="secondary-button" type="submit">Crear ciclo independiente</button></form> : null}{message ? <p role="status">{message}</p> : null}</div>;
 }
 
 function getDaysBetween(startIso: string, endIso: string) {
