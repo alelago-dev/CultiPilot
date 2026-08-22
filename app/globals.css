@@ -7861,3 +7861,105 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
   color: var(--pc-muted);
   font-size: 0.78rem;
 }
+/*
+ * .trichome-analyzer (guia de tricomas, en Espacios). Escrito directo con
+ * tokens var(--pc-*), mismo criterio que .plant-qr-panel y compania.
+ */
+.trichome-analyzer {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+  border-top: 1px solid var(--pc-border);
+  padding-top: 0.9rem;
+}
+
+.trichome-analyzer > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.trichome-analyzer > header h4 {
+  margin-top: 0.15rem;
+  color: var(--pc-foreground);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.trichome-analyzer-body {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.trichome-analyzer-body > p {
+  color: var(--pc-muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.trichome-analyzer-upload {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--pc-foreground);
+}
+
+.trichome-analyzer-canvas {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--pc-radius-sm);
+  border: 1px solid var(--pc-border);
+  cursor: crosshair;
+  background: #111;
+}
+
+.trichome-analyzer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.trichome-analyzer-tally {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.trichome-analyzer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--pc-border);
+  border-radius: 999px;
+  background: var(--pc-surface);
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--pc-foreground);
+}
+
+.trichome-analyzer-dot {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+.trichome-analyzer-guide {
+  border-radius: var(--pc-radius-sm);
+  border: 1px solid var(--pc-border);
+  background: var(--pc-surface);
+  padding: 0.7rem 0.8rem;
+  color: var(--pc-muted);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.trichome-analyzer-status {
+  color: var(--pc-muted);
+  font-size: 0.78rem;
+}

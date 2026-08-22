@@ -12,6 +12,7 @@ import { PlantPhotoTimeline } from "@/components/plant-photo-timeline";
 import { PlantQrPanel } from "@/components/plant-qr-code";
 import { PlantTimeline } from "@/components/plant-timeline";
 import { PushNotificationsPanel } from "@/components/push-notifications-panel";
+import { TrichomeAnalyzer } from "@/components/trichome-analyzer";
 import { SeedsSection } from "@/components/seeds-section";
 import {
   buildMonthGrid,
@@ -3149,6 +3150,7 @@ function PlantSpaceRow({
             </button>
             <PlantCycleControls onUpdatePlant={onUpdatePlant} plant={plant} />
           </div>
+          <TrichomeAnalyzer onAddJournalEntry={onAddJournalEntry} plant={plant} />
           <PlantGeneticSummary genetic={plantGenetic} onOpenGenetic={onOpenGenetic} plant={plant} />
           <PlantCalculationSummary genetic={plantGenetic} plant={plant} />
           <PlantDataCalculations measurements={measurements} onUpdatePlant={onUpdatePlant} plant={plant} />
