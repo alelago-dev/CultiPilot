@@ -3,7 +3,7 @@
 import { type ChangeEvent, type Dispatch, type FormEvent, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
-import { Bug, Camera, Droplet, Eye, Leaf, MoonStar, NotebookPen, Scissors, Sparkles, Thermometer, type LucideIcon } from "lucide-react";
+import { Bug, Camera, Droplet, Eye, Leaf, MoonStar, NotebookPen, Scissors, Sparkles, Sun, Thermometer, type LucideIcon } from "lucide-react";
 
 import { Card } from "@/components/card";
 import { CopyValueButton } from "@/components/copy-button";
@@ -1809,6 +1809,7 @@ export function AppShell({
               <span className="hidden sm:inline">Medir VPD</span>
             </Link>
             <InstallAppButton />
+            <ThemeToggle />
             <div className="hidden items-center gap-2 rounded-lg border border-emerald-700/15 bg-white/88 px-3 py-2 text-sm font-bold text-moss-900 shadow-sm sm:flex">
               <span className="status-dot" aria-hidden="true" />
               Demo seguro
@@ -6315,6 +6316,55 @@ function InstallAppButton() {
   );
 }
 
+function getInitialTheme(): "light" | "dark" {
+  if (typeof document === "undefined") return "light";
+  return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+}
+
+function ThemeToggle() {
+  // El atributo data-theme ya lo aplica ThemeScript antes de hidratar (ver
+  // components/theme-script.tsx), asi que alcanza con leerlo del DOM en el
+  // inicializador perezoso de useState en vez de sincronizarlo en un
+  // efecto. Para quien vuelve con modo oscuro guardado puede haber un
+  // mismatch de hidratacion puntual en este boton (icono/aria-label);
+  // React lo resuelve solo, es el mismo tradeoff que usan la mayoria de
+  // los toggles de tema.
+  const [theme, setTheme] = useState<"light" | "dark">(getInitialTheme);
+
+  // La hidratacion de React sobre <html> no conoce data-theme (no forma
+  // parte del JSX del layout) y lo saca apenas termina de hidratar, aunque
+  // ThemeScript lo haya puesto antes. Este efecto vuelve a aplicarlo (y
+  // guarda la preferencia) cada vez que cambia el estado, incluida la
+  // primera vez despues de montar: es el uso correcto de un efecto, un
+  // sistema externo (el DOM, localStorage) sincronizado con el estado de
+  // React, no al reves.
+  useEffect(() => {
+    if (theme === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+    window.localStorage.setItem("pc-theme", theme);
+  }, [theme]);
+
+  function toggleTheme() {
+    setTheme((current) => (current === "dark" ? "light" : "dark"));
+  }
+
+  return (
+    <button
+      aria-label={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+      aria-pressed={theme === "dark"}
+      className="header-theme-button"
+      onClick={toggleTheme}
+      suppressHydrationWarning
+      type="button"
+    >
+      {theme === "dark" ? <Sun aria-hidden="true" size={17} strokeWidth={2.5} /> : <MoonStar aria-hidden="true" size={17} strokeWidth={2.5} />}
+    </button>
+  );
+}
+
 function BrandLogo() {
   return (
     <span className="brand-logo" aria-hidden="true">
@@ -6545,7 +6595,7 @@ function PlantFact({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="text-[11px] font-black uppercase text-stone-500">{label}</dt>
-      <dd className="mt-1 truncate font-bold text-moss-950">{value}</dd>
+      <dd className="mt-1 break-words font-bold leading-snug text-moss-950">{value}</dd>
     </div>
   );
 }

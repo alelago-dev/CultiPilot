@@ -4,8 +4,8 @@
   "description": "Calendario para seguimiento de cultivos horticolas legalmente permitidos.",
   "start_url": "./es/hoy/",
   "display": "standalone",
-  "background_color": "#f8faf5",
-  "theme_color": "#4f8f38",
+  "background_color": "#f0eee9",
+  "theme_color": "#2c4a3e",
   "orientation": "portrait-primary",
   "categories": ["productivity", "lifestyle"],
   "icons": [

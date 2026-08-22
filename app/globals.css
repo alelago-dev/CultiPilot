@@ -58,29 +58,60 @@
  * final para reemplazar de forma controlada los pases visuales históricos.
  * ----------------------------------------------------------------------- */
 :root {
-  --pc-background: #faf6ef;
+  --pc-background: #f0eee9;
   --pc-surface: #ffffff;
-  --pc-surface-subtle: #f1eee4;
-  --pc-foreground: #1b1b16;
-  --pc-muted: #5b5a4e;
-  --pc-border: #e4dfd1;
-  --pc-border-strong: #c7c2ae;
-  --pc-primary: #1f5c3f;
-  --pc-primary-hover: #163f2b;
-  --pc-primary-soft: #e6f1e8;
-  --pc-primary-soft-border: rgba(31, 92, 63, 0.2);
-  --pc-legal: #6b4fa0;
-  --pc-legal-soft: #f1ebf9;
+  --pc-surface-subtle: #e6e1d7;
+  --pc-foreground: #2b2924;
+  --pc-muted: #6b6458;
+  --pc-border: #ded7c8;
+  --pc-border-strong: #c2b9a6;
+  --pc-primary: #2c4a3e;
+  --pc-primary-hover: #1f362d;
+  --pc-primary-soft: #dfe3da;
+  --pc-primary-soft-border: rgba(44, 74, 62, 0.22);
+  --pc-legal: #9e7b56;
+  --pc-legal-soft: #ece2d3;
   --pc-warn: #a6650b;
   --pc-warn-soft: #fbefda;
-  --pc-ring: rgba(31, 92, 63, 0.34);
+  --pc-ring: rgba(44, 74, 62, 0.34);
+  --pc-on-primary: #f6f5f1;
   --pc-radius: 1.1rem;
   --pc-radius-sm: 0.85rem;
-  --pc-shadow-sm: 0 1px 2px rgba(27, 27, 22, 0.04), 0 8px 24px rgba(27, 27, 22, 0.05);
-  --pc-shadow-lg: 0 16px 44px rgba(27, 27, 22, 0.09);
-  --font-interface: var(--font-public-sans), "Public Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --pc-shadow-sm: 0 1px 2px rgba(30, 28, 22, 0.05), 0 8px 24px rgba(30, 28, 22, 0.06);
+  --pc-shadow-lg: 0 16px 44px rgba(30, 28, 22, 0.1);
+  --font-interface: var(--font-manrope), "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-metrics: var(--font-plex-mono), "IBM Plex Mono", "SFMono-Regular", Consolas, ui-monospace, monospace;
-  --font-display: var(--font-bricolage), "Bricolage Grotesque", var(--font-interface);
+  --font-display: var(--font-instrument-sans), "Instrument Sans", var(--font-interface);
+}
+
+/* -----------------------------------------------------------------------
+ * Modo oscuro opcional ("Invernadero nocturno") — el usuario lo activa a
+ * mano desde el header; no sigue prefers-color-scheme del sistema. Cubre
+ * la misma capa tokenizada que el resto de este bloque (header, hero,
+ * cards, nav, calendario, formularios). Los paneles mas viejos del CSS
+ * historico que usan colores propios sueltos (comparaciones, inventario,
+ * dialogos por lote) no estan cubiertos todavia por esta pasada.
+ * ----------------------------------------------------------------------- */
+:root[data-theme="dark"] {
+  --pc-background: #0f1712;
+  --pc-surface: #17211a;
+  --pc-surface-subtle: #1b2620;
+  --pc-foreground: #eef3ea;
+  --pc-muted: #93a08f;
+  --pc-border: #263129;
+  --pc-border-strong: #34412f;
+  --pc-primary: #b6ff3c;
+  --pc-primary-hover: #9fe62b;
+  --pc-primary-soft: #20301f;
+  --pc-primary-soft-border: rgba(182, 255, 60, 0.22);
+  --pc-legal: #5fd9c9;
+  --pc-legal-soft: #132422;
+  --pc-warn: #e8b64a;
+  --pc-warn-soft: #2b2013;
+  --pc-ring: rgba(182, 255, 60, 0.4);
+  --pc-on-primary: #111a0c;
+  --pc-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.32);
+  --pc-shadow-lg: 0 16px 44px rgba(0, 0, 0, 0.4);
 }
 
 body {
@@ -104,7 +135,7 @@ h1, h2, h3,
 }
 
 .card.card-elevated {
-  border-color: rgba(31, 92, 63, 0.24) !important;
+  border-color: rgba(44, 74, 62, 0.24) !important;
   box-shadow: var(--pc-shadow-lg) !important;
 }
 
@@ -115,8 +146,8 @@ h1, h2, h3,
 
 .app-header,
 header.app-header.sticky {
-  border-bottom: 1px solid rgba(20, 32, 25, 0.1) !important;
-  background: rgba(246, 248, 245, 0.92) !important;
+  border-bottom: 1px solid rgba(43, 41, 36, 0.1) !important;
+  background: rgba(240, 238, 233, 0.92) !important;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) !important;
 }
 
@@ -130,6 +161,22 @@ header.app-header.sticky {
 .desktop-navigation .desktop-nav-item:focus-visible { outline: 3px solid var(--pc-ring); outline-offset: 2px; }
 .header-actions { flex-shrink: 0; }
 .header-vpd-button { min-height: 2.5rem; border-radius: 0.65rem !important; box-shadow: none !important; }
+.header-theme-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  border: 1px solid var(--pc-border) !important;
+  border-radius: 0.65rem !important;
+  background: var(--pc-surface) !important;
+  color: var(--pc-foreground) !important;
+  box-shadow: none !important;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+.header-theme-button:hover { border-color: var(--pc-border-strong) !important; }
+.header-theme-button:focus-visible { outline: 3px solid var(--pc-ring); outline-offset: 2px; }
 
 .executive-home { padding-top: 1.5rem !important; }
 .executive-hero {
@@ -147,7 +194,7 @@ header.app-header.sticky {
 .executive-hero-copy p:not(.eyebrow) { max-width: 62ch; margin-top: 0.75rem; color: var(--pc-muted) !important; font-size: 0.92rem; line-height: 1.6; }
 .executive-metrics { align-self: stretch; }
 .executive-metrics .metric-card { min-height: 5.5rem; border-color: var(--pc-border) !important; border-radius: 0.75rem !important; background: var(--pc-surface-subtle) !important; }
-.executive-metrics .metric-card.featured { border-color: rgba(31, 92, 63, 0.28) !important; background: #e6f1e8 !important; }
+.executive-metrics .metric-card.featured { border-color: rgba(44, 74, 62, 0.28) !important; background: #dfe3da !important; }
 .metric-card .text-value { font-family: var(--font-metrics); font-weight: 650 !important; letter-spacing: -0.035em; }
 .metric-card .text-label { color: var(--pc-muted) !important; font-size: 0.66rem; letter-spacing: 0.04em !important; }
 .today-command-grid { gap: 1rem !important; }
@@ -174,14 +221,14 @@ header.app-header.sticky {
   overscroll-behavior-inline: contain;
   border: none !important;
   border-radius: 1.1rem !important;
-  background: #1b3428 !important;
-  box-shadow: 0 18px 48px rgba(20, 32, 25, 0.28) !important;
+  background: #24221d !important;
+  box-shadow: 0 18px 48px rgba(20, 18, 14, 0.32) !important;
   scrollbar-width: none;
   padding: 0.4rem !important;
 }
 .mobile-tab-bar::-webkit-scrollbar { display: none; }
-.mobile-tab { min-width: 4.35rem; min-height: 3.25rem; flex: 1 0 4.35rem; border-radius: 0.75rem !important; color: #8fa894 !important; }
-.mobile-tab.active { background: rgba(244, 239, 223, 0.14) !important; color: #f4efdf !important; }
+.mobile-tab { min-width: 4.35rem; min-height: 3.25rem; flex: 1 0 4.35rem; border-radius: 0.75rem !important; color: #9a9284 !important; }
+.mobile-tab.active { background: var(--pc-primary) !important; color: var(--pc-on-primary) !important; }
 
 /* Superficies operativas: Espacios, Calendario y formularios. */
 .spaces-command-header {
@@ -244,9 +291,9 @@ header.app-header.sticky {
 }
 
 .environment-entry-badge {
-  border: 1px solid rgba(31, 92, 63, .18);
+  border: 1px solid rgba(44, 74, 62, .22);
   border-radius: 999px;
-  background: #e6f1e8;
+  background: #dfe3da;
   padding: .38rem .68rem;
   color: var(--pc-primary);
   font-family: var(--font-metrics);
@@ -374,7 +421,7 @@ header.app-header.sticky {
 .view-toggle button.active {
   background: var(--pc-surface) !important;
   color: var(--pc-primary) !important;
-  box-shadow: 0 1px 3px rgba(20, 32, 25, .12) !important;
+  box-shadow: 0 1px 3px rgba(30, 28, 22, .14) !important;
 }
 
 .calendar-layout {
@@ -412,13 +459,41 @@ header.app-header.sticky {
 .form-control:focus-visible {
   border-color: var(--pc-primary) !important;
   outline: none !important;
-  box-shadow: 0 0 0 3px rgba(31, 92, 63, .14) !important;
+  box-shadow: 0 0 0 3px rgba(44, 74, 62, .16) !important;
 }
 
 label:has(> .form-control) {
   color: var(--pc-foreground) !important;
   font-size: .75rem !important;
   font-weight: 650 !important;
+}
+
+/*
+ * input[type=file] no hereda el look del resto de .form-control: el
+ * boton nativo del navegador ("Choose File"/"Elegir archivo") queda con
+ * el estilo del sistema operativo, sin relacion con el resto de la app.
+ * ::file-selector-button si se puede estilar de forma consistente.
+ */
+.form-control[type="file"] {
+  padding: 0.4rem 0.6rem 0.4rem 0.4rem !important;
+  color: var(--pc-muted) !important;
+  font-size: .8rem;
+}
+.form-control[type="file"]::file-selector-button {
+  margin-right: .65rem;
+  border: none;
+  border-radius: .5rem;
+  background: var(--pc-primary);
+  padding: .5rem .85rem;
+  color: var(--pc-on-primary);
+  font-family: var(--font-interface);
+  font-size: .78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+.form-control[type="file"]::file-selector-button:hover {
+  background: var(--pc-primary-hover);
 }
 
 .empty-state {
@@ -441,9 +516,9 @@ label:has(> .form-control) {
   height: 2.5rem !important;
   flex: 0 0 auto;
   place-items: center;
-  border: 1px solid rgba(31, 92, 63, .15);
+  border: 1px solid rgba(44, 74, 62, .18);
   border-radius: .75rem !important;
-  background: #e6f1e8 !important;
+  background: #dfe3da !important;
   color: var(--pc-primary) !important;
   font-size: 1rem;
 }
@@ -6657,7 +6732,7 @@ textarea {
   .product-comparison dl > div { border-radius: 7px; background: rgba(232,244,237,.7); padding: 0.48rem; }
   .product-comparison dt { color: #65746c; font-size: 0.6rem; font-weight: 850; }
   .product-comparison dd { margin-top: 0.1rem; color: #183126; font-size: 0.7rem; font-weight: 900; }
-  .product-comparison a { color: #1f5c3f; font-size: 0.68rem; font-weight: 900; text-decoration: underline; }
+  .product-comparison a { color: #2c4a3e; font-size: 0.68rem; font-weight: 900; text-decoration: underline; }
   .inventory-panel, .inventory-panel form { display: grid; gap: 0.75rem; }
   .inventory-panel > p, .inventory-panel > [role="status"] { color: #596a61; font-size: 0.75rem; font-weight: 750; }
   .inventory-panel form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -6676,14 +6751,14 @@ textarea {
   .inventory-movements article > div { display: grid; gap: 0.1rem; }
   .inventory-movements strong { color: #244535; font-size: 0.73rem; }
   .inventory-movements p, .inventory-movements small { color: #65746c; font-size: 0.63rem; font-weight: 750; }
-  .inventory-movements article > span { white-space: nowrap; color: #1f5c3f; font-size: 0.72rem; font-weight: 900; }
+  .inventory-movements article > span { white-space: nowrap; color: #2c4a3e; font-size: 0.72rem; font-weight: 900; }
   .inventory-alerts > div { display: grid; gap: 0.45rem; margin-top: 0.7rem; }
   .inventory-alerts > p { margin-top: 0.65rem; }
   .today-stage-summary > div { display: grid; gap: 0.45rem; margin-top: 0.7rem; }
   .today-stage-summary a { display: grid; gap: 0.25rem; border: 1px solid rgba(49,72,62,.14); border-radius: 9px; background: rgba(255,255,255,.7); padding: 0.65rem; }
   .today-stage-summary a > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.4rem; }
   .today-stage-summary strong { color: #183126; font-size: 0.8rem; }
-  .today-stage-summary span { color: #1f5c3f; font-size: 0.68rem; font-weight: 900; }
+  .today-stage-summary span { color: #2c4a3e; font-size: 0.68rem; font-weight: 900; }
   .today-stage-summary p { color: #65746c; font-size: 0.68rem; font-weight: 750; }
   .today-stage-summary > p { margin-top: 0.65rem; }
   .batch-irrigation-panel, .batch-irrigation-panel form { display: grid; gap: 0.75rem; }
@@ -7278,18 +7353,18 @@ textarea {
    * arriba en este archivo (algunas con !important); esta tiene que ganar.
    */
   .executive-metrics .metric-card.featured {
-    background: rgb(242, 249, 244) !important;
-    border: 1px solid rgba(47, 143, 95, 0.4) !important;
+    background: #dfe3da !important;
+    border: 1px solid rgba(44, 74, 62, 0.4) !important;
     box-shadow: none !important;
-    color: #16311f !important;
+    color: #1f362d !important;
   }
 
   .executive-metrics .metric-card.featured p.text-value {
-    color: #16311f !important;
+    color: #1f362d !important;
   }
 
   .executive-metrics .metric-card.featured p.text-label {
-    color: #2f8f5f !important;
+    color: #2c4a3e !important;
   }
 }
 
@@ -7299,11 +7374,147 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
 .card { border: 1px solid var(--pc-border) !important; border-radius: var(--pc-radius) !important; background: var(--pc-surface) !important; box-shadow: var(--pc-shadow-sm) !important; }
 .card.card-elevated { border-color: var(--pc-primary-soft-border) !important; box-shadow: var(--pc-shadow-lg) !important; }
 .card.card-subtle { background: var(--pc-surface-subtle) !important; box-shadow: none !important; }
-.app-header, header.app-header.sticky { border-bottom-color: rgba(27, 27, 22, 0.1) !important; background: rgba(250, 246, 239, 0.92) !important; box-shadow: 0 1px 0 rgba(255,255,255,.8) !important; }
+.app-header, header.app-header.sticky { border-bottom-color: color-mix(in srgb, var(--pc-foreground) 10%, transparent) !important; background: color-mix(in srgb, var(--pc-background) 92%, transparent) !important; box-shadow: 0 1px 0 rgba(255,255,255,.8) !important; }
 .desktop-navigation .desktop-nav-item.active { background: var(--pc-primary) !important; box-shadow: none !important; }
 .executive-hero { border: 1px solid var(--pc-border) !important; border-radius: calc(var(--pc-radius) + .2rem) !important; background: var(--pc-surface) !important; box-shadow: var(--pc-shadow-sm) !important; }
 .primary-button, .finder-use-button { background: var(--pc-primary) !important; box-shadow: none !important; }
 .primary-button:hover, .finder-use-button:hover { background: var(--pc-primary-hover) !important; }
-.mobile-tab-bar { border: none !important; background: #1b3428 !important; box-shadow: 0 18px 48px rgba(20,32,25,.28) !important; }
-.mobile-tab { color: #8fa894 !important; }
-.mobile-tab.active { background: rgba(244, 239, 223, 0.14) !important; color: #f4efdf !important; }
+.mobile-tab-bar { border: none !important; background: #24221d !important; box-shadow: 0 18px 48px rgba(20,18,14,.32) !important; }
+.mobile-tab { color: #9a9284 !important; }
+.mobile-tab.active { background: var(--pc-primary) !important; color: var(--pc-on-primary) !important; }
+
+/*
+ * Texto legible sobre fondos "primary": antes .calendar-create-button
+ * quedaba con texto oscuro heredado (#1b2a20) sobre el verde primario,
+ * un contraste pobre que ya existia antes de este cambio de paleta. En
+ * modo oscuro el primario pasa a ser el verde lima de "Invernadero
+ * nocturno", asi que el texto blanco fijo de .primary-button tampoco
+ * serviria. --pc-on-primary resuelve los dos casos por tema.
+ */
+.primary-button,
+.finder-use-button,
+.calendar-create-button,
+.desktop-navigation .desktop-nav-item.active,
+.desktop-nav-item.active {
+  color: var(--pc-on-primary) !important;
+}
+
+/*
+ * Bug critico de modo oscuro: un pase de rediseno historico deja TODOS
+ * los h1/h2/h3/h4 de "main" en un verde casi negro fijo (#16281d) con
+ * !important, pensado solo para fondos claros -- incluido el propio
+ * hero de Hoy, que si es dark-aware (fondo var(--pc-surface)) y quedaba
+ * con texto invisible encima. OJO: no generalizar esto a "main h1-h4"
+ * sin mas -- se probo y rompe al reves las docenas de paneles viejos
+ * (calendario, bitacora, fichas de planta) que siguen con fondo claro
+ * fijo en oscuro: ahi el texto oscuro original es lo que los mantiene
+ * legibles. Por eso esta lista queda acotada a los contenedores que SI
+ * son dark-aware (ver el bloque siguiente para grow-command / cuenta).
+ */
+.executive-hero-copy h1,
+.executive-overview .grow-command-copy h2,
+.grow-command-copy h2,
+.home-account-panel h2 {
+  color: var(--pc-foreground) !important;
+}
+
+/*
+ * Los dos paneles principales de Hoy despues del hero (.grow-command y
+ * .home-account-panel) tienen su propio degrade blanco/crema fijo,
+ * repetido en varios pases historicos del CSS -- demasiado enredado
+ * para retocarlo en claro sin riesgo. En oscuro alcanza con forzar un
+ * fondo y texto por tema, sin tocar ninguna de esas reglas originales.
+ */
+[data-theme="dark"] .grow-command,
+[data-theme="dark"] .home-account-panel {
+  background: var(--pc-surface) !important;
+  color: var(--pc-foreground) !important;
+}
+
+/*
+ * Titulos de pagina (SectionHeader, usado en Espacios/Semillas/Diario)
+ * no usan las reglas de arriba: van directo con clases fijas de
+ * Tailwind (text-moss-950/900/700, text-stone-500/600), que ni el fix
+ * de h1-h4 ni su reversion tocan. Sobre el fondo de pagina, que si es
+ * dark-aware (body usa --pc-background), esas clases quedaban con texto
+ * oscuro fijo sobre fondo oscuro. Se reescriben solo en modo oscuro,
+ * como color de pagina generico -- no se tocan en claro.
+ */
+[data-theme="dark"] .text-moss-950,
+[data-theme="dark"] .text-moss-900 {
+  color: var(--pc-foreground) !important;
+}
+[data-theme="dark"] .text-moss-700,
+[data-theme="dark"] .text-stone-500,
+[data-theme="dark"] .text-stone-600 {
+  color: var(--pc-muted) !important;
+}
+
+/*
+ * .plant-measurement-form (formulario de mediciones en Espacios) es un
+ * "vidrio esmerilado" blanco al 60% pensado para flotar sobre una card
+ * clara; sobre una card oscura da un gris turbio y las labels quedan en
+ * el mismo verde casi negro fijo de siempre. Fix puntual, no genero un
+ * patron nuevo -- si aparecen mas casos asi conviene revisarlos juntos.
+ */
+[data-theme="dark"] .plant-measurement-form {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: var(--pc-border) !important;
+}
+[data-theme="dark"] .plant-measurement-form label {
+  color: var(--pc-foreground) !important;
+}
+[data-theme="dark"] .measurement-irrigation-fields {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: var(--pc-border) !important;
+}
+[data-theme="dark"] .measurement-irrigation-fields legend {
+  color: var(--pc-foreground) !important;
+}
+[data-theme="dark"] .measurement-irrigation-fields > p {
+  color: var(--pc-muted) !important;
+}
+
+/*
+ * .genetics-reference-panel y las cards "menta" que comparten su paleta
+ * (.manual-form-group, .genetic-entry-card, .manual-reference-card,
+ * .plant-genetic-summary, .genetic-popup-panel) son cards claras fijas
+ * (fondo degrade blanco/menta) pensadas para resaltar sobre cualquier
+ * fondo -- no cambian en modo oscuro, eso esta bien. El problema es que
+ * sus <label> heredan "label:has(> .form-control)" (capa utilities,
+ * color: var(--pc-foreground)), y en oscuro esa variable es clara --
+ * texto claro sobre esta card siempre-clara queda invisible. Se fuerza
+ * de vuelta al tono oscuro fijo que ya usan el resto de textos de la
+ * card (ver linea ~5705 en el bloque original de esta familia).
+ */
+[data-theme="dark"] .genetics-reference-panel label,
+[data-theme="dark"] .manual-form-group label,
+[data-theme="dark"] .genetic-entry-card label,
+[data-theme="dark"] .manual-reference-card label,
+[data-theme="dark"] .plant-genetic-summary label,
+[data-theme="dark"] .genetic-popup-panel label {
+  color: #16281d !important;
+}
+
+/*
+ * .calendar-day-panel y .calendar-journal-card (Calendario) son el mismo
+ * patron: cards claras fijas que no cambian en oscuro. Sus titulos usan
+ * .text-moss-950/.text-stone-600 -- clases genericas que SI cambian en
+ * oscuro (pensadas para texto que vive sobre el fondo oscuro de la
+ * pagina, como los titulos de Espacios/Semillas). Sobre estas dos cards,
+ * que siguen siendo claras, ese cambio deja el texto invisible ("22 de
+ * agosto de 2026", "Anotar lo que hiciste"). Se revierte al tono oscuro
+ * fijo que la card ya usa en claro.
+ */
+[data-theme="dark"] .calendar-day-panel .text-moss-950,
+[data-theme="dark"] .calendar-day-panel .text-moss-900,
+[data-theme="dark"] .calendar-journal-card .text-moss-950,
+[data-theme="dark"] .calendar-journal-card .text-moss-900 {
+  color: #1a2b21 !important;
+}
+[data-theme="dark"] .calendar-day-panel .text-stone-500,
+[data-theme="dark"] .calendar-day-panel .text-stone-600,
+[data-theme="dark"] .calendar-journal-card .text-stone-500,
+[data-theme="dark"] .calendar-journal-card .text-stone-600 {
+  color: #6b6458 !important;
+}

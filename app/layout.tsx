@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, IBM_Plex_Mono, Public_Sans } from "next/font/google";
+import { IBM_Plex_Mono, Instrument_Sans, Manrope } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
+import { ThemeScript } from "@/components/theme-script";
 import "./globals.css";
 
-const publicSans = Public_Sans({
+const manrope = Manrope({
   subsets: ["latin"],
-  variable: "--font-public-sans",
+  variable: "--font-manrope",
   weight: ["400", "500", "600", "700", "800"]
 });
 
@@ -15,10 +16,10 @@ const plexMono = IBM_Plex_Mono({
   weight: ["500", "600"]
 });
 
-const bricolage = Bricolage_Grotesque({
+const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
-  variable: "--font-bricolage",
-  weight: ["500", "700", "800"]
+  variable: "--font-instrument-sans",
+  weight: ["500", "600", "700"]
 });
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -46,7 +47,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1F5C3F",
+  themeColor: "#2C4A3E",
   width: "device-width",
   initialScale: 1
 };
@@ -57,8 +58,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html className={`${publicSans.variable} ${plexMono.variable} ${bricolage.variable}`} lang="es">
-      <body className={publicSans.className}>
+    <html className={`${manrope.variable} ${plexMono.variable} ${instrumentSans.variable}`} lang="es" suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
+      <body className={manrope.className}>
         {children}
         <ServiceWorkerRegister />
       </body>
