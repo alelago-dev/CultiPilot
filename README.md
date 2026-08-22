@@ -2,6 +2,8 @@
 
 PlantCare Calendar es una PWA mobile-first para seguimiento y gestion de cultivos legalmente permitidos. El proyecto utiliza Next.js App Router, TypeScript, Tailwind CSS y Supabase, e incluye calendario, tareas, bitacora, seguimiento por planta, datos meteorologicos y herramientas de calculo y asistencia basadas en los datos registrados por el usuario.
 
+La interfaz utiliza un sistema visual propio inspirado en patrones shadcn y en la jerarquia tipografica de Geist: tokens unificados para superficies, bordes, radios, sombras, foco, tipografia y metricas. La navegacion movil mantiene todas las secciones accesibles mediante una barra inferior desplazable, el encabezado prioriza VPD y cuenta, y Hoy funciona como panel operativo con contexto de fecha, metricas y superficies diferenciadas. Estos cambios son visuales y de accesibilidad; no modifican calculos, datos ni reglas de cultivo.
+
 ## Incluye
 
 - Registro e inicio de sesion preparado para Supabase Auth.

@@ -1777,8 +1777,8 @@ export function AppShell({
   return (
     <main className="min-h-screen pb-28 text-moss-950 lg:pb-0">
       <header className="app-header sticky top-0 z-20 border-b border-moss-950/10 bg-paper/92 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <Link className="flex items-center gap-3" href={todayLinkHref as Route} aria-label="PlantCare Calendar">
+        <div className="app-header-inner mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          <Link className="brand-lockup flex items-center gap-3" href={todayLinkHref as Route} aria-label="PlantCare Calendar, ir a Hoy">
             <BrandLogo />
             <span>
               <span className="block text-xs font-black uppercase text-moss-700">PlantCare</span>
@@ -1786,7 +1786,7 @@ export function AppShell({
             </span>
           </Link>
 
-          <nav className="hidden items-center gap-1 rounded-lg border border-moss-950/10 bg-white/82 p-1 shadow-sm lg:flex">
+          <nav aria-label="Secciones principales" className="desktop-navigation hidden items-center gap-1 rounded-lg border border-moss-950/10 bg-white/82 p-1 shadow-sm lg:flex">
             {navItems.map((item) => (
               <Link
                 className={currentSection === item.key ? "desktop-nav-item active" : "desktop-nav-item"}
@@ -1798,7 +1798,7 @@ export function AppShell({
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="header-actions flex items-center gap-2">
             <Link
               aria-label="Registrar temperatura y humedad para calcular VPD"
               className="header-vpd-button"
@@ -1985,7 +1985,7 @@ export function AppShell({
         />
       ) : null}
 
-      <nav className="mobile-tab-bar" aria-label="Navegacion principal">
+      <nav className="mobile-tab-bar" aria-label="Navegación principal móvil">
         {navItems.map((item) => (
           <Link className={currentSection === item.key ? "mobile-tab active" : "mobile-tab"} href={getInternalSectionHref(locale, item.key) as Route} key={item.key}>
             <span className="nav-icon" aria-hidden="true">
@@ -2240,8 +2240,8 @@ function TodaySection({
       <section className="executive-home mx-auto max-w-7xl px-4 pb-5 pt-4 sm:px-6 lg:px-8 lg:pt-6">
         <div className="executive-hero">
           <div className="executive-hero-copy min-w-0">
-            <p className="eyebrow">Operacion horticola legal</p>
-            <h1>PlantCare Calendar</h1>
+            <div className="today-context-line"><p className="eyebrow">Panel operativo</p><time dateTime={getTodayIso()}>{formatDisplayDate(getTodayIso())}</time></div>
+            <h1>Todo tu cultivo, claro y al día</h1>
             <p>{dictionary.hero.body}</p>
           </div>
           <div className="executive-metrics">
@@ -2272,7 +2272,7 @@ function TodaySection({
           ) : null}
         </div>
 
-        <div className="executive-overview">
+        <div className="executive-overview today-command-grid">
           <GrowCommandPanel calendarEvents={calendarEvents} plants={plants} />
           <HomeAccountPanel
             accountStatus={accountStatus}
@@ -2289,7 +2289,7 @@ function TodaySection({
       </section>
 
       <section className="mx-auto grid max-w-7xl gap-5 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
-        <Card as="section" aria-labelledby="today-title" className="p-4 sm:p-5" id="tareas-hoy">
+        <Card as="section" aria-labelledby="today-title" className="p-4 sm:p-5" id="tareas-hoy" variant="elevated">
           <SectionHeader eyebrow="Panel principal" title="Tareas de hoy" />
           <div className="mt-5 grid gap-3">
             {agendaItems.length > 0 ? (
@@ -2311,7 +2311,7 @@ function TodaySection({
           </div>
         </Card>
 
-        <Card as="section" aria-labelledby="weather-title" className="p-4 sm:p-5">
+        <Card as="section" aria-labelledby="weather-title" className="p-4 sm:p-5" variant="subtle">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <SectionHeader eyebrow="Clima" title="Condiciones del espacio" />
             <span className={weather.isLive ? "pill pill-green" : "pill pill-blue"}>

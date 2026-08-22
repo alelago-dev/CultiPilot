@@ -25,7 +25,7 @@
 
 import type { ElementType, HTMLAttributes, ReactNode } from "react";
 
-type CardVariant = "default";
+type CardVariant = "default" | "elevated" | "subtle";
 
 type CardOwnProps = {
   as?: "div" | "section" | "article";
@@ -36,7 +36,9 @@ type CardOwnProps = {
 type CardProps = CardOwnProps & Omit<HTMLAttributes<HTMLElement>, keyof CardOwnProps>;
 
 const variantClassName: Record<CardVariant, string> = {
-  default: "card"
+  default: "card",
+  elevated: "card card-elevated",
+  subtle: "card card-subtle"
 };
 
 export function Card({ as = "div", variant = "default", className, children, ...rest }: CardProps) {
