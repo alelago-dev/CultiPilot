@@ -1782,7 +1782,7 @@ export function AppShell({
             <BrandLogo />
             <span>
               <span className="block text-xs font-black uppercase text-moss-700">PlantCare</span>
-              <span className="block text-lg font-black leading-none tracking-tight text-moss-950">Calendar</span>
+              <span className="block text-lg font-black leading-none tracking-tight text-moss-950">Calendario</span>
             </span>
           </Link>
 
