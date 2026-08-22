@@ -3695,7 +3695,7 @@ function PlantInspectionPanel({ inspections, onSaveInspection, plant }: { inspec
   const [isAdding, setIsAdding] = useState(false); const [category, setCategory] = useState<PlantInspection["category"]>("symptom"); const [area, setArea] = useState("Hojas"); const [severity, setSeverity] = useState<PlantInspection["severity"]>("low"); const [observation, setObservation] = useState(""); const [followUpDate, setFollowUpDate] = useState(""); const [photoDataUrl, setPhotoDataUrl] = useState("");
   function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); if (!observation.trim()) return; onSaveInspection({ area, category, followUpDate: followUpDate || undefined, id: `inspection-${plant.id}-${Date.now()}`, inspectedAt: new Date().toISOString(), observation: observation.trim(), photoDataUrl: photoDataUrl || undefined, plantId: plant.id, severity, status: "open" }); setObservation(""); setFollowUpDate(""); setPhotoDataUrl(""); setIsAdding(false); }
   const sorted = [...inspections].sort((first, second) => second.inspectedAt.localeCompare(first.inspectedAt));
-  return <section className="plant-inspection-panel"><header><div><p className="plant-calculation-eyebrow">Scouting documentado</p><h4>Inspecciones de esta maceta</h4><span>{sorted.filter((item) => item.status === "open").length} seguimiento{sorted.filter((item) => item.status === "open").length === 1 ? "" : "s"} abierto{sorted.filter((item) => item.status === "open").length === 1 ? "" : "s"}</span></div><button className="secondary-button" onClick={() => setIsAdding((current) => !current)} type="button">{isAdding ? "Cerrar" : "Nueva inspección"}</button></header>{isAdding ? <form className="inspection-form" onSubmit={submit}><label>Tipo observado<select className="form-control" onChange={(event) => setCategory(event.target.value as PlantInspection["category"])} value={category}><option value="symptom">Síntoma observado</option><option value="pest">Plaga observada</option><option value="structure">Estructura</option><option value="other">Otro</option></select></label><label>Zona<input className="form-control" onChange={(event) => setArea(event.target.value)} value={area} /></label><label>Severidad declarada<select className="form-control" onChange={(event) => setSeverity(event.target.value as PlantInspection["severity"])} value={severity}><option value="low">Baja</option><option value="medium">Media</option><option value="high">Alta</option></select></label><label>Revisar nuevamente<input className="form-control" min={getTodayIso()} onChange={(event) => setFollowUpDate(event.target.value)} type="date" value={followUpDate} /></label><label className="inspection-wide">Observación<textarea className="form-control" onChange={(event) => setObservation(event.target.value)} required rows={2} value={observation} /></label><label className="inspection-wide">Foto opcional<input accept="image/*" className="form-control" onChange={async (event) => { const file = event.target.files?.[0]; setPhotoDataUrl(file ? await readPhotoFileAsDataUrl(file) : ""); }} type="file" /></label><p className="inspection-wide">Se registra lo observado por el usuario; PlantCare no genera un diagnóstico.</p><button className="primary-button" type="submit">Guardar inspección</button></form> : null}<div className="inspection-list">{sorted.slice(0, 6).map((inspection) => <article key={inspection.id}><div><strong>{inspection.category === "pest" ? "Plaga observada" : inspection.category === "symptom" ? "Síntoma observado" : inspection.category === "structure" ? "Estructura" : "Otra observación"} · {inspection.area} · severidad {inspection.severity === "low" ? "baja" : inspection.severity === "medium" ? "media" : "alta"}</strong><p>{inspection.observation}</p><small>{formatMeasurementDate(inspection.inspectedAt)}{inspection.followUpDate ? ` · revisión ${formatDisplayDate(inspection.followUpDate)}` : ""} · {inspection.status === "open" ? "abierta" : "resuelta"}</small></div>{inspection.photoDataUrl ? <span aria-label={`Inspección de ${plant.name}`} className="inspection-photo" role="img" style={{ backgroundImage: `url(${inspection.photoDataUrl})` }} /> : null}{inspection.status === "open" ? <button className="text-button" onClick={() => onSaveInspection({ ...inspection, status: "resolved" })} type="button">Marcar resuelta</button> : null}</article>)}</div></section>;
+  return <section className="plant-inspection-panel"><header><div><p className="plant-calculation-eyebrow">Scouting documentado</p><h4>Inspecciones de esta maceta</h4><span>{sorted.filter((item) => item.status === "open").length} seguimiento{sorted.filter((item) => item.status === "open").length === 1 ? "" : "s"} abierto{sorted.filter((item) => item.status === "open").length === 1 ? "" : "s"}</span></div><button className="secondary-button" onClick={() => setIsAdding((current) => !current)} type="button">{isAdding ? "Cerrar" : "Nueva inspección"}</button></header>{isAdding ? <form className="inspection-form" onSubmit={submit}><label>Tipo observado<select className="form-control" onChange={(event) => setCategory(event.target.value as PlantInspection["category"])} value={category}><option value="symptom">Síntoma observado</option><option value="pest">Plaga observada</option><option value="structure">Estructura</option><option value="other">Otro</option></select></label><label>Zona<input className="form-control" onChange={(event) => setArea(event.target.value)} value={area} /></label><label>Severidad declarada<select className="form-control" onChange={(event) => setSeverity(event.target.value as PlantInspection["severity"])} value={severity}><option value="low">Baja</option><option value="medium">Media</option><option value="high">Alta</option></select></label><label>Revisar nuevamente<input className="form-control" min={getTodayIso()} onChange={(event) => setFollowUpDate(event.target.value)} type="date" value={followUpDate} /></label><label className="inspection-wide">Observación<textarea className="form-control" onChange={(event) => setObservation(event.target.value)} required rows={2} value={observation} /></label><label className="inspection-wide">Foto opcional<input accept="image/*" className="form-control" onChange={async (event) => { const file = event.target.files?.[0]; if (!file) { setPhotoDataUrl(""); return; } try { setPhotoDataUrl(await compressPhotoFile(file)); } catch { window.alert("No se pudo procesar la foto. Proba elegirla desde galeria."); } }} type="file" /></label><p className="inspection-wide">Se registra lo observado por el usuario; PlantCare no genera un diagnóstico.</p><button className="primary-button" type="submit">Guardar inspección</button></form> : null}<div className="inspection-list">{sorted.slice(0, 6).map((inspection) => <article key={inspection.id}><div><strong>{inspection.category === "pest" ? "Plaga observada" : inspection.category === "symptom" ? "Síntoma observado" : inspection.category === "structure" ? "Estructura" : "Otra observación"} · {inspection.area} · severidad {inspection.severity === "low" ? "baja" : inspection.severity === "medium" ? "media" : "alta"}</strong><p>{inspection.observation}</p><small>{formatMeasurementDate(inspection.inspectedAt)}{inspection.followUpDate ? ` · revisión ${formatDisplayDate(inspection.followUpDate)}` : ""} · {inspection.status === "open" ? "abierta" : "resuelta"}</small></div>{inspection.photoDataUrl ? <span aria-label={`Inspección de ${plant.name}`} className="inspection-photo" role="img" style={{ backgroundImage: `url(${inspection.photoDataUrl})` }} /> : null}{inspection.status === "open" ? <button className="text-button" onClick={() => onSaveInspection({ ...inspection, status: "resolved" })} type="button">Marcar resuelta</button> : null}</article>)}</div></section>;
 }
 
 function PlantCycleControls({ onUpdatePlant, plant }: { onUpdatePlant: (plantId: string, updates: Partial<Plant>) => void; plant: Plant }) {
@@ -5026,7 +5026,12 @@ function PlantMeasurementForm({
         Foto (opcional)
         <input accept="image/*" className="form-control" onChange={async (event) => {
           const file = event.target.files?.[0];
-          setPhotoDataUrl(file ? await readPhotoFileAsDataUrl(file) : "");
+          if (!file) { setPhotoDataUrl(""); return; }
+          try {
+            setPhotoDataUrl(await compressPhotoFile(file));
+          } catch {
+            window.alert("No se pudo procesar la foto. Proba elegirla desde galeria.");
+          }
         }} type="file" />
       </label>
       <label className="plant-measurement-notes">
@@ -5370,34 +5375,37 @@ function CalendarSection({
     }
 
     try {
-      photoDataUrl = await readPhotoFileAsDataUrl(file);
-    } catch {
-      setQuickEventStatus("No se pudo guardar la foto. Proba elegirla desde galeria.");
-      return;
-    }
+      photoDataUrl = await compressPhotoFile(file);
 
-    onAddCalendarEvent({
-      completedDates: [],
-      description: quickEventPlant
-        ? `Foto tomada o elegida manualmente para registrar el ultimo estado visual de ${quickEventPlant.name}.`
-        : "Foto tomada o elegida manualmente para registrar el ultimo estado visual.",
-      id: createEventId("event-photo"),
-      kind: "photo",
-      plantId,
-      source: "manual",
-      startDate: selectedDate,
-      title: "Foto"
-    });
-    onAddJournalEntry({
-      createdAt: selectedDate,
-      id: createEventId("entry-photo"),
-      note: quickEventPlant ? `Registro fotografico del ultimo estado de ${quickEventPlant.name}.` : "Registro fotografico del ultimo estado.",
-      photoDataUrl,
-      plantId,
-      tags: ["Foto"],
-      title: "Foto del estado"
-    });
-    setQuickEventStatus(`Foto guardada en bitacora y calendario para ${formatDisplayDate(selectedDate)}.`);
+      onAddCalendarEvent({
+        completedDates: [],
+        description: quickEventPlant
+          ? `Foto tomada o elegida manualmente para registrar el ultimo estado visual de ${quickEventPlant.name}.`
+          : "Foto tomada o elegida manualmente para registrar el ultimo estado visual.",
+        id: createEventId("event-photo"),
+        kind: "photo",
+        plantId,
+        source: "manual",
+        startDate: selectedDate,
+        title: "Foto"
+      });
+      onAddJournalEntry({
+        createdAt: selectedDate,
+        id: createEventId("entry-photo"),
+        note: quickEventPlant ? `Registro fotografico del ultimo estado de ${quickEventPlant.name}.` : "Registro fotografico del ultimo estado.",
+        photoDataUrl,
+        plantId,
+        tags: ["Foto"],
+        title: "Foto del estado"
+      });
+      setQuickEventStatus(`Foto guardada en bitacora y calendario para ${formatDisplayDate(selectedDate)}.`);
+    } catch (error) {
+      setQuickEventStatus(
+        isQuotaExceededError(error)
+          ? "No se pudo guardar la foto: se llenó el espacio de almacenamiento del navegador. Borrá alguna foto vieja de la bitácora para liberar lugar."
+          : "No se pudo guardar la foto. Proba elegirla desde galeria."
+      );
+    }
   }
 
   function handleEditOccurrence(occurrence: CalendarEventOccurrence) {
@@ -5841,10 +5849,14 @@ function JournalEntryCard({
     if (!file) return;
 
     try {
-      const photoDataUrl = await readPhotoFileAsDataUrl(file);
+      const photoDataUrl = await compressPhotoFile(file);
       onUpdate(entry.id, { photoDataUrl });
-    } catch {
-      window.alert("No se pudo cambiar la foto. Proba elegirla desde galeria.");
+    } catch (error) {
+      window.alert(
+        isQuotaExceededError(error)
+          ? "No se pudo cambiar la foto: se llenó el espacio de almacenamiento del navegador. Borrá alguna foto vieja de la bitácora para liberar lugar."
+          : "No se pudo cambiar la foto. Proba elegirla desde galeria."
+      );
     }
   }
 
@@ -7485,21 +7497,62 @@ function getStreakCount(habitDates: string[], todayIso: string) {
   return count;
 }
 
-function readPhotoFileAsDataUrl(file: File) {
+// Una foto de camara sin comprimir (varios MB, resolucion completa del
+// telefono) guardada tal cual en localStorage llena el espacio disponible
+// en pocas semanas de uso real: cada foto nueva a partir de ahi fallaba con
+// un error generico que ademas apuntaba a la causa equivocada ("proba
+// elegirla desde galeria", cuando el problema es espacio agotado, no el
+// origen de la foto). Se reescala al lado mayor de maxDimension y se
+// recodifica como JPEG antes de guardar, para que cada foto ocupe una
+// fraccion de lo que ocupaba sin tocar la calidad visible en la app.
+function compressPhotoFile(file: File, maxDimension = 1280, quality = 0.72) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
 
     reader.addEventListener("load", () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
+      if (typeof reader.result !== "string") {
+        reject(new Error("No se pudo leer la foto seleccionada."));
         return;
       }
 
-      reject(new Error("No se pudo leer la foto seleccionada."));
+      const image = new Image();
+
+      image.addEventListener("load", () => {
+        const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+        const width = Math.max(1, Math.round(image.naturalWidth * scale));
+        const height = Math.max(1, Math.round(image.naturalHeight * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d");
+
+        if (!context) {
+          // Sin canvas 2D disponible no hay como comprimir: se guarda la foto
+          // original en vez de perderla.
+          resolve(reader.result as string);
+          return;
+        }
+
+        context.drawImage(image, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      });
+      image.addEventListener("error", () => reject(new Error("No se pudo procesar la foto seleccionada.")));
+      image.src = reader.result;
     });
     reader.addEventListener("error", () => reject(reader.error ?? new Error("No se pudo leer la foto seleccionada.")));
     reader.readAsDataURL(file);
   });
+}
+
+// El error que tira localStorage cuando se llena el espacio disponible tiene
+// nombre distinto segun el navegador ("QuotaExceededError" en Chrome/Safari,
+// "NS_ERROR_DOM_QUOTA_REACHED" en Firefox viejo). Detectarlo permite avisar
+// la causa real en vez del mensaje generico de "no se pudo leer la foto".
+function isQuotaExceededError(error: unknown) {
+  return (
+    error instanceof DOMException &&
+    (error.name === "QuotaExceededError" || error.name === "NS_ERROR_DOM_QUOTA_REACHED" || error.code === 22)
+  );
 }
 
 function useStoredState<T>(key: string, initialState: T) {
