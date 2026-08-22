@@ -1,4 +1,4 @@
-const CACHE_NAME = "plantcare-calendar-v58";
+const CACHE_NAME = "plantcare-calendar-v59";
 const ROUTES = [
   "/",
   "/es/",
@@ -102,6 +102,31 @@ self.addEventListener("message", (event) => {
       })
     );
   }
+});
+
+// Push real, enviado por la Edge Function send-reminders (ver
+// supabase/functions/send-reminders). El body es JSON con
+// {title, body, tag, url}; url llega relativa al scope de este service
+// worker (ej. "es/hoy/") para que resuelva bien tanto en localhost como
+// bajo el basePath de GitHub Pages.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = {};
+  }
+
+  const title = data.title || "PlantCare Calendar";
+  const resolvedUrl = data.url ? new URL(data.url, self.registration.scope).href : self.registration.scope;
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || "",
+      data: { url: resolvedUrl },
+      tag: data.tag || "plantcare-push-reminder"
+    })
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {

@@ -8,7 +8,10 @@ import { Bug, Camera, Droplet, Eye, Leaf, MoonStar, NotebookPen, Scissors, Spark
 import { Card } from "@/components/card";
 import { CopyValueButton } from "@/components/copy-button";
 import { GeneticFinderWizard } from "@/components/genetic-finder-wizard";
+import { PlantPhotoTimeline } from "@/components/plant-photo-timeline";
+import { PlantQrPanel } from "@/components/plant-qr-code";
 import { PlantTimeline } from "@/components/plant-timeline";
+import { PushNotificationsPanel } from "@/components/push-notifications-panel";
 import { SeedsSection } from "@/components/seeds-section";
 import {
   buildMonthGrid,
@@ -136,7 +139,7 @@ type AppSnapshot = {
 
 // El tono define el color y el icono del cartel de estado de la cuenta, para
 // que cada accion (enviar enlace, entrar, guardar, fallar) se vea distinta.
-type AccountTone = "error" | "info" | "pending" | "success";
+export type AccountTone = "error" | "info" | "pending" | "success";
 
 type AuthRedirectResult = { kind: "error"; message: string } | { kind: "processing" } | null;
 
@@ -240,7 +243,7 @@ function readAuthRedirectResult(): AuthRedirectResult {
   return null;
 }
 
-type AccountStatus = {
+export type AccountStatus = {
   email: string;
   isConfigured: boolean;
   isSignedIn: boolean;
@@ -1909,6 +1912,7 @@ export function AppShell({
           irrigationRecipes={irrigationRecipeState}
           inventoryItems={inventoryItemState}
           inventoryMovements={inventoryMovementState}
+          locale={locale}
           productCatalog={productCatalogState}
           stageTransitions={stageTransitionState}
           onAddJournalEntry={handleAddJournalEntry}
@@ -2281,6 +2285,7 @@ function TodaySection({
             onSendMagicLink={onSendMagicLink}
             onSignOut={onSignOut}
           />
+          <PushNotificationsPanel accountStatus={accountStatus} />
         </div>
         <EnvironmentalQuickAccess locale={locale} measurements={measurements} plants={plants} />
         <TodayStageSummary locale={locale} plants={plants} transitions={stageTransitions} />
@@ -2803,6 +2808,7 @@ function SpacesSection({
   irrigationRecipes,
   inventoryItems,
   inventoryMovements,
+  locale,
   productCatalog,
   stageTransitions,
   measurements,
@@ -2834,6 +2840,7 @@ function SpacesSection({
   irrigationRecipes: IrrigationRecipe[];
   inventoryItems: InventoryItem[];
   inventoryMovements: InventoryMovement[];
+  locale: Locale;
   productCatalog: ProductCatalogItem[];
   stageTransitions: PlantStageTransition[];
   measurements: PlantMeasurement[];
@@ -3021,6 +3028,7 @@ function SpacesSection({
                       inspections={inspections.filter((inspection) => inspection.plantId === plant.id)}
                       stageTransitions={stageTransitions.filter((transition) => transition.plantId === plant.id)}
                       key={plant.id}
+                      locale={locale}
                       onAddJournalEntry={onAddJournalEntry}
                       onAddCalendarEvent={onAddCalendarEvent}
                       onAddMeasurement={onAddMeasurement}
@@ -3064,6 +3072,7 @@ function PlantSpaceRow({
   entries,
   environmentalAlertSettings,
   inspections,
+  locale,
   measurements,
   onAddCalendarEvent,
   onAddJournalEntry,
@@ -3087,6 +3096,7 @@ function PlantSpaceRow({
   entries: CareEntry[];
   environmentalAlertSettings?: PlantEnvironmentalAlertSettings;
   inspections: PlantInspection[];
+  locale: Locale;
   measurements: PlantMeasurement[];
   onAddCalendarEvent: (event: CalendarEvent) => void;
   onAddJournalEntry: (entry: CareEntry) => void;
@@ -3141,6 +3151,8 @@ function PlantSpaceRow({
           <PlantCalculationSummary genetic={plantGenetic} plant={plant} />
           <PlantDataCalculations measurements={measurements} onUpdatePlant={onUpdatePlant} plant={plant} />
           <PlantExportPanel alertSettings={environmentalAlertSettings} calendarEvents={calendarEvents} entries={entries} measurements={measurements} plant={plant} tasks={tasks} />
+          <PlantQrPanel locale={locale} plant={plant} />
+          <PlantPhotoTimeline entries={entries} inspections={inspections} measurements={measurements} plant={plant} />
           <PlantEnvironmentPanel
             measurements={measurements}
             alertSettings={environmentalAlertSettings}

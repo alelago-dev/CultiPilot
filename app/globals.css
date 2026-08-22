@@ -7595,3 +7595,227 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
 [data-theme="dark"] .seed-result .text-stone-600 {
   color: #6b6458 !important;
 }
+
+/*
+ * .plant-qr-panel (codigo QR por maceta, en Espacios). Escrito directo con
+ * tokens var(--pc-*): no necesita ningun parche aparte para modo oscuro.
+ */
+.plant-qr-panel {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+  border-top: 1px solid var(--pc-border);
+  padding-top: 0.9rem;
+}
+
+.plant-qr-panel > header h4 {
+  margin-top: 0.15rem;
+  color: var(--pc-foreground);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.plant-qr-panel-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+/*
+ * El QR necesita fondo blanco fijo (no var(--pc-surface)) sin importar el
+ * tema: es lo que garantiza el contraste minimo que exige el estandar para
+ * que cualquier lector de camara lo pueda escanear, incluso impreso.
+ */
+.plant-qr-image,
+.plant-qr-placeholder {
+  flex-shrink: 0;
+  width: 160px;
+  height: 160px;
+  border-radius: var(--pc-radius-sm);
+  border: 1px solid var(--pc-border);
+  background: #ffffff;
+}
+
+.plant-qr-placeholder {
+  animation: plant-qr-placeholder-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes plant-qr-placeholder-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.plant-qr-panel-copy {
+  display: grid;
+  gap: 0.55rem;
+  min-width: 200px;
+  flex: 1;
+}
+
+.plant-qr-panel-copy p {
+  color: var(--pc-muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.plant-qr-status {
+  color: var(--pc-muted);
+  font-size: 0.78rem;
+}
+
+/*
+ * .plant-photo-timeline (tira de fotos por maceta, en Espacios). Escrito
+ * directo con tokens var(--pc-*), mismo criterio que .plant-qr-panel.
+ */
+.plant-photo-timeline {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+  border-top: 1px solid var(--pc-border);
+  padding-top: 0.9rem;
+}
+
+.plant-photo-timeline > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.55rem;
+}
+
+.plant-photo-timeline > header h4 {
+  margin-top: 0.15rem;
+  color: var(--pc-foreground);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.plant-photo-timeline > p {
+  color: var(--pc-muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.plant-photo-timeline-strip {
+  display: flex;
+  gap: 0.6rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.plant-photo-timeline-thumb {
+  display: grid;
+  flex-shrink: 0;
+  gap: 0.3rem;
+  width: 84px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.plant-photo-timeline-thumb img {
+  width: 84px;
+  height: 84px;
+  border-radius: var(--pc-radius-sm);
+  border: 1px solid var(--pc-border);
+  object-fit: cover;
+}
+
+.plant-photo-timeline-thumb span {
+  color: var(--pc-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.plant-photo-timeline-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 20, 17, 0.6);
+  padding: 1rem;
+}
+
+.plant-photo-timeline-viewer {
+  display: grid;
+  gap: 0.75rem;
+  width: min(94vw, 640px);
+  max-height: min(90vh, 760px);
+  overflow: auto;
+  border-radius: var(--pc-radius);
+  border: 1px solid var(--pc-border);
+  background: var(--pc-surface);
+  box-shadow: var(--pc-shadow-lg);
+  padding: 1.1rem;
+}
+
+.plant-photo-timeline-viewer > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.plant-photo-timeline-viewer > header h4 {
+  margin-top: 0.15rem;
+  color: var(--pc-foreground);
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.plant-photo-timeline-viewer > img {
+  width: 100%;
+  border-radius: var(--pc-radius-sm);
+  border: 1px solid var(--pc-border);
+}
+
+.plant-photo-timeline-viewer > p {
+  color: var(--pc-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.plant-photo-timeline-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+/*
+ * .push-notifications-panel (activar/desactivar avisos push, en Hoy).
+ * Mismo criterio de siempre: tokens var(--pc-*) directo, sin parche
+ * aparte para modo oscuro.
+ */
+.push-notifications-panel {
+  display: grid;
+  gap: 0.65rem;
+  border-top: 1px solid var(--pc-border);
+  padding-top: 0.9rem;
+}
+
+.push-notifications-panel h4 {
+  margin-top: 0.15rem;
+  color: var(--pc-foreground);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.push-notifications-panel p {
+  color: var(--pc-muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.push-notifications-status {
+  color: var(--pc-muted);
+  font-size: 0.78rem;
+}

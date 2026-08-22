@@ -434,3 +434,71 @@ $$;
 revoke all on function public.create_sensor_device(text, text) from public;
 revoke execute on function public.create_sensor_device(text, text) from anon;
 grant execute on function public.create_sensor_device(text, text) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Notificaciones push reales
+--
+-- Cada suscripcion es la que entrega el navegador via la Push API para un
+-- dispositivo/perfil de navegador puntual (no por usuario -- una persona
+-- puede tener varias). La Edge Function send-reminders (service_role, corre
+-- por cron) lee tasks del snapshot de cada usuario, y por cada suscripcion
+-- activa con tareas vencidas o de hoy sin avisar todavia hoy, envia un push
+-- y marca last_notified_date para no repetir el mismo dia.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth_key text not null,
+  last_notified_date date,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists push_subscriptions_owner_idx on public.push_subscriptions (user_id);
+
+alter table public.push_subscriptions enable row level security;
+
+drop policy if exists "push subscriptions own rows" on public.push_subscriptions;
+create policy "push subscriptions own rows" on public.push_subscriptions
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+grant select, insert, update, delete on public.push_subscriptions to authenticated;
+grant select, update, delete on public.push_subscriptions to service_role;
+
+-- ---------------------------------------------------------------------------
+-- Cron: dispara send-reminders una vez por dia.
+--
+-- pg_cron llama a la Edge Function via pg_net con un secreto compartido
+-- (no el JWT de un usuario -- este cron no actua como nadie en particular).
+-- El secreto se guarda como setting de la base, nunca en este archivo:
+-- despues de correr este script, ejecutar UNA VEZ en el SQL Editor
+-- (reemplazando los valores reales, sin subir ese comando a ningun repo):
+--
+--   alter database postgres set app.cron_shared_secret = 'EL_SECRETO';
+--   alter database postgres set app.functions_base_url = 'https://PROJECT_REF.supabase.co/functions/v1';
+--
+-- y despues reconectar (o `select pg_reload_conf();`) para que los settings
+-- queden disponibles en las sesiones nuevas que usa pg_cron.
+-- ---------------------------------------------------------------------------
+
+create extension if not exists pg_cron with schema extensions;
+create extension if not exists pg_net with schema extensions;
+
+select cron.unschedule(jobid) from cron.job where jobname = 'plantcare-send-reminders';
+
+select cron.schedule(
+  'plantcare-send-reminders',
+  '0 12 * * *',
+  $$
+  select net.http_post(
+    url := current_setting('app.functions_base_url', true) || '/send-reminders',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-cron-secret', current_setting('app.cron_shared_secret', true)
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);

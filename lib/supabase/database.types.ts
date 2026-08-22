@@ -254,6 +254,27 @@ export type Database = {
         };
         Update: Partial<Database["public"]["Tables"]["user_app_snapshots"]["Insert"]>;
       };
+      push_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth_key: string;
+          last_notified_date: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth_key: string;
+          last_notified_date?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["push_subscriptions"]["Insert"]>;
+      };
     };
     Views: Record<string, never>;
     Functions: {

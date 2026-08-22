@@ -18,6 +18,7 @@ La interfaz utiliza un sistema visual propio inspirado en patrones shadcn y en l
 - Calendario mensual.
 - Bitacora de observaciones y fotografias.
 - Linea de tiempo por planta que unifica inicio, tareas, eventos del calendario, fotos y observaciones.
+- Notificaciones push reales de tareas vencidas o de hoy, entregadas por Supabase aunque la app este cerrada.
 - Interfaz de clima preparada para proveedor externo.
 - Consentimiento de privacidad y uso legal.
 - Base para exportacion y eliminacion completa de datos del usuario.
@@ -172,6 +173,7 @@ Las respuestas generadas mediante IA deben presentarse como asistencia orientati
 8. Luz: registrar PPFD. Resultado esperado: se compara con la referencia de la etapa declarada; si no hay medicion, la app informa que falta el dato en vez de inventarlo.
 9. Sugerencias: expandir una maceta. Resultado esperado: aparecen revisiones explicadas con sus fuentes y faltantes; al pulsar `Agregar al calendario` se crea una sola tarea vinculada a esa planta.
 10. Sensor: enviar una peticion valida a `ingest-sensor`. Resultado esperado: se crea una medicion con origen `sensor`; un token inexistente o desactivado recibe HTTP 401.
+11. Notificaciones push: con sesion iniciada, activar los avisos en Hoy y llamar a `send-reminders` con el `x-cron-secret` correcto teniendo una tarea vencida. Resultado esperado: llega una notificacion del navegador; sin el header (o con uno incorrecto) la funcion responde HTTP 401.
 
 ## Instalacion
 
@@ -191,11 +193,12 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_WEATHER_PROVIDER=
 NEXT_PUBLIC_WEATHER_API_KEY=
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=
 ```
 
 Para el sitio publicado en GitHub Pages, las credenciales de Supabase se leen de `.env.production`, que esta versionado en el repo.
 
-Las dos variables `NEXT_PUBLIC_SUPABASE_*` son publicas por diseno: Next.js las incrusta en el bundle del navegador, y lo que protege los datos son las reglas de Row Level Security de `supabase/schema.sql`.
+Las variables `NEXT_PUBLIC_SUPABASE_*` y `NEXT_PUBLIC_VAPID_PUBLIC_KEY` son publicas por diseno: Next.js las incrusta en el bundle del navegador, y lo que protege los datos son las reglas de Row Level Security de `supabase/schema.sql`. `NEXT_PUBLIC_VAPID_PUBLIC_KEY` habilita el boton de notificaciones push en Hoy; ver `supabase/functions/send-reminders/README.md` para generarla junto con su clave privada.
 
 La clave `service_role` nunca debe almacenarse ahi ni exponerse en el navegador.
 
@@ -210,6 +213,7 @@ La clave `service_role` nunca debe almacenarse ahi ni exponerse en el navegador.
 7. En proyectos Supabase nuevos, revisar que las tablas necesarias esten expuestas a la Data API cuando se vayan a consumir desde el cliente; conservar siempre RLS habilitado.
 8. Reemplazar gradualmente el snapshot por tablas normalizadas si se necesita operacion multiusuario avanzada.
 9. Para sensores, ejecutar el bloque actualizado de `supabase/schema.sql`, desplegar `ingest-sensor` y seguir `supabase/functions/ingest-sensor/README.md`.
+10. Para notificaciones push reales (avisos de tareas vencidas o de hoy, aunque la app este cerrada), ejecutar el bloque de `push_subscriptions` y `pg_cron` de `supabase/schema.sql`, desplegar `send-reminders` y seguir `supabase/functions/send-reminders/README.md`.
 
 ## Timeline
 
