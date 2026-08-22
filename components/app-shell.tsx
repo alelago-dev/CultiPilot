@@ -3506,7 +3506,7 @@ function getWeeklyVpdSummary(values: number[]) {
   return `${direction}, de ${first} a ${latest} kPa entre la primera y la última lectura comparable`;
 }
 
-const plantStageOptions = ["Semilla", "Plantin", "Vegetativo", "Floracion temprana", "Floracion tardia", "Cosecha"];
+const plantStageOptions = ["Semilla", "Plantin", "Vegetativo", "Floracion temprana", "Floracion tardia", "Cosecha", "Secado", "Curado"];
 const plantPotOptions = ["3 L", "5 L", "7 L", "10 L", "15 L", "20 L", "25 L"];
 const plantSubstrateOptions = ["Organico liviano", "Organico aireado", "Compost y fibra", "Drenante", "Universal"];
 const plantLightingOptions = ["Sol directo", "Sol de manana", "Media sombra", "Luz artificial", "Mixta"];
@@ -7062,7 +7062,7 @@ function normalizeLookupText(value: string) {
 function getPlantStage(stage: string) {
   const normalizedStage = stage.toLowerCase();
 
-  if (normalizedStage.includes("cosecha") || normalizedStage.includes("seca")) return "harvest";
+  if (normalizedStage.includes("cosecha") || normalizedStage.includes("seca") || normalizedStage.includes("curad")) return "harvest";
   if (normalizedStage.includes("flora") || normalizedStage.includes("flor")) return "flower";
   if (normalizedStage.includes("crec") || normalizedStage.includes("veget")) return "leaf";
   return "sprout";

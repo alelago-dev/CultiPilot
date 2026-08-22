@@ -183,7 +183,7 @@ function getStageTarget(stage: string): StageTarget {
   if (normalized.includes("flor") && normalized.includes("tard")) return targets.lateFlower;
   if (normalized.includes("flor")) return targets.earlyFlower;
   if (normalized.includes("veget") || normalized.includes("crecimiento")) return targets.vegetative;
-  if (normalized.includes("cosecha") || normalized.includes("secado")) return targets.harvest;
+  if (normalized.includes("cosecha") || normalized.includes("secado") || normalized.includes("curado")) return targets.harvest;
   if (normalized.includes("semilla") || normalized.includes("plantin") || normalized.includes("plántula")) return targets.seed;
   return { label: `Etapa declarada: ${stage || "sin informar"}` };
 }
