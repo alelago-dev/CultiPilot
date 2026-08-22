@@ -2273,6 +2273,7 @@ function TodayEnvironmentalAlerts({ acknowledgedAlerts, environmentalAlerts, loc
 function EnvironmentalQuickAccess({ locale, measurements, plants }: { locale: Locale; measurements: PlantMeasurement[]; plants: Plant[] }) {
   const measuredPlantIds = new Set(measurements.map((measurement) => measurement.plantId));
   const pendingCount = plants.filter((plant) => !measuredPlantIds.has(plant.id)).length;
+  const latestByPlant = plants.map((plant) => ({ latest: measurements.filter((measurement) => measurement.plantId === plant.id).sort((first, second) => second.measuredAt.localeCompare(first.measuredAt))[0], plant }));
 
   return (
     <Card as="section" className="environment-quick-access mt-5 p-4 sm:p-5">
@@ -2286,6 +2287,9 @@ function EnvironmentalQuickAccess({ locale, measurements, plants }: { locale: Lo
         <Link className="primary-button" href={`${getInternalSectionHref(locale, "spaces")}#mediciones-ambientales` as Route}>
           Registrar medición
         </Link>
+      </div>
+      <div className="environment-freshness-list">
+        {latestByPlant.map(({ latest, plant }) => <Link href={`${getInternalSectionHref(locale, "spaces")}#${plant.id}` as Route} key={plant.id}><strong>{plant.name}</strong><span>{latest ? `Última medición: ${formatMeasurementAge(latest.measuredAt)}` : "Sin mediciones"}</span>{latest ? <small>{formatMeasurementDate(latest.measuredAt)} · {formatMeasurementSource(latest.source)}</small> : null}</Link>)}
       </div>
     </Card>
   );
@@ -2947,7 +2951,7 @@ function PlantSpaceRow({
           <PlantGeneticSummary genetic={plantGenetic} onOpenGenetic={onOpenGenetic} plant={plant} />
           <PlantCalculationSummary genetic={plantGenetic} plant={plant} />
           <PlantDataCalculations measurements={measurements} onUpdatePlant={onUpdatePlant} plant={plant} />
-          <PlantExportPanel calendarEvents={calendarEvents} entries={entries} measurements={measurements} plant={plant} tasks={tasks} />
+          <PlantExportPanel alertSettings={environmentalAlertSettings} calendarEvents={calendarEvents} entries={entries} measurements={measurements} plant={plant} tasks={tasks} />
           <PlantEnvironmentPanel
             measurements={measurements}
             alertSettings={environmentalAlertSettings}
@@ -2964,6 +2968,7 @@ function PlantSpaceRow({
             tasks={tasks}
           />
           <PlantPeriodComparison measurements={measurements} plant={plant} />
+          <PlantDataCoverage measurements={measurements} plant={plant} />
           <PlantSensorPanel
             devices={sensorDevices}
             onCreateSensorDevice={onCreateSensorDevice}
@@ -3064,37 +3069,11 @@ function PlantWeeklySummary({
 }
 
 type PeriodMetric = { count: number; value?: number };
+type PeriodComparisonDatum = { current: PeriodMetric; label: string; previous: PeriodMetric; unit: string };
 
 function PlantPeriodComparison({ measurements, plant }: { measurements: PlantMeasurement[]; plant: Plant }) {
   const [periodDays, setPeriodDays] = useState<7 | 30>(7);
-  const today = getTodayIso();
-  const currentStart = offsetDate(today, -(periodDays - 1));
-  const previousEnd = offsetDate(today, -periodDays);
-  const previousStart = offsetDate(today, -(periodDays * 2 - 1));
-  const inRange = (measurement: PlantMeasurement, start: string, end: string) => {
-    const date = measurement.measuredAt.slice(0, 10);
-    return date >= start && date <= end;
-  };
-  const current = measurements.filter((measurement) => inRange(measurement, currentStart, today));
-  const previous = measurements.filter((measurement) => inRange(measurement, previousStart, previousEnd));
-  const metric = (records: PlantMeasurement[], select: (measurement: PlantMeasurement) => number | undefined): PeriodMetric => {
-    const values = records.flatMap((measurement) => {
-      const value = select(measurement);
-      return value === undefined ? [] : [value];
-    });
-    return { count: values.length, value: values.length === 0 ? undefined : Number((values.reduce((total, value) => total + value, 0) / values.length).toFixed(2)) };
-  };
-  const totalWater = (records: PlantMeasurement[]): PeriodMetric => {
-    const values = records.flatMap((measurement) => measurement.waterAmountMl === undefined ? [] : [measurement.waterAmountMl]);
-    return { count: values.length, value: values.length === 0 ? undefined : Number(values.reduce((total, value) => total + value, 0).toFixed(1)) };
-  };
-  const comparisons = [
-    { current: metric(current, (item) => item.temperatureC), label: "Temperatura promedio", previous: metric(previous, (item) => item.temperatureC), unit: " °C" },
-    { current: metric(current, (item) => item.ambientHumidityPercent), label: "Humedad promedio", previous: metric(previous, (item) => item.ambientHumidityPercent), unit: "%" },
-    { current: metric(current, (item) => assessPlantEnvironment(plant, item).vpdKpa), label: "VPD promedio calculado", previous: metric(previous, (item) => assessPlantEnvironment(plant, item).vpdKpa), unit: " kPa" },
-    { current: totalWater(current), label: "Agua registrada total", previous: totalWater(previous), unit: " ml" },
-    { current: metric(current, (item) => item.heightCm), label: "Altura promedio registrada", previous: metric(previous, (item) => item.heightCm), unit: " cm" }
-  ];
+  const { comparisons, currentStart, previousEnd, previousStart, today } = buildPeriodComparison(measurements, plant, periodDays);
   const comparableCount = comparisons.filter((item) => item.current.value !== undefined && item.previous.value !== undefined).length;
 
   return (
@@ -3111,6 +3090,32 @@ function PlantPeriodComparison({ measurements, plant }: { measurements: PlantMea
   );
 }
 
+function buildPeriodComparison(measurements: PlantMeasurement[], plant: Plant, periodDays: 7 | 30) {
+  const today = getTodayIso();
+  const currentStart = offsetDate(today, -(periodDays - 1));
+  const previousEnd = offsetDate(today, -periodDays);
+  const previousStart = offsetDate(today, -(periodDays * 2 - 1));
+  const inRange = (measurement: PlantMeasurement, start: string, end: string) => measurement.measuredAt.slice(0, 10) >= start && measurement.measuredAt.slice(0, 10) <= end;
+  const current = measurements.filter((measurement) => inRange(measurement, currentStart, today));
+  const previous = measurements.filter((measurement) => inRange(measurement, previousStart, previousEnd));
+  const metric = (records: PlantMeasurement[], select: (measurement: PlantMeasurement) => number | undefined): PeriodMetric => {
+    const values = records.flatMap((measurement) => { const value = select(measurement); return value === undefined ? [] : [value]; });
+    return { count: values.length, value: values.length === 0 ? undefined : Number((values.reduce((total, value) => total + value, 0) / values.length).toFixed(2)) };
+  };
+  const totalWater = (records: PlantMeasurement[]): PeriodMetric => {
+    const values = records.flatMap((measurement) => measurement.waterAmountMl === undefined ? [] : [measurement.waterAmountMl]);
+    return { count: values.length, value: values.length === 0 ? undefined : Number(values.reduce((total, value) => total + value, 0).toFixed(1)) };
+  };
+  const comparisons: PeriodComparisonDatum[] = [
+    { current: metric(current, (item) => item.temperatureC), label: "Temperatura promedio", previous: metric(previous, (item) => item.temperatureC), unit: " °C" },
+    { current: metric(current, (item) => item.ambientHumidityPercent), label: "Humedad promedio", previous: metric(previous, (item) => item.ambientHumidityPercent), unit: "%" },
+    { current: metric(current, (item) => assessPlantEnvironment(plant, item).vpdKpa), label: "VPD promedio calculado", previous: metric(previous, (item) => assessPlantEnvironment(plant, item).vpdKpa), unit: " kPa" },
+    { current: totalWater(current), label: "Agua registrada total", previous: totalWater(previous), unit: " ml" },
+    { current: metric(current, (item) => item.heightCm), label: "Altura promedio registrada", previous: metric(previous, (item) => item.heightCm), unit: " cm" }
+  ];
+  return { comparisons, currentStart, previousEnd, previousStart, today };
+}
+
 function PeriodComparisonMetric({ current, label, previous, unit }: { current: PeriodMetric; label: string; previous: PeriodMetric; unit: string }) {
   const comparable = current.value !== undefined && previous.value !== undefined;
   const difference = comparable ? Number((current.value! - previous.value!).toFixed(2)) : undefined;
@@ -3122,6 +3127,14 @@ function PeriodComparisonMetric({ current, label, previous, unit }: { current: P
       <p>{difference === undefined ? "Faltan registros en uno de los períodos." : `Cambio calculado: ${difference > 0 ? "+" : ""}${difference}${unit}`}</p>
     </article>
   );
+}
+
+function PlantDataCoverage({ measurements, plant }: { measurements: PlantMeasurement[]; plant: Plant }) {
+  const startDate = offsetDate(getTodayIso(), -29);
+  const recent = measurements.filter((measurement) => measurement.measuredAt.slice(0, 10) >= startDate);
+  const coverage = [["Temperatura", recent.filter((item) => item.temperatureC !== undefined).length], ["Humedad ambiental", recent.filter((item) => item.ambientHumidityPercent !== undefined).length], ["Temperatura foliar", recent.filter((item) => item.leafTemperatureC !== undefined).length], ["PPFD", recent.filter((item) => item.ppfdUmolM2S !== undefined).length], ["Sustrato", recent.filter((item) => item.substrateMoisturePercent !== undefined).length], ["Altura", recent.filter((item) => item.heightCm !== undefined).length], ["Riego", recent.filter((item) => item.waterAmountMl !== undefined).length], ["Fotos", recent.filter((item) => item.photoDataUrl).length]] as const;
+  const covered = coverage.filter(([, count]) => count > 0).length;
+  return <section className="plant-data-coverage" aria-label={`Cobertura de datos de ${plant.name}`}><header><div><p className="plant-calculation-eyebrow">Calidad del historial</p><h4>Cobertura de los últimos 30 días</h4><span>Cuenta solamente campos realmente registrados desde {formatDisplayDate(startDate)}.</span></div><span className="pill pill-blue">{covered} de {coverage.length} variables</span></header><dl>{coverage.map(([label, count]) => <div className={count === 0 ? "is-missing" : ""} key={label}><dt>{label}</dt><dd>{count === 0 ? "Sin datos" : `${count} registro${count === 1 ? "" : "s"}`}</dd></div>)}</dl><p>La ausencia de una variable no implica un problema de cultivo; solo indica que no fue registrada durante esta ventana.</p></section>;
 }
 
 function PlantCycleControls({ onUpdatePlant, plant }: { onUpdatePlant: (plantId: string, updates: Partial<Plant>) => void; plant: Plant }) {
@@ -3593,7 +3606,7 @@ function CalculationResult({ formula, label, missing, source, value }: { formula
 type ExportPeriod = "7-days" | "30-days" | "cycle" | "all";
 type ExportCell = { type?: "DateTime" | "Number" | "String"; value: number | string | undefined };
 
-function PlantExportPanel({ calendarEvents, entries, measurements, plant, tasks }: { calendarEvents: CalendarEvent[]; entries: CareEntry[]; measurements: PlantMeasurement[]; plant: Plant; tasks: Task[] }) {
+function PlantExportPanel({ alertSettings, calendarEvents, entries, measurements, plant, tasks }: { alertSettings?: PlantEnvironmentalAlertSettings; calendarEvents: CalendarEvent[]; entries: CareEntry[]; measurements: PlantMeasurement[]; plant: Plant; tasks: Task[] }) {
   const [period, setPeriod] = useState<ExportPeriod>("cycle");
   const [reportStatus, setReportStatus] = useState("");
   const bounds = getExportPeriodBounds(period, plant);
@@ -3608,7 +3621,7 @@ function PlantExportPanel({ calendarEvents, entries, measurements, plant, tasks 
   }
 
   function exportExcel() {
-    const workbook = buildExcelXmlWorkbook({ bounds, calendarEvents: filteredEvents, entries: filteredEntries, measurements: filteredMeasurements, period, plant, tasks: filteredTasks });
+    const workbook = buildExcelXmlWorkbook({ alertSettings, bounds, calendarEvents: filteredEvents, entries: filteredEntries, historyMeasurements: measurements, measurements: filteredMeasurements, period, plant, tasks: filteredTasks });
     downloadTextFile(`plantcare-${sanitizeFilename(plant.name)}-${period}.xml`, workbook, "application/vnd.ms-excel;charset=utf-8");
   }
 
@@ -3619,7 +3632,7 @@ function PlantExportPanel({ calendarEvents, entries, measurements, plant, tasks 
       return;
     }
     reportWindow.opener = null;
-    reportWindow.document.write(buildPrintablePlantReport({ bounds, calendarEvents: filteredEvents, entries: filteredEntries, measurements: filteredMeasurements, period, plant, tasks: filteredTasks }));
+    reportWindow.document.write(buildPrintablePlantReport({ alertSettings, bounds, calendarEvents: filteredEvents, entries: filteredEntries, historyMeasurements: measurements, measurements: filteredMeasurements, period, plant, tasks: filteredTasks }));
     reportWindow.document.close();
     setReportStatus("Se abrió el informe. Elegí ‘Guardar como PDF’ en el diálogo de impresión.");
   }
@@ -3633,7 +3646,7 @@ function PlantExportPanel({ calendarEvents, entries, measurements, plant, tasks 
         <button className="primary-button" onClick={exportExcel} type="button">Libro para Excel</button>
         <button className="secondary-button" onClick={printReport} type="button">Informe PDF</button>
       </div>
-      <p>Excel incluye Resumen, Mediciones, Riegos, Bitácora, Calendario y Tareas. Informe PDF abre una vista imprimible con hasta seis fotos recientes para guardar o compartir desde el dispositivo.</p>
+      <p>Excel incluye Resumen, Mediciones, Riegos, Comparaciones, Alertas, Bitácora, Calendario y Tareas. Informe PDF agrega comparaciones de 7/30 días, alertas actuales y hasta seis fotos recientes.</p>
       {reportStatus ? <p className="plant-export-status" role="status">{reportStatus}</p> : null}
     </section>
   );
@@ -3656,17 +3669,23 @@ function buildMeasurementExportRows(measurements: PlantMeasurement[], plant: Pla
   })];
 }
 
-function buildExcelXmlWorkbook({ bounds, calendarEvents, entries, measurements, period, plant, tasks }: { bounds: { end: string; start: string }; calendarEvents: CalendarEvent[]; entries: CareEntry[]; measurements: PlantMeasurement[]; period: ExportPeriod; plant: Plant; tasks: Task[] }) {
+function buildExcelXmlWorkbook({ alertSettings, bounds, calendarEvents, entries, historyMeasurements, measurements, period, plant, tasks }: { alertSettings?: PlantEnvironmentalAlertSettings; bounds: { end: string; start: string }; calendarEvents: CalendarEvent[]; entries: CareEntry[]; historyMeasurements: PlantMeasurement[]; measurements: PlantMeasurement[]; period: ExportPeriod; plant: Plant; tasks: Task[] }) {
   const measurementRows = buildMeasurementExportRows(measurements, plant).map((row, rowIndex) => row.map((value, columnIndex) => ({ type: rowIndex === 0 ? "String" : columnIndex === 0 && value ? "DateTime" : typeof value === "number" ? "Number" : "String", value: rowIndex > 0 && columnIndex === 0 && value ? toExcelDateTime(String(value)) : value }) satisfies ExportCell));
   const irrigationRows: ExportCell[][] = [["Fecha/hora", "Agua ml", "pH entrada", "EC entrada mS/cm", "PPM entrada", "Drenaje ml", "Drenaje % calculado", "pH drenaje", "Diferencia pH calculada", "EC drenaje mS/cm", "Diferencia EC calculada"].map((value) => ({ value }))];
   measurements.filter(hasCalculationIrrigationData).forEach((measurement) => irrigationRows.push([
     { type: "DateTime", value: measurement.measuredAt }, { type: "Number", value: measurement.waterAmountMl }, { type: "Number", value: measurement.irrigationPh }, { type: "Number", value: measurement.irrigationEcMsCm }, { type: "Number", value: measurement.irrigationPpm }, { type: "Number", value: measurement.runoffAmountMl },
     { type: "Number", value: measurement.waterAmountMl && measurement.runoffAmountMl !== undefined ? Number(((measurement.runoffAmountMl / measurement.waterAmountMl) * 100).toFixed(1)) : undefined }, { type: "Number", value: measurement.runoffPh }, { type: "Number", value: calculateDifference(measurement.runoffPh, measurement.irrigationPh) }, { type: "Number", value: measurement.runoffEcMsCm }, { type: "Number", value: calculateDifference(measurement.runoffEcMsCm, measurement.irrigationEcMsCm) }
   ]));
+  const comparisonRows = ([7, 30] as const).flatMap((days) => buildPeriodComparison(historyMeasurements, plant, days).comparisons.map((item) => [days, item.label, item.current.value, item.current.count, item.previous.value, item.previous.count, item.current.value !== undefined && item.previous.value !== undefined ? Number((item.current.value - item.previous.value).toFixed(2)) : undefined, item.unit.trim()]));
+  const latestMeasurement = [...historyMeasurements].sort((first, second) => second.measuredAt.localeCompare(first.measuredAt))[0];
+  const latestAssessment = assessPlantEnvironment(plant, latestMeasurement);
+  const alertRows = getConfiguredEnvironmentalAlerts(alertSettings, latestMeasurement, latestAssessment.vpdKpa).map((alert) => [latestMeasurement?.measuredAt, alert.label, alert.value, alert.unit.trim(), alert.direction === "below" ? "Debajo del mínimo" : "Encima del máximo", alert.limit, "Calculado desde última medición y límite del usuario"]);
   const sheets = [
     { name: "Resumen", rows: [[{ value: "Campo" }, { value: "Valor" }, { value: "Origen" }], ...[["Maceta", plant.name, "usuario"], ["Variedad", plant.variety, "usuario"], ["Etapa", plant.stage, "usuario"], ["Inicio", plant.startedAt, "usuario"], ["Cierre", plant.completedAt, plant.completedAt ? "usuario" : "faltante"], ["Período exportado", `${bounds.start} a ${bounds.end}`, "selección de usuario"], ["Fotoperiodo horas", plant.photoperiodHours, plant.photoperiodHours === undefined ? "faltante" : "usuario"], ["Registros de medición", measurements.length, "calculado"]].map((row) => row.map((value) => ({ type: typeof value === "number" ? "Number" : "String", value }) satisfies ExportCell))] },
     { name: "Mediciones", rows: measurementRows },
     { name: "Riegos", rows: irrigationRows },
+    { name: "Comparaciones", rows: exportRows(["Ventana días", "Métrica", "Período actual", "Muestras actuales", "Período anterior", "Muestras anteriores", "Diferencia calculada", "Unidad"], comparisonRows) },
+    { name: "Alertas", rows: exportRows(["Fecha/hora", "Métrica", "Valor", "Unidad", "Dirección", "Límite del usuario", "Origen"], alertRows, [0]) },
     { name: "Bitacora", rows: exportRows(["Fecha/hora", "Título", "Nota", "Etiquetas", "Foto presente"], entries.map((entry) => [entry.createdAt, entry.title, entry.note, entry.tags.join("; "), entry.photoDataUrl ? "Sí" : "No"]), [0]) },
     { name: "Calendario", rows: exportRows(["Fecha inicial", "Título", "Descripción", "Tipo", "Recurrencia", "Fechas completadas"], calendarEvents.map((event) => [event.startDate, event.title, event.description, event.kind, event.recurrence?.active ? `Cada ${event.recurrence.everyDays} días` : "No", event.completedDates.join("; ")]), [0]) },
     { name: "Tareas", rows: exportRows(["Fecha", "Título", "Descripción", "Estado", "Frecuencia", "Categoría"], tasks.map((task) => [task.dueDate, task.title, task.description, task.status, task.frequency, task.category]), [0]) }
@@ -3682,7 +3701,7 @@ function toCsvCell(value: number | string | undefined) { if (value === undefined
 function sanitizeFilename(value: string) { return normalizeLookupText(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "maceta"; }
 function downloadTextFile(filename: string, content: string, type: string) { const blob = new Blob([content], { type }); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = filename; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url); }
 
-function buildPrintablePlantReport({ bounds, calendarEvents, entries, measurements, period, plant, tasks }: { bounds: { end: string; start: string }; calendarEvents: CalendarEvent[]; entries: CareEntry[]; measurements: PlantMeasurement[]; period: ExportPeriod; plant: Plant; tasks: Task[] }) {
+function buildPrintablePlantReport({ alertSettings, bounds, calendarEvents, entries, historyMeasurements, measurements, period, plant, tasks }: { alertSettings?: PlantEnvironmentalAlertSettings; bounds: { end: string; start: string }; calendarEvents: CalendarEvent[]; entries: CareEntry[]; historyMeasurements: PlantMeasurement[]; measurements: PlantMeasurement[]; period: ExportPeriod; plant: Plant; tasks: Task[] }) {
   const sortedMeasurements = [...measurements].sort((first, second) => second.measuredAt.localeCompare(first.measuredAt));
   const latestMeasurement = sortedMeasurements[0];
   const latestAssessment = latestMeasurement ? assessPlantEnvironment(plant, latestMeasurement) : undefined;
@@ -3700,13 +3719,16 @@ function buildPrintablePlantReport({ bounds, calendarEvents, entries, measuremen
     return [formatMeasurementDate(measurement.measuredAt), formatMeasurementSource(measurement.source), measurement.temperatureC === undefined ? undefined : `${measurement.temperatureC} °C`, measurement.ambientHumidityPercent === undefined ? undefined : `${measurement.ambientHumidityPercent}%`, assessment.vpdKpa === undefined ? undefined : `${assessment.vpdKpa} kPa (${assessment.vpdBasis === "leaf" ? "foliar" : "aire"})`, measurement.ppfdUmolM2S, measurement.substrateMoisturePercent === undefined ? undefined : `${measurement.substrateMoisturePercent}%`, measurement.observations];
   }));
   const irrigationTable = table(["Fecha", "Agua", "pH entrada", "EC entrada", "Drenaje", "Drenaje calculado"], irrigationRecords.map((measurement) => [formatMeasurementDate(measurement.measuredAt), measurement.waterAmountMl === undefined ? undefined : `${measurement.waterAmountMl} ml`, measurement.irrigationPh, measurement.irrigationEcMsCm === undefined ? undefined : `${measurement.irrigationEcMsCm} mS/cm`, measurement.runoffAmountMl === undefined ? undefined : `${measurement.runoffAmountMl} ml`, measurement.waterAmountMl && measurement.runoffAmountMl !== undefined ? `${Number(((measurement.runoffAmountMl / measurement.waterAmountMl) * 100).toFixed(1))}%` : undefined]));
+  const comparisonTable = table(["Ventana", "Métrica", "Actual", "Anterior", "Cambio"], ([7, 30] as const).flatMap((days) => buildPeriodComparison(historyMeasurements, plant, days).comparisons.map((item) => [ `${days} días`, item.label, item.current.value === undefined ? undefined : `${item.current.value}${item.unit} (${item.current.count})`, item.previous.value === undefined ? undefined : `${item.previous.value}${item.unit} (${item.previous.count})`, item.current.value !== undefined && item.previous.value !== undefined ? `${formatSignedNumber(Number((item.current.value - item.previous.value).toFixed(2)))}${item.unit}` : undefined ])));
+  const reportAlerts = getConfiguredEnvironmentalAlerts(alertSettings, latestMeasurement, latestAssessment?.vpdKpa);
+  const alertsTable = table(["Fecha", "Métrica", "Valor", "Límite configurado"], reportAlerts.map((alert) => [latestMeasurement ? formatMeasurementDate(latestMeasurement.measuredAt) : undefined, alert.label, `${alert.value}${alert.unit}`, `${alert.direction === "below" ? "Mínimo" : "Máximo"}: ${alert.limit}${alert.unit}`]));
   const photoSection = photos.length === 0 ? '<p class="empty">Sin fotos en el período seleccionado.</p>' : `<div class="photos">${photos.map((photo) => `<figure><img alt="Foto de ${escapeHtml(plant.name)}" src="${escapeHtml(photo.url)}"><figcaption>${escapeHtml(photo.source)} · ${escapeHtml(formatMeasurementDate(photo.date))}</figcaption></figure>`).join("")}</div>`;
   const printablePeriod = period === "all" ? "Todo el historial" : `${formatDisplayDate(bounds.start)} → ${formatDisplayDate(bounds.end)}`;
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>PlantCare · ${escapeHtml(plant.name)}</title><style>
     @page{size:A4;margin:14mm}*{box-sizing:border-box}body{margin:0;color:#1f3028;font:12px/1.45 Arial,sans-serif}header{border-bottom:3px solid #496b57;padding-bottom:12px}h1{margin:0;font-size:25px}h2{margin:22px 0 8px;color:#274b38;font-size:17px}p{margin:4px 0}.meta,.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.card{border:1px solid #ccd8d0;border-radius:8px;padding:8px}.card span{display:block;color:#64746b;font-size:10px;text-transform:uppercase}.card strong{display:block;margin-top:3px;font-size:13px}.note{margin-top:12px;padding:9px;border-left:4px solid #8baa94;background:#eff5f1}.empty{color:#6b756f;font-style:italic}table{width:100%;border-collapse:collapse;font-size:9px}th,td{border:1px solid #d7dfda;padding:5px;text-align:left;vertical-align:top}th{background:#e9f1ec}.photos{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.photos figure{margin:0;break-inside:avoid}.photos img{display:block;width:100%;max-height:260px;object-fit:contain;background:#edf1ee}.photos figcaption{padding:4px;color:#59675f;font-size:9px}.section{break-inside:avoid}.footer{margin-top:20px;border-top:1px solid #ccd8d0;padding-top:8px;color:#64746b;font-size:9px}@media(max-width:650px){.meta,.metrics{grid-template-columns:repeat(2,1fr)}}@media print{button{display:none}.section{break-inside:auto}h2{break-after:avoid}table{break-inside:auto}tr{break-inside:avoid}}
   </style></head><body><header><h1>${escapeHtml(plant.name)}</h1><p>${escapeHtml(plant.variety || "Variedad no declarada")} · Informe individual de maceta</p><div class="meta"><div class="card"><span>Período</span><strong>${escapeHtml(printablePeriod)}</strong></div><div class="card"><span>Etapa declarada</span><strong>${escapeHtml(plant.stage || "Sin declarar")}</strong></div><div class="card"><span>Inicio declarado</span><strong>${escapeHtml(plant.startedAt || "Sin dato")}</strong></div><div class="card"><span>Estado</span><strong>${plant.completedAt ? `Cerrado ${escapeHtml(plant.completedAt)}` : "Activo"}</strong></div></div></header>
   <section><h2>Resumen del período</h2><div class="metrics"><div class="card"><span>Mediciones</span><strong>${sortedMeasurements.length}</strong></div><div class="card"><span>Riegos registrados</span><strong>${irrigationRecords.length}</strong></div><div class="card"><span>Agua registrada</span><strong>${water.total} ml</strong></div><div class="card"><span>Bitácora / tareas / eventos</span><strong>${entries.length} / ${tasks.length} / ${calendarEvents.length}</strong></div><div class="card"><span>Último VPD calculable</span><strong>${latestAssessment?.vpdKpa === undefined ? "Faltan temperatura y humedad" : `${latestAssessment.vpdKpa} kPa (${latestAssessment.vpdBasis === "leaf" ? "foliar" : "aire"})`}</strong></div><div class="card"><span>Fotoperíodo declarado</span><strong>${plant.photoperiodHours === undefined ? "Sin dato" : `${plant.photoperiodHours} h`}</strong></div></div><p class="note">El VPD es calculado con la fórmula de Tetens. Si falta temperatura foliar se informa VPD del aire y no se inventa una diferencia con la hoja. Este informe resume datos declarados, medidos y calculados; no prescribe dosis ni cambios de equipos.</p></section>
-  <section><h2>Mediciones ambientales</h2>${measurementTable}</section><section><h2>Riegos</h2>${irrigationTable}</section><section><h2>Bitácora</h2>${table(["Fecha", "Título", "Nota", "Etiquetas"], entries.map((entry) => [formatMeasurementDate(entry.createdAt), entry.title, entry.note, entry.tags.join(", ")]))}</section><section><h2>Calendario y tareas</h2>${table(["Fecha", "Tipo", "Título", "Estado / descripción"], [...calendarEvents.map((event) => [event.startDate, "Calendario", event.title, event.description]), ...tasks.map((task) => [task.dueDate, "Tarea", task.title, task.status])])}</section><section><h2>Fotos recientes (${photos.length} de hasta 6)</h2>${photoSection}</section><p class="footer">Generado por PlantCare Calendar el ${escapeHtml(new Date().toLocaleString("es"))}. Informe exclusivo de ${escapeHtml(plant.name)}. Usá Imprimir → Guardar como PDF.</p><script>window.addEventListener('load',function(){setTimeout(function(){window.print()},400)})</script></body></html>`;
+  <section><h2>Alertas según límites actuales</h2>${alertsTable}</section><section><h2>Comparaciones de 7 y 30 días</h2>${comparisonTable}</section><section><h2>Mediciones ambientales</h2>${measurementTable}</section><section><h2>Riegos</h2>${irrigationTable}</section><section><h2>Bitácora</h2>${table(["Fecha", "Título", "Nota", "Etiquetas"], entries.map((entry) => [formatMeasurementDate(entry.createdAt), entry.title, entry.note, entry.tags.join(", ")]))}</section><section><h2>Calendario y tareas</h2>${table(["Fecha", "Tipo", "Título", "Estado / descripción"], [...calendarEvents.map((event) => [event.startDate, "Calendario", event.title, event.description]), ...tasks.map((task) => [task.dueDate, "Tarea", task.title, task.status])])}</section><section><h2>Fotos recientes (${photos.length} de hasta 6)</h2>${photoSection}</section><p class="footer">Generado por PlantCare Calendar el ${escapeHtml(new Date().toLocaleString("es"))}. Informe exclusivo de ${escapeHtml(plant.name)}. Usá Imprimir → Guardar como PDF.</p><script>window.addEventListener('load',function(){setTimeout(function(){window.print()},400)})</script></body></html>`;
 }
 
 function escapeHtml(value: number | string) { return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
@@ -6777,6 +6799,13 @@ function formatMeasurementDate(value: string) {
     minute: "2-digit",
     month: "short"
   }).format(new Date(value));
+}
+
+function formatMeasurementAge(value: string) {
+  const elapsedDays = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000));
+  if (elapsedDays === 0) return "hoy";
+  if (elapsedDays === 1) return "hace 1 día";
+  return `hace ${elapsedDays} días`;
 }
 
 function formatMeasurementSource(source: PlantMeasurement["source"]) {
