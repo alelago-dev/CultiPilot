@@ -7537,3 +7537,61 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
 [data-theme="dark"] .calendar-title-block h1 {
   color: var(--pc-foreground) !important;
 }
+
+/*
+ * .nutrient-calculator-row (calculadora de mezcla de nutrientes, solapa
+ * "Calculadora" de Semillas). Componente nuevo, escrito directo con los
+ * tokens --pc-* para no necesitar un parche de modo oscuro aparte.
+ */
+.nutrient-calculator-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(9rem, auto) auto;
+  align-items: end;
+  gap: 0.75rem;
+  border: 1px solid var(--pc-border);
+  border-radius: var(--pc-radius-sm);
+  background: var(--pc-surface);
+  padding: 0.75rem;
+}
+
+.nutrient-calculator-dose-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 5rem;
+  gap: 0.4rem;
+}
+
+.nutrient-calculator-total {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.nutrient-calculator-total strong {
+  font-family: var(--font-metrics);
+  font-size: 0.95rem;
+  color: var(--pc-foreground);
+}
+
+@media (max-width: 640px) {
+  .nutrient-calculator-row {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+}
+
+/*
+ * .seed-result (resumen "Total de..." en Semillas: buscador, Motor de
+ * cultivo, Mezcla de nutrientes) es una card clara fija (rgba(255,255,255,.82/.92),
+ * linea 1377) que no cambia en oscuro -- correcto. Su titulo usa
+ * .text-moss-950, que SI cambia en oscuro (pensada para texto sobre el
+ * fondo oscuro de la pagina), dejando el titulo invisible sobre esta
+ * card que sigue siendo clara. Mismo patron que .calendar-day-panel
+ * arriba: se revierte al tono oscuro fijo que la card ya usa en claro.
+ */
+[data-theme="dark"] .seed-result .text-moss-950,
+[data-theme="dark"] .seed-result .text-moss-900 {
+  color: #1a2b21 !important;
+}
+[data-theme="dark"] .seed-result .text-stone-500,
+[data-theme="dark"] .seed-result .text-stone-600 {
+  color: #6b6458 !important;
+}

@@ -7,6 +7,7 @@ import type { Route } from "next";
 import { Card } from "@/components/card";
 import { GeneticFinderWizard } from "@/components/genetic-finder-wizard";
 import { HorticultureCalculator } from "@/components/horticulture-calculator";
+import { NutrientCalculator } from "@/components/nutrient-calculator";
 import { ManualCannabisForm } from "@/components/manual-cannabis-form";
 import { CopyValueButton } from "@/components/copy-button";
 import {
@@ -249,7 +250,12 @@ export function SeedsSection({ calendarHref, calendarLinkHref, locale, onCreateM
             </Card>
           ) : null}
 
-          {activeTab === "horticultural" ? <HorticultureCalculator /> : null}
+          {activeTab === "horticultural" ? (
+            <>
+              <HorticultureCalculator />
+              <NutrientCalculator />
+            </>
+          ) : null}
 
           {activeTab === "setups" ? <SetupSuggestionsTab /> : null}
 
