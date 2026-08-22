@@ -7518,3 +7518,22 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
 [data-theme="dark"] .calendar-journal-card .text-stone-600 {
   color: #6b6458 !important;
 }
+
+/*
+ * .calendar-header (el bloque "Calendario / [rango de fechas]" arriba
+ * del todo) nunca tuvo fondo propio mas alla del viejo rgba(255,255,255,
+ * .92) fijo -- mientras que .calendar-toolbar, anidado adentro, SI usa
+ * var(--pc-surface) y por lo tanto ya se pone oscuro en modo oscuro. El
+ * resultado en mobile (donde el toolbar cae en su propia fila) es una
+ * card clara con un chip oscuro incrustado, un "sandwich" bien feo. Se
+ * empareja el fondo del header con el mismo var(--pc-surface) del
+ * toolbar para que formen una sola superficie oscura coherente, y se
+ * ajusta el color del h1 (fijo en #1b2a20 en el CSS historico).
+ */
+[data-theme="dark"] .calendar-header {
+  background: var(--pc-surface) !important;
+  border-color: var(--pc-border) !important;
+}
+[data-theme="dark"] .calendar-title-block h1 {
+  color: var(--pc-foreground) !important;
+}
