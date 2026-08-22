@@ -123,7 +123,7 @@ Cada maceta puede exportarse por ultimos 7 dias, ultimos 30 dias, ciclo registra
 
 Cada maceta incluye un resumen movil de los ultimos siete dias. Cuenta mediciones, riegos, notas, fotos y acciones completadas con fechas existentes; muestra las tareas abiertas como pendientes actuales porque no tienen una fecha de ejecucion confirmada. La tendencia VPD compara solamente la primera y la ultima lectura calculable del periodo y explicita cuando faltan datos.
 
-El comparador permite elegir ventanas equivalentes de 7 o 30 dias para temperatura, humedad, VPD calculado, agua registrada y altura. Publica el numero de muestras usado en cada periodo y solo muestra una diferencia cuando ambos tienen datos; no atribuye causas ni convierte el cambio en un diagnostico.
+El comparador permite elegir ventanas equivalentes de 7 o 30 dias para temperatura, humedad, VPD calculado, agua registrada y altura. Publica el numero de muestras usado en cada periodo y solo muestra una diferencia cuando ambos tienen datos. Ademas intenta una explicacion: compara la proporcion de mediciones con VPD fuera del rango orientativo de la etapa entre ambos periodos y, si el corrimiento es notable (al menos 3 lecturas comparables por periodo y un cambio de 30 puntos porcentuales o mas), lo cruza con la altura promedio registrada para proponer la lectura mas consistente con esos datos -- por ejemplo, que un VPD fuera de rango probablemente freno el crecimiento. Es una correlacion entre lo que el usuario registro, hecha con formulas visibles y sin modelo externo, no una causa confirmada; cuando no hay suficientes lecturas o el VPD se mantuvo estable, la app lo dice explicitamente en vez de forzar una explicacion.
 
 Hoy muestra por maceta cuándo se guardo la ultima medicion y su origen, sin imponer una frecuencia universal ni convertir antiguedad en alerta. Cada ficha agrega una cobertura objetiva de 30 dias para temperatura, humedad, temperatura foliar, PPFD, sustrato, altura, riego y fotos; un campo ausente se presenta solo como dato no registrado.
 
@@ -174,6 +174,7 @@ Las respuestas generadas mediante IA deben presentarse como asistencia orientati
 9. Sugerencias: expandir una maceta. Resultado esperado: aparecen revisiones explicadas con sus fuentes y faltantes; al pulsar `Agregar al calendario` se crea una sola tarea vinculada a esa planta.
 10. Sensor: enviar una peticion valida a `ingest-sensor`. Resultado esperado: se crea una medicion con origen `sensor`; un token inexistente o desactivado recibe HTTP 401.
 11. Notificaciones push: con sesion iniciada, activar los avisos en Hoy y llamar a `send-reminders` con el `x-cron-secret` correcto teniendo una tarea vencida. Resultado esperado: llega una notificacion del navegador; sin el header (o con uno incorrecto) la funcion responde HTTP 401.
+12. Comparador de periodos: registrar al menos 3 mediciones por ventana con VPD fuera de rango en el periodo actual y dentro de rango en el anterior. Resultado esperado: aparece una explicacion senalando el corrimiento de VPD; con menos de 3 mediciones comparables por ventana, o sin corrimiento notable, la app dice explicitamente que faltan datos o que no encontro un cambio, en vez de forzar una lectura.
 
 ## Instalacion
 

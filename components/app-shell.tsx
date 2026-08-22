@@ -3284,10 +3284,11 @@ function PlantWeeklySummary({
 
 type PeriodMetric = { count: number; value?: number };
 type PeriodComparisonDatum = { current: PeriodMetric; label: string; previous: PeriodMetric; unit: string };
+type PeriodDiagnosis = { kind: "insight" | "insufficient" | "stable"; text: string };
 
 function PlantPeriodComparison({ measurements, plant }: { measurements: PlantMeasurement[]; plant: Plant }) {
   const [periodDays, setPeriodDays] = useState<7 | 30>(7);
-  const { comparisons, currentStart, previousEnd, previousStart, today } = buildPeriodComparison(measurements, plant, periodDays);
+  const { comparisons, currentStart, diagnosis, previousEnd, previousStart, today } = buildPeriodComparison(measurements, plant, periodDays);
   const comparableCount = comparisons.filter((item) => item.current.value !== undefined && item.previous.value !== undefined).length;
 
   return (
@@ -3299,7 +3300,11 @@ function PlantPeriodComparison({ measurements, plant }: { measurements: PlantMea
       <div className="period-comparison-grid">
         {comparisons.map((item) => <PeriodComparisonMetric key={item.label} {...item} />)}
       </div>
-      <p>Promedios y diferencias calculados únicamente con registros disponibles. La cantidad de muestras puede variar entre métricas; un cambio no implica por sí solo una causa ni un diagnóstico.</p>
+      <div className={`period-diagnosis period-diagnosis-${diagnosis.kind}`} role={diagnosis.kind === "insight" ? "status" : undefined}>
+        <p className="plant-calculation-eyebrow">{diagnosis.kind === "insight" ? "Explicación más probable" : "Lectura del período"}</p>
+        <p>{diagnosis.text}</p>
+      </div>
+      <p>Promedios y diferencias calculados únicamente con registros disponibles. La cantidad de muestras puede variar entre métricas; esto es una correlación entre lo que registraste, no una causa confirmada.</p>
     </section>
   );
 }
@@ -3327,7 +3332,81 @@ function buildPeriodComparison(measurements: PlantMeasurement[], plant: Plant, p
     { current: totalWater(current), label: "Agua registrada total", previous: totalWater(previous), unit: " ml" },
     { current: metric(current, (item) => item.heightCm), label: "Altura promedio registrada", previous: metric(previous, (item) => item.heightCm), unit: " cm" }
   ];
-  return { comparisons, currentStart, previousEnd, previousStart, today };
+  const diagnosis = buildPeriodDiagnosis(current, previous, plant, comparisons);
+  return { comparisons, currentStart, diagnosis, previousEnd, previousStart, today };
+}
+
+/**
+ * Intenta dar una explicacion honesta de por que cambio (o no) lo que se ve
+ * en `comparisons`, en vez de dejar solo los numeros crudos como antes.
+ *
+ * No es un diagnostico certero: es una correlacion entre el estado de VPD
+ * (que ya combina temperatura y humedad, calculado por assessPlantEnvironment
+ * segun la etapa declarada) y el crecimiento en altura registrado, entre el
+ * periodo actual y el anterior. Se devuelve siempre un mensaje -- incluso
+ * cuando no hay hallazgo, para distinguir explicitamente "no encontramos una
+ * explicacion" de "no hay datos suficientes para buscarla".
+ *
+ * Umbrales elegidos para evitar sobre-interpretar muestras chicas: se pide
+ * un minimo de 3 lecturas de VPD comparables en cada periodo, y un corrimiento
+ * de al menos 30 puntos porcentuales en la proporcion fuera de rango antes de
+ * llamarlo un cambio notable.
+ */
+function buildPeriodDiagnosis(current: PlantMeasurement[], previous: PlantMeasurement[], plant: Plant, comparisons: PeriodComparisonDatum[]): PeriodDiagnosis {
+  const MIN_SAMPLES = 3;
+  const NOTABLE_SHIFT = 0.3;
+
+  const currentVpd = summarizeVpdOutOfRange(current, plant);
+  const previousVpd = summarizeVpdOutOfRange(previous, plant);
+
+  if (!currentVpd || !previousVpd || currentVpd.total < MIN_SAMPLES || previousVpd.total < MIN_SAMPLES) {
+    return {
+      kind: "insufficient",
+      text: "Todavía no hay suficientes lecturas de temperatura y humedad en ambos períodos (se necesitan al menos 3 en cada uno) para estimar si el ambiente cambió. Sumá más mediciones para que esta lectura sea confiable."
+    };
+  }
+
+  const shift = currentVpd.outOfRangeShare - previousVpd.outOfRangeShare;
+  const currentPct = Math.round(currentVpd.outOfRangeShare * 100);
+  const previousPct = Math.round(previousVpd.outOfRangeShare * 100);
+  const heightDatum = comparisons.find((item) => item.label === "Altura promedio registrada");
+  const heightChange =
+    heightDatum && heightDatum.current.value !== undefined && heightDatum.previous.value !== undefined
+      ? Number((heightDatum.current.value - heightDatum.previous.value).toFixed(2))
+      : undefined;
+
+  if (shift >= NOTABLE_SHIFT) {
+    if (heightChange !== undefined && heightChange <= 0.5) {
+      return {
+        kind: "insight",
+        text: `Explicación más consistente con tus datos: el VPD estuvo fuera del rango orientativo para "${plant.stage}" en ${currentPct}% de las mediciones de este período (era ${previousPct}% en el anterior), y en el mismo lapso la altura promedio registrada casi no cambió (${heightChange > 0 ? "+" : ""}${heightChange} cm). Un VPD fuera de rango suele ir asociado a estrés que frena el crecimiento — es la lectura más consistente con lo que registraste, no una causa confirmada.`
+      };
+    }
+    return {
+      kind: "insight",
+      text: `El VPD estuvo fuera del rango orientativo para "${plant.stage}" en ${currentPct}% de las mediciones de este período, frente a ${previousPct}% en el anterior. Vale la pena revisar temperatura, humedad y ventilación — todavía no hay otro dato (como la altura registrada) que confirme un efecto.`
+    };
+  }
+
+  if (shift <= -NOTABLE_SHIFT) {
+    const heightNote = heightChange !== undefined && heightChange > 0 ? ` En el mismo período, la altura promedio registrada aumentó ${heightChange} cm.` : "";
+    return {
+      kind: "insight",
+      text: `El VPD estuvo fuera del rango orientativo en ${currentPct}% de las mediciones de este período, una mejora frente al ${previousPct}% del anterior.${heightNote}`
+    };
+  }
+
+  return {
+    kind: "stable",
+    text: `El VPD se mantuvo relativamente estable entre períodos (${currentPct}% de las mediciones fuera de rango en este período, ${previousPct}% en el anterior): no encontramos un cambio ambiental claro que explique otras diferencias de esta comparación.`
+  };
+}
+
+function summarizeVpdOutOfRange(records: PlantMeasurement[], plant: Plant) {
+  const statuses = records.map((item) => assessPlantEnvironment(plant, item).vpdStatus).filter((status) => status !== "missing");
+  if (statuses.length === 0) return undefined;
+  const outOfRange = statuses.filter((status) => status !== "in-range").length;
+  return { outOfRangeShare: outOfRange / statuses.length, total: statuses.length };
 }
 
 function PeriodComparisonMetric({ current, label, previous, unit }: { current: PeriodMetric; label: string; previous: PeriodMetric; unit: string }) {
