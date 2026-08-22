@@ -48,6 +48,7 @@ import type {
   Dictionary,
   GrowSpace,
   IrrigationRecipe,
+  InventoryItem,
   Locale,
   Plant,
   PlantEnvironmentalAlertSettings,
@@ -123,6 +124,7 @@ type AppSnapshot = {
   savedAt: string;
   tasks: Task[];
   irrigationRecipes: IrrigationRecipe[];
+  inventoryItems: InventoryItem[];
 };
 
 // El tono define el color y el icono del cartel de estado de la cuenta, para
@@ -507,6 +509,7 @@ const storageKeys = {
   measurements: "plantcare-plant-measurements",
   inspections: "plantcare-plant-inspections",
   irrigationRecipes: "plantcare-irrigation-recipes",
+  inventoryItems: "plantcare-inventory-items",
   environmentalAlerts: "plantcare-environmental-alerts",
   onboarding: "plantcare-onboarding-complete",
   plants: "plantcare-plants",
@@ -536,6 +539,7 @@ export function AppShell({
   const [measurementState, setMeasurementState] = useStoredState<PlantMeasurement[]>(storageKeys.measurements, []);
   const [inspectionState, setInspectionState] = useStoredState<PlantInspection[]>(storageKeys.inspections, []);
   const [irrigationRecipeState, setIrrigationRecipeState] = useStoredState<IrrigationRecipe[]>(storageKeys.irrigationRecipes, []);
+  const [inventoryItemState, setInventoryItemState] = useStoredState<InventoryItem[]>(storageKeys.inventoryItems, []);
   const [environmentalAlertState, setEnvironmentalAlertState] = useStoredState<PlantEnvironmentalAlertSettings[]>(storageKeys.environmentalAlerts, []);
   const [acknowledgedEnvironmentalAlerts, setAcknowledgedEnvironmentalAlerts] = useStoredState<string[]>(storageKeys.acknowledgedEnvironmentalAlerts, []);
   const [weather, setWeather] = useState<WeatherReadiness>(() => getStoredWeatherSnapshot() ?? getWeatherReadiness("Ubicacion sin conectar"));
@@ -649,6 +653,7 @@ export function AppShell({
       measurements: measurementState,
       inspections: inspectionState,
       irrigationRecipes: irrigationRecipeState,
+      inventoryItems: inventoryItemState,
       plants: plantState,
       savedAt: new Date().toISOString(),
       tasks: taskState
@@ -686,6 +691,7 @@ export function AppShell({
     }
     if (snapshot.inspections) { setInspectionState(snapshot.inspections); persistStoredState(storageKeys.inspections, snapshot.inspections); }
     if (snapshot.irrigationRecipes) { setIrrigationRecipeState(snapshot.irrigationRecipes); persistStoredState(storageKeys.irrigationRecipes, snapshot.irrigationRecipes); }
+    if (snapshot.inventoryItems) { setInventoryItemState(snapshot.inventoryItems); persistStoredState(storageKeys.inventoryItems, snapshot.inventoryItems); }
     if (snapshot.environmentalAlerts) {
       setEnvironmentalAlertState(snapshot.environmentalAlerts);
       persistStoredState(storageKeys.environmentalAlerts, snapshot.environmentalAlerts);
@@ -1309,6 +1315,11 @@ export function AppShell({
     setIrrigationRecipeState(nextRecipes); persistStoredState(storageKeys.irrigationRecipes, nextRecipes);
   }
 
+  function handleSaveInventoryItem(item: InventoryItem) {
+    const nextItems = inventoryItemState.some((existing) => existing.id === item.id) ? inventoryItemState.map((existing) => existing.id === item.id ? item : existing) : [...inventoryItemState, item];
+    setInventoryItemState(nextItems); persistStoredState(storageKeys.inventoryItems, nextItems);
+  }
+
   function handleSaveInspection(inspection: PlantInspection) {
     const nextInspections = inspectionState.some((item) => item.id === inspection.id) ? inspectionState.map((item) => item.id === inspection.id ? inspection : item) : [inspection, ...inspectionState];
     setInspectionState(nextInspections); persistStoredState(storageKeys.inspections, nextInspections);
@@ -1660,7 +1671,7 @@ export function AppShell({
     return () => window.clearTimeout(timeoutId);
     // saveRemoteSnapshot reads the current snapshot from state; these dependencies are the autosave trigger surface.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountStatus.userId, acknowledgedEnvironmentalAlerts, entryState, environmentalAlertState, eventState, habitDates, inspectionState, irrigationRecipeState, measurementState, plantState, remoteSyncReady, taskState, viewingShare]);
+  }, [accountStatus.userId, acknowledgedEnvironmentalAlerts, entryState, environmentalAlertState, eventState, habitDates, inspectionState, inventoryItemState, irrigationRecipeState, measurementState, plantState, remoteSyncReady, taskState, viewingShare]);
 
   useEffect(() => {
     if (!accountStatus.isSignedIn || !accountStatus.userId || viewingShare) {
@@ -1684,6 +1695,7 @@ export function AppShell({
     setMeasurementState([]);
     setInspectionState([]);
     setIrrigationRecipeState([]);
+    setInventoryItemState([]);
     setEnvironmentalAlertState([]);
     setAcknowledgedEnvironmentalAlerts([]);
     persistStoredState(storageKeys.plants, []);
@@ -1694,6 +1706,7 @@ export function AppShell({
     persistStoredState(storageKeys.measurements, []);
     persistStoredState(storageKeys.inspections, []);
     persistStoredState(storageKeys.irrigationRecipes, []);
+    persistStoredState(storageKeys.inventoryItems, []);
     persistStoredState(storageKeys.environmentalAlerts, []);
     persistStoredState(storageKeys.acknowledgedEnvironmentalAlerts, []);
     removeStoredState(storageKeys.calendarDate);
@@ -1811,9 +1824,11 @@ export function AppShell({
           dictionary={dictionary}
           environmentalAlerts={environmentalAlertState}
           inspections={inspectionState}
+          inventoryItems={inventoryItemState}
           locale={locale}
           onSaveRemoteSnapshot={() => saveRemoteSnapshot(undefined, { manual: true })}
           onAcknowledgeEnvironmentalAlert={handleAcknowledgeEnvironmentalAlert}
+          onSaveInventoryItem={handleSaveInventoryItem}
           onSendMagicLink={handleSendMagicLink}
           onSignOut={handleSignOut}
           onToggleTask={handleToggleTask}
@@ -1845,11 +1860,13 @@ export function AppShell({
           measurements={measurementState}
           inspections={inspectionState}
           irrigationRecipes={irrigationRecipeState}
+          inventoryItems={inventoryItemState}
           onAddJournalEntry={handleAddJournalEntry}
           onAddCalendarEvent={handleAddCalendarEvent}
           onAddMeasurement={handleAddMeasurement}
           onSaveInspection={handleSaveInspection}
           onSaveIrrigationRecipe={handleSaveIrrigationRecipe}
+          onSaveInventoryItem={handleSaveInventoryItem}
           onDeleteMeasurement={handleDeleteMeasurement}
           onUpdateEnvironmentalAlerts={handleUpdateEnvironmentalAlerts}
           onCreateSensorDevice={handleCreateSensorDevice}
@@ -2120,9 +2137,11 @@ function TodaySection({
   dictionary,
   environmentalAlerts,
   inspections,
+  inventoryItems,
   locale,
   onSaveRemoteSnapshot,
   onAcknowledgeEnvironmentalAlert,
+  onSaveInventoryItem,
   onSendMagicLink,
   onSignOut,
   onUseDeviceWeather,
@@ -2143,9 +2162,11 @@ function TodaySection({
   dictionary: Dictionary;
   environmentalAlerts: PlantEnvironmentalAlertSettings[];
   inspections: PlantInspection[];
+  inventoryItems: InventoryItem[];
   locale: Locale;
   onSaveRemoteSnapshot: () => void;
   onAcknowledgeEnvironmentalAlert: (alertKey: string) => void;
+  onSaveInventoryItem: (item: InventoryItem) => void;
   onSendMagicLink: (email: string) => void;
   onSignOut: () => void;
   onUseDeviceWeather: () => void;
@@ -2210,6 +2231,7 @@ function TodaySection({
         <EnvironmentalQuickAccess locale={locale} measurements={measurements} plants={plants} />
         <TodayEnvironmentalAlerts acknowledgedAlerts={acknowledgedEnvironmentalAlerts} environmentalAlerts={environmentalAlerts} locale={locale} measurements={measurements} onAcknowledge={onAcknowledgeEnvironmentalAlert} plants={plants} />
         <TodayInspectionFollowUps inspections={inspections} locale={locale} plants={plants} />
+        <TodayInventoryAlerts inventoryItems={inventoryItems} onSaveInventoryItem={onSaveInventoryItem} />
       </section>
 
       <section className="mx-auto grid max-w-7xl gap-5 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
@@ -2276,6 +2298,12 @@ function TodaySection({
       </section>
     </>
   );
+}
+
+function TodayInventoryAlerts({ inventoryItems, onSaveInventoryItem }: { inventoryItems: InventoryItem[]; onSaveInventoryItem: (item: InventoryItem) => void }) {
+  const lowStock = inventoryItems.filter((item) => item.minimumQuantity !== undefined && item.quantity <= item.minimumQuantity);
+  if (lowStock.length === 0) return null;
+  return <Card as="section" className="inventory-alerts mt-3 p-4 sm:p-5"><SectionHeader eyebrow="Mínimos del usuario" title="Stock para revisar" /><div>{lowStock.map((item) => <article key={item.id}><div><strong>{item.name}</strong><p>{item.quantity} {item.unit} disponibles · mínimo configurado: {item.minimumQuantity} {item.unit}</p></div><button className="text-button" onClick={() => onSaveInventoryItem({ ...item, minimumQuantity: undefined })} type="button">Quitar mínimo</button></article>)}</div><p>El aviso usa únicamente el mínimo que configuraste; PlantCare no estima consumos futuros.</p></Card>;
 }
 
 function TodayInspectionFollowUps({ inspections, locale, plants }: { inspections: PlantInspection[]; locale: Locale; plants: Plant[] }) {
@@ -2710,12 +2738,14 @@ function SpacesSection({
   environmentalAlerts,
   inspections,
   irrigationRecipes,
+  inventoryItems,
   measurements,
   onAddCalendarEvent,
   onAddJournalEntry,
   onAddMeasurement,
   onSaveInspection,
   onSaveIrrigationRecipe,
+  onSaveInventoryItem,
   onDeleteMeasurement,
   onUpdateEnvironmentalAlerts,
   onCreateSensorDevice,
@@ -2734,12 +2764,14 @@ function SpacesSection({
   environmentalAlerts: PlantEnvironmentalAlertSettings[];
   inspections: PlantInspection[];
   irrigationRecipes: IrrigationRecipe[];
+  inventoryItems: InventoryItem[];
   measurements: PlantMeasurement[];
   onAddCalendarEvent: (event: CalendarEvent) => void;
   onAddJournalEntry: (entry: CareEntry) => void;
   onAddMeasurement: (measurement: PlantMeasurement) => void;
   onSaveInspection: (inspection: PlantInspection) => void;
   onSaveIrrigationRecipe: (recipe: IrrigationRecipe) => void;
+  onSaveInventoryItem: (item: InventoryItem) => void;
   onDeleteMeasurement: (measurementId: string) => void;
   onUpdateEnvironmentalAlerts: (settings: PlantEnvironmentalAlertSettings) => void;
   onCreateSensorDevice: (plantId: string, name: string) => Promise<string | null>;
@@ -2815,7 +2847,8 @@ function SpacesSection({
         ) : <EmptyState body="Creá una planta o maceta antes de registrar mediciones." title="No hay macetas disponibles" />}
       </Card>
 
-      <BatchIrrigationPanel onAddMeasurement={onAddMeasurement} onSaveRecipe={onSaveIrrigationRecipe} plants={activePlants} recipes={irrigationRecipes} />
+      <InventoryPanel items={inventoryItems} onSaveItem={onSaveInventoryItem} />
+      <BatchIrrigationPanel inventoryItems={inventoryItems} onAddMeasurement={onAddMeasurement} onSaveInventoryItem={onSaveInventoryItem} onSaveRecipe={onSaveIrrigationRecipe} plants={activePlants} recipes={irrigationRecipes} />
 
       <div className="genetics-reference-panel mt-5 rounded-lg border p-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -3204,16 +3237,23 @@ function PlantDataCoverage({ measurements, plant }: { measurements: PlantMeasure
   return <section className="plant-data-coverage" aria-label={`Cobertura de datos de ${plant.name}`}><header><div><p className="plant-calculation-eyebrow">Calidad del historial</p><h4>Cobertura de los últimos 30 días</h4><span>Cuenta solamente campos realmente registrados desde {formatDisplayDate(startDate)}.</span></div><span className="pill pill-blue">{covered} de {coverage.length} variables</span></header><dl>{coverage.map(([label, count]) => <div className={count === 0 ? "is-missing" : ""} key={label}><dt>{label}</dt><dd>{count === 0 ? "Sin datos" : `${count} registro${count === 1 ? "" : "s"}`}</dd></div>)}</dl><p>La ausencia de una variable no implica un problema de cultivo; solo indica que no fue registrada durante esta ventana.</p></section>;
 }
 
-function BatchIrrigationPanel({ onAddMeasurement, onSaveRecipe, plants, recipes }: { onAddMeasurement: (measurement: PlantMeasurement) => void; onSaveRecipe: (recipe: IrrigationRecipe) => void; plants: Plant[]; recipes: IrrigationRecipe[] }) {
+function InventoryPanel({ items, onSaveItem }: { items: InventoryItem[]; onSaveItem: (item: InventoryItem) => void }) {
+  const [name, setName] = useState(""); const [category, setCategory] = useState<InventoryItem["category"]>("nutrient"); const [quantity, setQuantity] = useState(""); const [unit, setUnit] = useState("ml"); const [minimum, setMinimum] = useState(""); const [status, setStatus] = useState("");
+  function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const parsedQuantity = parseOptionalNumber(quantity); if (!name.trim() || parsedQuantity === undefined) return; onSaveItem({ category, id: `inventory-${Date.now()}`, minimumQuantity: parseOptionalNumber(minimum), name: name.trim(), quantity: parsedQuantity, unit: unit.trim() || "unidad" }); setName(""); setQuantity(""); setMinimum(""); setStatus("Insumo guardado en tu inventario."); }
+  return <Card as="section" className="inventory-panel mt-5 p-4 sm:p-5"><SectionHeader eyebrow="Control propio" title="Inventario de insumos" /><p>Las cantidades y mínimos los define el usuario. PlantCare no recomienda productos ni existencias necesarias.</p><form onSubmit={submit}><label>Nombre<input className="form-control" onChange={(event) => setName(event.target.value)} required value={name} /></label><label>Categoría<select className="form-control" onChange={(event) => setCategory(event.target.value as InventoryItem["category"])} value={category}><option value="nutrient">Nutriente</option><option value="substrate">Sustrato</option><option value="treatment">Tratamiento</option><option value="other">Otro</option></select></label><label>Cantidad<input className="form-control" min="0" onChange={(event) => setQuantity(event.target.value)} required step="0.01" type="number" value={quantity} /></label><label>Unidad<input className="form-control" onChange={(event) => setUnit(event.target.value)} value={unit} /></label><label>Mínimo para aviso<input className="form-control" min="0" onChange={(event) => setMinimum(event.target.value)} step="0.01" type="number" value={minimum} /></label><button className="primary-button" type="submit">Agregar insumo</button></form><div className="inventory-list">{items.map((item) => <article key={item.id}><div><strong>{item.name}</strong><span>{item.quantity} {item.unit}{item.minimumQuantity === undefined ? "" : ` · mínimo ${item.minimumQuantity}`}</span></div><div><button className="text-button" onClick={() => onSaveItem({ ...item, quantity: Number((item.quantity + 1).toFixed(2)) })} type="button">+1</button><button className="text-button" disabled={item.quantity <= 0} onClick={() => onSaveItem({ ...item, quantity: Number(Math.max(0, item.quantity - 1).toFixed(2)) })} type="button">−1</button></div></article>)}</div>{status ? <p role="status">{status}</p> : null}</Card>;
+}
+
+function BatchIrrigationPanel({ inventoryItems, onAddMeasurement, onSaveInventoryItem, onSaveRecipe, plants, recipes }: { inventoryItems: InventoryItem[]; onAddMeasurement: (measurement: PlantMeasurement) => void; onSaveInventoryItem: (item: InventoryItem) => void; onSaveRecipe: (recipe: IrrigationRecipe) => void; plants: Plant[]; recipes: IrrigationRecipe[] }) {
   const [selectedPlantIds, setSelectedPlantIds] = useState<string[]>([]);
   const [measuredAt, setMeasuredAt] = useState(getLocalDateTimeValue());
   const [water, setWater] = useState(""); const [ph, setPh] = useState(""); const [ec, setEc] = useState(""); const [ppm, setPpm] = useState(""); const [observations, setObservations] = useState("");
   const [recipeName, setRecipeName] = useState(""); const [status, setStatus] = useState("");
+  const [inventoryItemId, setInventoryItemId] = useState(""); const [inventoryAmountPerPlant, setInventoryAmountPerPlant] = useState("");
   function togglePlant(id: string) { setSelectedPlantIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]); }
-  function loadRecipe(id: string) { const recipe = recipes.find((item) => item.id === id); if (!recipe) return; setWater(recipe.waterAmountMl?.toString() ?? ""); setPh(recipe.irrigationPh?.toString() ?? ""); setEc(recipe.irrigationEcMsCm?.toString() ?? ""); setPpm(recipe.irrigationPpm?.toString() ?? ""); setObservations(recipe.observations ?? ""); setStatus(`Receta “${recipe.name}” cargada; revisá los valores antes de registrar.`); }
-  function saveRecipe() { if (!recipeName.trim()) { setStatus("Escribí un nombre para guardar la receta."); return; } if (![water, ph, ec, ppm, observations].some((value) => value.trim())) { setStatus("Cargá al menos un valor o una observación para la receta."); return; } onSaveRecipe({ id: `recipe-${Date.now()}`, irrigationEcMsCm: parseOptionalNumber(ec), irrigationPh: parseOptionalNumber(ph), irrigationPpm: parseOptionalNumber(ppm), name: recipeName.trim(), observations: observations.trim() || undefined, waterAmountMl: parseOptionalNumber(water) }); setRecipeName(""); setStatus("Receta propia guardada."); }
-  function registerBatch(event: FormEvent<HTMLFormElement>) { event.preventDefault(); if (selectedPlantIds.length === 0) { setStatus("Seleccioná al menos una maceta."); return; } if (![water, ph, ec, ppm, observations].some((value) => value.trim())) { setStatus("Cargá al menos un valor o una observación."); return; } const iso = new Date(measuredAt).toISOString(); selectedPlantIds.forEach((plantId, index) => onAddMeasurement({ id: `measurement-${plantId}-${Date.now()}-${index}`, irrigationEcMsCm: parseOptionalNumber(ec), irrigationPh: parseOptionalNumber(ph), irrigationPpm: parseOptionalNumber(ppm), measuredAt: iso, observations: observations.trim() ? `Registro por lote: ${observations.trim()}` : "Registro de riego por lote.", plantId, source: "manual", waterAmountMl: parseOptionalNumber(water) })); setStatus(`Riego guardado como ${selectedPlantIds.length} registro${selectedPlantIds.length === 1 ? "" : "s"} independiente${selectedPlantIds.length === 1 ? "" : "s"}.`); }
-  return <Card as="section" className="batch-irrigation-panel mt-5 p-4 sm:p-5"><SectionHeader eyebrow="Acción múltiple" title="Registrar riego por lote" /><p>Elegí macetas y cargá únicamente los valores realmente aplicados o medidos. Se crea una medición separada para cada maceta.</p><form onSubmit={registerBatch}><fieldset><legend>Macetas</legend><div className="batch-plant-picker">{plants.map((plant) => <label key={plant.id}><input checked={selectedPlantIds.includes(plant.id)} onChange={() => togglePlant(plant.id)} type="checkbox" /> {plant.name} · {plant.pot}</label>)}</div></fieldset><div className="batch-irrigation-fields"><label>Fecha y hora<input className="form-control" onChange={(event) => setMeasuredAt(event.target.value)} type="datetime-local" value={measuredAt} /></label><label>Agua (ml)<input className="form-control" min="0" onChange={(event) => setWater(event.target.value)} type="number" value={water} /></label><label>pH medido<input className="form-control" max="14" min="0" onChange={(event) => setPh(event.target.value)} step="0.01" type="number" value={ph} /></label><label>EC (mS/cm)<input className="form-control" min="0" onChange={(event) => setEc(event.target.value)} step="0.01" type="number" value={ec} /></label><label>PPM medidos<input className="form-control" min="0" onChange={(event) => setPpm(event.target.value)} type="number" value={ppm} /></label><label>Observación<input className="form-control" onChange={(event) => setObservations(event.target.value)} value={observations} /></label></div><div className="batch-recipe-row"><label>Usar receta<select className="form-control" defaultValue="" onChange={(event) => loadRecipe(event.target.value)}><option value="">Seleccionar</option>{recipes.map((recipe) => <option key={recipe.id} value={recipe.id}>{recipe.name}</option>)}</select></label><label>Guardar valores como receta<input className="form-control" onChange={(event) => setRecipeName(event.target.value)} placeholder="Nombre propio" value={recipeName} /></label><button className="secondary-button" onClick={saveRecipe} type="button">Guardar receta</button><button className="primary-button" type="submit">Registrar por lote</button></div>{status ? <p role="status">{status}</p> : null}</form></Card>;
+  function loadRecipe(id: string) { const recipe = recipes.find((item) => item.id === id); if (!recipe) return; setWater(recipe.waterAmountMl?.toString() ?? ""); setPh(recipe.irrigationPh?.toString() ?? ""); setEc(recipe.irrigationEcMsCm?.toString() ?? ""); setPpm(recipe.irrigationPpm?.toString() ?? ""); setObservations(recipe.observations ?? ""); setInventoryItemId(recipe.inventoryItemId ?? ""); setInventoryAmountPerPlant(recipe.inventoryAmountPerPlant?.toString() ?? ""); setStatus(`Receta “${recipe.name}” cargada; revisá los valores antes de registrar.`); }
+  function saveRecipe() { if (!recipeName.trim()) { setStatus("Escribí un nombre para guardar la receta."); return; } if (![water, ph, ec, ppm, observations].some((value) => value.trim())) { setStatus("Cargá al menos un valor o una observación para la receta."); return; } onSaveRecipe({ id: `recipe-${Date.now()}`, inventoryAmountPerPlant: parseOptionalNumber(inventoryAmountPerPlant), inventoryItemId: inventoryItemId || undefined, irrigationEcMsCm: parseOptionalNumber(ec), irrigationPh: parseOptionalNumber(ph), irrigationPpm: parseOptionalNumber(ppm), name: recipeName.trim(), observations: observations.trim() || undefined, waterAmountMl: parseOptionalNumber(water) }); setRecipeName(""); setStatus("Receta propia guardada."); }
+  function registerBatch(event: FormEvent<HTMLFormElement>) { event.preventDefault(); if (selectedPlantIds.length === 0) { setStatus("Seleccioná al menos una maceta."); return; } if (![water, ph, ec, ppm, observations].some((value) => value.trim())) { setStatus("Cargá al menos un valor o una observación."); return; } const inventoryItem = inventoryItems.find((item) => item.id === inventoryItemId); const perPlant = parseOptionalNumber(inventoryAmountPerPlant); if (inventoryItem && (perPlant === undefined || perPlant <= 0)) { setStatus("Indicá una cantidad mayor que cero por maceta para confirmar el consumo."); return; } const totalUse = inventoryItem && perPlant !== undefined ? perPlant * selectedPlantIds.length : 0; if (totalUse > (inventoryItem?.quantity ?? 0)) { setStatus(`Stock insuficiente: se necesitan ${totalUse} ${inventoryItem?.unit ?? ""}.`); return; } const iso = new Date(measuredAt).toISOString(); selectedPlantIds.forEach((plantId, index) => onAddMeasurement({ id: `measurement-${plantId}-${Date.now()}-${index}`, irrigationEcMsCm: parseOptionalNumber(ec), irrigationPh: parseOptionalNumber(ph), irrigationPpm: parseOptionalNumber(ppm), measuredAt: iso, observations: observations.trim() ? `Registro por lote: ${observations.trim()}` : "Registro de riego por lote.", plantId, source: "manual", waterAmountMl: parseOptionalNumber(water) })); if (inventoryItem && totalUse > 0) onSaveInventoryItem({ ...inventoryItem, quantity: Number((inventoryItem.quantity - totalUse).toFixed(2)) }); setStatus(`Riego guardado como ${selectedPlantIds.length} registros independientes${inventoryItem && totalUse > 0 ? `; se descontaron ${totalUse} ${inventoryItem.unit} de ${inventoryItem.name}` : ""}.`); }
+  return <Card as="section" className="batch-irrigation-panel mt-5 p-4 sm:p-5"><SectionHeader eyebrow="Acción múltiple" title="Registrar riego por lote" /><p>Elegí macetas y cargá únicamente los valores realmente aplicados o medidos. Se crea una medición separada para cada maceta.</p><form onSubmit={registerBatch}><fieldset><legend>Macetas</legend><div className="batch-plant-picker">{plants.map((plant) => <label key={plant.id}><input checked={selectedPlantIds.includes(plant.id)} onChange={() => togglePlant(plant.id)} type="checkbox" /> {plant.name} · {plant.pot}</label>)}</div></fieldset><div className="batch-irrigation-fields"><label>Fecha y hora<input className="form-control" onChange={(event) => setMeasuredAt(event.target.value)} type="datetime-local" value={measuredAt} /></label><label>Agua (ml)<input className="form-control" min="0" onChange={(event) => setWater(event.target.value)} type="number" value={water} /></label><label>pH medido<input className="form-control" max="14" min="0" onChange={(event) => setPh(event.target.value)} step="0.01" type="number" value={ph} /></label><label>EC (mS/cm)<input className="form-control" min="0" onChange={(event) => setEc(event.target.value)} step="0.01" type="number" value={ec} /></label><label>PPM medidos<input className="form-control" min="0" onChange={(event) => setPpm(event.target.value)} type="number" value={ppm} /></label><label>Observación<input className="form-control" onChange={(event) => setObservations(event.target.value)} value={observations} /></label></div><div className="batch-inventory-row"><label>Insumo a descontar<select className="form-control" onChange={(event) => setInventoryItemId(event.target.value)} value={inventoryItemId}><option value="">No descontar</option>{inventoryItems.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.quantity} {item.unit}</option>)}</select></label><label>Cantidad por maceta<input className="form-control" disabled={!inventoryItemId} min="0" onChange={(event) => setInventoryAmountPerPlant(event.target.value)} step="0.01" type="number" value={inventoryAmountPerPlant} /></label><span>Total a descontar: {parseOptionalNumber(inventoryAmountPerPlant) === undefined ? "—" : `${Number((parseOptionalNumber(inventoryAmountPerPlant)! * selectedPlantIds.length).toFixed(2))} ${inventoryItems.find((item) => item.id === inventoryItemId)?.unit ?? ""}`}</span></div><div className="batch-recipe-row"><label>Usar receta<select className="form-control" defaultValue="" onChange={(event) => loadRecipe(event.target.value)}><option value="">Seleccionar</option>{recipes.map((recipe) => <option key={recipe.id} value={recipe.id}>{recipe.name}</option>)}</select></label><label>Guardar valores como receta<input className="form-control" onChange={(event) => setRecipeName(event.target.value)} placeholder="Nombre propio" value={recipeName} /></label><button className="secondary-button" onClick={saveRecipe} type="button">Guardar receta</button><button className="primary-button" type="submit">Registrar y confirmar consumo</button></div>{status ? <p role="status">{status}</p> : null}</form></Card>;
 }
 
 function PlantInspectionPanel({ inspections, onSaveInspection, plant }: { inspections: PlantInspection[]; onSaveInspection: (inspection: PlantInspection) => void; plant: Plant }) {

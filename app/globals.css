@@ -6191,6 +6191,19 @@ textarea {
   .plant-data-coverage dd { margin-top: 0.15rem; color: #183126; font-size: 0.78rem; font-weight: 900; }
   .plant-data-coverage > p { color: #65746c; font-size: 0.66rem; font-weight: 750; }
   @media (min-width: 760px) { .plant-data-coverage dl { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .inventory-panel, .inventory-panel form { display: grid; gap: 0.75rem; }
+  .inventory-panel > p, .inventory-panel > [role="status"] { color: #596a61; font-size: 0.75rem; font-weight: 750; }
+  .inventory-panel form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .inventory-panel form label { display: grid; gap: 0.22rem; color: #31483e; font-size: 0.68rem; font-weight: 850; }
+  .inventory-panel form button { align-self: end; }
+  .inventory-list { display: grid; gap: 0.45rem; }
+  .inventory-list article, .inventory-alerts article { display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; border: 1px solid rgba(49,72,62,.14); border-radius: 9px; background: rgba(255,255,255,.7); padding: 0.65rem; }
+  .inventory-list article > div:first-child { display: grid; gap: 0.12rem; }
+  .inventory-list article > div:last-child { display: flex; gap: 0.4rem; }
+  .inventory-list strong, .inventory-alerts strong { color: #183126; font-size: 0.8rem; }
+  .inventory-list span, .inventory-alerts p { color: #65746c; font-size: 0.68rem; font-weight: 750; }
+  .inventory-alerts > div { display: grid; gap: 0.45rem; margin-top: 0.7rem; }
+  .inventory-alerts > p { margin-top: 0.65rem; }
   .batch-irrigation-panel, .batch-irrigation-panel form { display: grid; gap: 0.75rem; }
   .batch-irrigation-panel > p, .batch-irrigation-panel form > p { color: #596a61; font-size: 0.75rem; font-weight: 750; }
   .batch-irrigation-panel fieldset { border: 0; }
@@ -6198,7 +6211,9 @@ textarea {
   .batch-plant-picker { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.35rem; }
   .batch-plant-picker label { border-radius: 999px; background: rgba(232,244,237,.8); padding: .38rem .55rem; }
   .batch-irrigation-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .5rem; }
-  .batch-irrigation-fields label, .batch-recipe-row label { display: grid; gap: .22rem; }
+  .batch-irrigation-fields label, .batch-inventory-row label, .batch-recipe-row label { display: grid; gap: .22rem; }
+  .batch-inventory-row { display: grid; align-items: end; gap: .5rem; border-radius: 9px; background: rgba(232,244,237,.7); padding: .65rem; }
+  .batch-inventory-row span { color: #34513f; font-size: .7rem; font-weight: 850; }
   .batch-recipe-row { display: grid; align-items: end; gap: .5rem; }
   .plant-inspection-panel { display: grid; gap: .65rem; margin-top: .85rem; border-top: 1px solid rgba(49,72,62,.18); padding-top: .9rem; }
   .plant-inspection-panel > header { display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:.6rem; }
@@ -6224,7 +6239,7 @@ textarea {
   .clone-cycle-control form { display:grid; gap:.5rem; border-radius:8px; background:rgba(238,244,240,.76); padding:.65rem; }
   .clone-cycle-control label { display:grid; gap:.2rem; color:#31483e; font-size:.66rem; font-weight:850; }
   .clone-cycle-control p { color:#617168; font-size:.64rem; font-weight:750; line-height:1.4; }
-  @media(min-width:800px){.batch-irrigation-fields{grid-template-columns:repeat(6,minmax(0,1fr))}.batch-recipe-row{grid-template-columns:1fr 1fr auto auto}}
+  @media(min-width:800px){.inventory-panel form{grid-template-columns:2fr 1fr 1fr 1fr 1.4fr auto}.batch-irrigation-fields{grid-template-columns:repeat(6,minmax(0,1fr))}.batch-inventory-row{grid-template-columns:2fr 1fr 1.3fr}.batch-recipe-row{grid-template-columns:1fr 1fr auto auto}}
 
   @media (min-width: 900px) {
     .period-comparison-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }

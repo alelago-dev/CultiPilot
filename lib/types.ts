@@ -131,6 +131,18 @@ export type IrrigationRecipe = {
   irrigationEcMsCm?: number;
   irrigationPpm?: number;
   observations?: string;
+  inventoryItemId?: string;
+  inventoryAmountPerPlant?: number;
+};
+
+export type InventoryItem = {
+  id: string;
+  name: string;
+  category: "nutrient" | "substrate" | "treatment" | "other";
+  quantity: number;
+  unit: string;
+  minimumQuantity?: number;
+  notes?: string;
 };
 
 export type PlantInspection = {
