@@ -1,5 +1,5 @@
 import { addDays, expandEventOccurrences, getTodayIso } from "@/lib/calendar-events";
-import { assessPlantEnvironment } from "@/lib/environment-intelligence";
+import { assessPlantEnvironment, getConfiguredEnvironmentalAlerts } from "@/lib/environment-intelligence";
 import type { CalendarEvent, CareEntry, Plant, PlantEnvironmentalAlertSettings, PlantMeasurement, Task } from "@/lib/types";
 
 export type PlantTimelineType =
@@ -113,10 +113,10 @@ export function buildPlantTimeline({
   });
   const alertItems: PlantTimelineItem[] = plantMeasurements.flatMap((measurement) => {
     const assessment = assessPlantEnvironment(plant, measurement);
-    const exceeded = getExceededEnvironmentalLimits(environmentalAlertSettings, measurement, assessment.vpdKpa);
+    const exceeded = getConfiguredEnvironmentalAlerts(environmentalAlertSettings, measurement, assessment.vpdKpa);
     return exceeded.length === 0 ? [] : [{
       badge: "Alerta calculada",
-      body: `${exceeded.join(" · ")}. Evaluación retrospectiva con los límites personalizados configurados actualmente.`,
+      body: `${exceeded.map((alert) => `${alert.label} ${alert.value}${alert.unit}, ${alert.direction === "below" ? "menor" : "mayor"} que ${alert.limit}${alert.unit}`).join(" · ")}. Evaluación retrospectiva con los límites personalizados configurados actualmente.`,
       date: measurement.measuredAt,
       id: `alert-${measurement.id}`,
       source: "calculated" as const,
@@ -140,22 +140,6 @@ export function buildPlantTimeline({
     const dateOrder = second.date.localeCompare(first.date);
     return dateOrder === 0 ? first.title.localeCompare(second.title) : dateOrder;
   });
-}
-
-function getExceededEnvironmentalLimits(settings: PlantEnvironmentalAlertSettings | undefined, measurement: PlantMeasurement, vpdKpa: number | undefined) {
-  if (!settings) return [];
-  const alerts: string[] = [];
-  addRangeAlert(alerts, "Temperatura", measurement.temperatureC, settings.temperatureMinC, settings.temperatureMaxC, "°C");
-  addRangeAlert(alerts, "Humedad", measurement.ambientHumidityPercent, settings.humidityMinPercent, settings.humidityMaxPercent, "%");
-  addRangeAlert(alerts, "VPD calculado", vpdKpa, settings.vpdMinKpa, settings.vpdMaxKpa, " kPa");
-  addRangeAlert(alerts, "Sustrato", measurement.substrateMoisturePercent, settings.substrateMoistureMinPercent, settings.substrateMoistureMaxPercent, "%");
-  return alerts;
-}
-
-function addRangeAlert(alerts: string[], label: string, value: number | undefined, minimum: number | undefined, maximum: number | undefined, unit: string) {
-  if (value === undefined) return;
-  if (minimum !== undefined && value < minimum) alerts.push(`${label} ${value}${unit}, menor que ${minimum}${unit}`);
-  if (maximum !== undefined && value > maximum) alerts.push(`${label} ${value}${unit}, mayor que ${maximum}${unit}`);
 }
 
 function mapCalendarKindToTimelineType(kind: CalendarEvent["kind"]): PlantTimelineType {

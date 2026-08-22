@@ -35,7 +35,7 @@ import {
 } from "@/lib/navigation";
 import { getGeneticsCatalogAlphabetically, type GeneticReferenceEntry } from "@/lib/genetics-catalog";
 import { requestReminderNotification } from "@/lib/notifications";
-import { assessPlantEnvironment, type EnvironmentalStatus } from "@/lib/environment-intelligence";
+import { assessPlantEnvironment, getConfiguredEnvironmentalAlerts, type EnvironmentalStatus } from "@/lib/environment-intelligence";
 import { buildCultivationSuggestions, type CultivationSuggestion } from "@/lib/cultivation-suggestions";
 import { calculateHorticulturePlan, seedCatalog, type HorticulturePlanInput } from "@/lib/seed-catalog";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -1757,6 +1757,7 @@ export function AppShell({
           agendaItems={agendaItems}
           careScore={careScore}
           dictionary={dictionary}
+          environmentalAlerts={environmentalAlertState}
           locale={locale}
           onSaveRemoteSnapshot={() => saveRemoteSnapshot(undefined, { manual: true })}
           onSendMagicLink={handleSendMagicLink}
@@ -2057,6 +2058,7 @@ function TodaySection({
   careScore,
   calendarEvents,
   dictionary,
+  environmentalAlerts,
   locale,
   onSaveRemoteSnapshot,
   onSendMagicLink,
@@ -2076,6 +2078,7 @@ function TodaySection({
   careScore: number;
   calendarEvents: CalendarEvent[];
   dictionary: Dictionary;
+  environmentalAlerts: PlantEnvironmentalAlertSettings[];
   locale: Locale;
   onSaveRemoteSnapshot: () => void;
   onSendMagicLink: (email: string) => void;
@@ -2140,6 +2143,7 @@ function TodaySection({
           />
         </div>
         <EnvironmentalQuickAccess locale={locale} measurements={measurements} plants={plants} />
+        <TodayEnvironmentalAlerts environmentalAlerts={environmentalAlerts} locale={locale} measurements={measurements} plants={plants} />
       </section>
 
       <section className="mx-auto grid max-w-7xl gap-5 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
@@ -2205,6 +2209,38 @@ function TodaySection({
         </div>
       </section>
     </>
+  );
+}
+
+function TodayEnvironmentalAlerts({ environmentalAlerts, locale, measurements, plants }: { environmentalAlerts: PlantEnvironmentalAlertSettings[]; locale: Locale; measurements: PlantMeasurement[]; plants: Plant[] }) {
+  const configuredPlantIds = new Set(environmentalAlerts.map((settings) => settings.plantId));
+  const activeAlerts = plants.flatMap((plant) => {
+    const latestMeasurement = measurements.filter((measurement) => measurement.plantId === plant.id).sort((first, second) => second.measuredAt.localeCompare(first.measuredAt))[0];
+    const settings = environmentalAlerts.find((item) => item.plantId === plant.id);
+    const assessment = assessPlantEnvironment(plant, latestMeasurement);
+    return getConfiguredEnvironmentalAlerts(settings, latestMeasurement, assessment.vpdKpa).map((alert) => ({ alert, measurement: latestMeasurement, plant }));
+  });
+
+  return (
+    <Card as="section" className="today-environment-alerts mt-3 p-4 sm:p-5" aria-labelledby="today-environment-alerts-title">
+      <header>
+        <div><p className="eyebrow">Límites personalizados</p><h2 id="today-environment-alerts-title">Alertas ambientales</h2><p>Compara la última lectura de cada maceta con los límites que configuraste.</p></div>
+        <span className={activeAlerts.length > 0 ? "pill pill-amber" : "pill pill-green"}>{activeAlerts.length > 0 ? `${activeAlerts.length} activa${activeAlerts.length === 1 ? "" : "s"}` : "Sin alertas activas"}</span>
+      </header>
+      {activeAlerts.length > 0 ? (
+        <div className="today-environment-alert-list" role="alert">
+          {activeAlerts.slice(0, 8).map(({ alert, measurement, plant }) => (
+            <article key={`${plant.id}-${alert.label}-${alert.direction}`}>
+              <div><strong>{plant.name} · {alert.label}</strong><p>{alert.value}{alert.unit}, {alert.direction === "below" ? "por debajo del mínimo" : "por encima del máximo"} {alert.limit}{alert.unit}.</p><small>Última lectura: {formatMeasurementDate(measurement.measuredAt)} · {formatMeasurementSource(measurement.source)}</small></div>
+              <Link className="text-button" href={`${getInternalSectionHref(locale, "spaces")}#${plant.id}` as Route}>Ver maceta</Link>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="today-environment-alert-empty">{configuredPlantIds.size > 0 ? `Ninguna última lectura supera los límites configurados en ${configuredPlantIds.size} maceta${configuredPlantIds.size === 1 ? "" : "s"}.` : "Todavía no configuraste límites personalizados. Podés hacerlo desde la ficha de cada maceta."}</p>
+      )}
+      <p className="today-environment-alert-note">Son avisos explicables basados en la última medición guardada; no representan un diagnóstico ni modifican equipos automáticamente.</p>
+    </Card>
   );
 }
 
@@ -3977,20 +4013,9 @@ function validateAlertSettingsDraft(draft: AlertSettingsDraft) {
 }
 
 function buildConfiguredEnvironmentalAlerts(settings: PlantEnvironmentalAlertSettings | undefined, measurement: PlantMeasurement | undefined, vpdKpa: number | undefined) {
-  if (!settings || !measurement) return [];
+  if (!measurement) return [];
   const capturedAt = formatMeasurementDate(measurement.measuredAt);
-  const alerts: string[] = [];
-  compareConfiguredLimit(alerts, "Temperatura", measurement.temperatureC, settings.temperatureMinC, settings.temperatureMaxC, "°C", capturedAt);
-  compareConfiguredLimit(alerts, "Humedad ambiental", measurement.ambientHumidityPercent, settings.humidityMinPercent, settings.humidityMaxPercent, "%", capturedAt);
-  compareConfiguredLimit(alerts, "VPD calculado", vpdKpa, settings.vpdMinKpa, settings.vpdMaxKpa, " kPa", capturedAt);
-  compareConfiguredLimit(alerts, "Humedad de sustrato", measurement.substrateMoisturePercent, settings.substrateMoistureMinPercent, settings.substrateMoistureMaxPercent, "%", capturedAt);
-  return alerts;
-}
-
-function compareConfiguredLimit(alerts: string[], label: string, value: number | undefined, minimum: number | undefined, maximum: number | undefined, unit: string, capturedAt: string) {
-  if (value === undefined) return;
-  if (minimum !== undefined && value < minimum) alerts.push(`${label}: ${value}${unit}, por debajo de tu mínimo ${minimum}${unit}. Lectura: ${capturedAt}.`);
-  if (maximum !== undefined && value > maximum) alerts.push(`${label}: ${value}${unit}, por encima de tu máximo ${maximum}${unit}. Lectura: ${capturedAt}.`);
+  return getConfiguredEnvironmentalAlerts(settings, measurement, vpdKpa).map((alert) => `${alert.label}: ${alert.value}${alert.unit}, ${alert.direction === "below" ? "por debajo de tu mínimo" : "por encima de tu máximo"} ${alert.limit}${alert.unit}. Lectura: ${capturedAt}.`);
 }
 
 function MeasurementIrrigationSummary({ measurement }: { measurement: PlantMeasurement }) {

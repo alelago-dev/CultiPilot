@@ -108,6 +108,8 @@ Cada maceta puede cerrar y archivar su ciclo con una fecha y nota declaradas por
 
 Las alertas personalizadas permiten que el usuario defina por maceta limites minimos y maximos de temperatura, humedad ambiental, VPD calculado y humedad de sustrato. No hay umbrales personalizados implicitos. Cada aviso cita el valor, el limite configurado y la fecha/hora de la ultima medicion que lo activo; los limites forman parte del snapshot sincronizado.
 
+Hoy reúne las alertas activas de todas las macetas y enlaza directamente a cada ficha. El resumen y la ficha usan la misma funcion de comparacion para evitar resultados distintos; solo evalúan la ultima lectura contra limites definidos por el usuario y no controlan equipos automaticamente.
+
 `buildCultivationSuggestions` transforma la etapa declarada, las mediciones recientes, el setup y los datos de catalogo disponibles en revisiones explicables. Cada sugerencia muestra evidencia, origen, datos faltantes y una fecha orientativa. Nunca entra al calendario automaticamente: el usuario debe pulsar `Agregar al calendario`. Tampoco calcula dosis universales de agua o fertilizante ni fuerza poda, flora, cosecha o ajustes de equipos.
 
 El esquema `plant_measurements` y la Edge Function `supabase/functions/ingest-sensor` permiten que un ESP32, Raspberry Pi u otro gateway escriba mediciones con `source = 'sensor'`. Cada dispositivo usa un token propio revocable cuyo hash se guarda en `sensor_devices`; nunca se expone una clave `service_role` en el sensor o en el navegador. La activacion y el ejemplo de peticion estan documentados junto a la funcion.

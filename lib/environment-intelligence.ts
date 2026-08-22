@@ -1,4 +1,4 @@
-import type { DataPoint, Plant, PlantMeasurement } from "@/lib/types";
+import type { DataPoint, Plant, PlantEnvironmentalAlertSettings, PlantMeasurement } from "@/lib/types";
 
 export type EnvironmentalStatus = "critical" | "high" | "in-range" | "low" | "missing";
 
@@ -19,6 +19,14 @@ export type EnvironmentalAssessment = {
   vpdBasis: "air" | "leaf";
   vpdKpa?: number;
   vpdStatus: EnvironmentalStatus;
+};
+
+export type ConfiguredEnvironmentalAlert = {
+  direction: "above" | "below";
+  label: string;
+  limit: number;
+  unit: string;
+  value: number;
 };
 
 const targets: Record<string, StageTarget> = {
@@ -134,6 +142,22 @@ export function calculateLeafVpd(airTemperatureC: number, leafTemperatureC: numb
   const boundedHumidity = Math.min(100, Math.max(0, relativeHumidityPercent));
   const actualVaporPressure = calculateSaturationVaporPressure(airTemperatureC) * (boundedHumidity / 100);
   return Number((calculateSaturationVaporPressure(leafTemperatureC) - actualVaporPressure).toFixed(2));
+}
+
+export function getConfiguredEnvironmentalAlerts(settings: PlantEnvironmentalAlertSettings | undefined, measurement: PlantMeasurement | undefined, vpdKpa: number | undefined) {
+  if (!settings || !measurement) return [];
+  const alerts: ConfiguredEnvironmentalAlert[] = [];
+  addConfiguredRangeAlerts(alerts, "Temperatura", measurement.temperatureC, settings.temperatureMinC, settings.temperatureMaxC, "°C");
+  addConfiguredRangeAlerts(alerts, "Humedad ambiental", measurement.ambientHumidityPercent, settings.humidityMinPercent, settings.humidityMaxPercent, "%");
+  addConfiguredRangeAlerts(alerts, "VPD calculado", vpdKpa, settings.vpdMinKpa, settings.vpdMaxKpa, " kPa");
+  addConfiguredRangeAlerts(alerts, "Humedad de sustrato", measurement.substrateMoisturePercent, settings.substrateMoistureMinPercent, settings.substrateMoistureMaxPercent, "%");
+  return alerts;
+}
+
+function addConfiguredRangeAlerts(alerts: ConfiguredEnvironmentalAlert[], label: string, value: number | undefined, minimum: number | undefined, maximum: number | undefined, unit: string) {
+  if (value === undefined) return;
+  if (minimum !== undefined && value < minimum) alerts.push({ direction: "below", label, limit: minimum, unit, value });
+  if (maximum !== undefined && value > maximum) alerts.push({ direction: "above", label, limit: maximum, unit, value });
 }
 
 function compareToRange(

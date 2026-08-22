@@ -6242,6 +6242,18 @@ textarea {
     color: rgb(87 83 78);
   }
 
+  .today-environment-alerts { display: grid; gap: 0.75rem; }
+  .today-environment-alerts > header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+  .today-environment-alerts > header h2 { margin-top: 0.15rem; color: #13231b; font-size: 1.05rem; font-weight: 950; }
+  .today-environment-alerts > header p:last-child { margin-top: 0.25rem; color: #5f6f66; font-size: 0.75rem; font-weight: 750; }
+  .today-environment-alert-list { display: grid; gap: 0.45rem; }
+  .today-environment-alert-list article { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; border-left: 4px solid #c46a43; border-radius: 8px; background: rgba(255, 244, 235, 0.78); padding: 0.65rem 0.75rem; }
+  .today-environment-alert-list strong { color: #4f2f22; font-size: 0.8rem; }
+  .today-environment-alert-list p { margin-top: 0.12rem; color: #684638; font-size: 0.72rem; font-weight: 750; }
+  .today-environment-alert-list small { color: #7a6157; font-size: 0.64rem; font-weight: 750; }
+  .today-environment-alert-empty { border-radius: 8px; background: rgba(232, 244, 237, 0.76); padding: 0.7rem; color: #315442; font-size: 0.75rem; font-weight: 800; }
+  .today-environment-alert-note { color: #65746c; font-size: 0.66rem; font-weight: 750; }
+
   @media (max-width: 640px) {
     .environment-quick-access { align-items: stretch; flex-direction: column; }
     .environment-quick-access-action { min-width: 0; }
