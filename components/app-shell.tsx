@@ -43,26 +43,27 @@ import { buildCultivationSuggestions, type CultivationSuggestion } from "@/lib/c
 import { calculateHorticulturePlan, seedCatalog, type HorticulturePlanInput } from "@/lib/seed-catalog";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Json } from "@/lib/supabase/database.types";
-import type {
-  CalendarEvent,
-  CalendarEventKind,
-  CalendarEventOccurrence,
-  CareEntry,
-  Dictionary,
-  GrowSpace,
-  IrrigationRecipe,
-  InventoryItem,
-  InventoryMovement,
-  InventoryMovementContext,
-  Locale,
-  Plant,
-  PlantEnvironmentalAlertSettings,
-  PlantMeasurement,
-  PlantStageTransition,
-  PlantInspection,
-  ProductCatalogItem,
-  SensorDevice,
-  Task
+import {
+  locales,
+  type CalendarEvent,
+  type CalendarEventKind,
+  type CalendarEventOccurrence,
+  type CareEntry,
+  type Dictionary,
+  type GrowSpace,
+  type IrrigationRecipe,
+  type InventoryItem,
+  type InventoryMovement,
+  type InventoryMovementContext,
+  type Locale,
+  type Plant,
+  type PlantEnvironmentalAlertSettings,
+  type PlantMeasurement,
+  type PlantStageTransition,
+  type PlantInspection,
+  type ProductCatalogItem,
+  type SensorDevice,
+  type Task
 } from "@/lib/types";
 import { getDeviceWeather, getWeatherReadiness, type WeatherReadiness } from "@/lib/weather";
 
@@ -1812,6 +1813,7 @@ export function AppShell({
               <span className="hidden sm:inline">Medir VPD</span>
             </Link>
             <InstallAppButton />
+            <LocaleSwitcher currentSection={currentSection} locale={locale} />
             <ThemeToggle />
             <div className="hidden items-center gap-2 rounded-lg border border-emerald-700/15 bg-white/88 px-3 py-2 text-sm font-bold text-moss-900 shadow-sm sm:flex">
               <span className="status-dot" aria-hidden="true" />
@@ -6374,6 +6376,33 @@ function ThemeToggle() {
     >
       {theme === "dark" ? <Sun aria-hidden="true" size={17} strokeWidth={2.5} /> : <MoonStar aria-hidden="true" size={17} strokeWidth={2.5} />}
     </button>
+  );
+}
+
+const localeShortLabel: Record<Locale, string> = { en: "EN", es: "ES" };
+const localeFullLabel: Record<Locale, string> = { en: "English", es: "Español" };
+
+/**
+ * Cada seccion tiene un slug distinto por idioma (Hoy/Today, Espacios/Spaces,
+ * etc.), asi que cambiar de idioma no es solo cambiar "/es/" por "/en/" en la
+ * URL: hay que resolver la seccion actual contra el slug del OTRO idioma.
+ * getInternalSectionHref ya hace exactamente eso.
+ */
+function LocaleSwitcher({ currentSection, locale }: { currentSection: AppSection; locale: Locale }) {
+  return (
+    <div aria-label="Idioma" className="header-locale-switcher" role="group">
+      {locales.map((item) => (
+        <Link
+          aria-current={item === locale ? "true" : undefined}
+          className={item === locale ? "header-locale-option active" : "header-locale-option"}
+          href={getInternalSectionHref(item, currentSection) as Route}
+          key={item}
+          title={localeFullLabel[item]}
+        >
+          {localeShortLabel[item]}
+        </Link>
+      ))}
+    </div>
   );
 }
 

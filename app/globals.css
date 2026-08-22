@@ -178,6 +178,48 @@ header.app-header.sticky {
 .header-theme-button:hover { border-color: var(--pc-border-strong) !important; }
 .header-theme-button:focus-visible { outline: 3px solid var(--pc-ring); outline-offset: 2px; }
 
+/*
+ * .header-locale-switcher (ES/EN, header principal). Mismo criterio que
+ * .header-theme-button: tokens var(--pc-*) directo, sin parche aparte para
+ * modo oscuro. El estado activo reusa --pc-primary/--pc-on-primary, los
+ * mismos tokens que ya marcan la seccion activa en desktop-nav-item y
+ * mobile-tab, para que se lea como el mismo lenguaje visual.
+ */
+.header-locale-switcher {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.1rem;
+  border: 1px solid var(--pc-border);
+  border-radius: 0.65rem;
+  background: var(--pc-surface);
+  padding: 0.2rem;
+}
+
+.header-locale-option {
+  display: inline-flex;
+  min-width: 2rem;
+  height: 1.9rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.45rem;
+  padding-inline: 0.35rem;
+  color: var(--pc-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.header-locale-option:hover { color: var(--pc-foreground); }
+.header-locale-option:focus-visible { outline: 3px solid var(--pc-ring); outline-offset: 2px; }
+
+.header-locale-option.active {
+  background: var(--pc-primary);
+  color: var(--pc-on-primary);
+}
+
 .executive-home { padding-top: 1.5rem !important; }
 .executive-hero {
   border: 1px solid var(--pc-border) !important;
