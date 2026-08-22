@@ -248,6 +248,10 @@ npm run typecheck
 npm run build
 ```
 
+## Sistema visual
+
+La interfaz usa Geist Sans y Geist Mono autohospedadas, tokens compartidos de color, borde, radio, foco y elevación, y patrones de producto consistentes para navegación, tarjetas, formularios y estados vacíos. Espacios prioriza la carga ambiental y el acceso por maceta; Calendario agrupa navegación histórica, selector de período y vista mes/semana en una barra operativa única.
+
 ## Estructura
 
 ```text

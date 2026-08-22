@@ -64,14 +64,16 @@
   --pc-foreground: #142019;
   --pc-muted: #627068;
   --pc-border: #dce5df;
+  --pc-border-strong: #bcc9c1;
   --pc-primary: #176b4d;
   --pc-primary-hover: #105a40;
   --pc-ring: rgba(23, 107, 77, 0.34);
   --pc-radius: 0.875rem;
+  --pc-radius-sm: 0.7rem;
   --pc-shadow-sm: 0 1px 2px rgba(20, 32, 25, 0.04), 0 8px 24px rgba(20, 32, 25, 0.05);
   --pc-shadow-lg: 0 16px 44px rgba(20, 32, 25, 0.09);
-  --font-interface: "Geist", "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-metrics: "Geist Mono", "SFMono-Regular", Consolas, ui-monospace, monospace;
+  --font-interface: var(--font-geist-sans), "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-metrics: var(--font-geist-mono), "Geist Mono", "SFMono-Regular", Consolas, ui-monospace, monospace;
 }
 
 body {
@@ -167,6 +169,299 @@ header.app-header.sticky {
 .mobile-tab-bar::-webkit-scrollbar { display: none; }
 .mobile-tab { min-width: 4.35rem; min-height: 3.25rem; flex: 1 0 4.35rem; border-radius: 0.7rem !important; color: var(--pc-muted) !important; }
 .mobile-tab.active { background: #e7f2eb !important; color: var(--pc-primary) !important; }
+
+/* Superficies operativas: Espacios, Calendario y formularios. */
+.spaces-command-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding-bottom: 1.15rem;
+  border-bottom: 1px solid var(--pc-border);
+}
+
+.spaces-command-header > div:first-child {
+  max-width: 44rem;
+}
+
+.spaces-command-copy,
+.calendar-context-copy,
+.environment-entry-copy {
+  margin-top: .4rem;
+  color: var(--pc-muted);
+  font-size: .875rem;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.spaces-search-control {
+  display: grid;
+  min-width: min(100%, 18rem);
+  gap: .4rem;
+  color: var(--pc-foreground);
+  font-size: .75rem;
+  font-weight: 650;
+}
+
+.spaces-search-control .form-control {
+  min-height: 2.75rem;
+  padding-inline: .9rem;
+}
+
+.environment-entry-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.environment-entry-card::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--pc-primary);
+  content: "";
+}
+
+.environment-entry-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.environment-entry-badge {
+  border: 1px solid rgba(23, 107, 77, .18);
+  border-radius: 999px;
+  background: #eaf4ee;
+  padding: .38rem .68rem;
+  color: var(--pc-primary);
+  font-family: var(--font-metrics);
+  font-size: .68rem;
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+
+.space-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 6rem;
+  background: var(--pc-primary) !important;
+  padding: 1.1rem 1.25rem !important;
+}
+
+.space-banner h3 {
+  font-size: 1.125rem !important;
+  font-weight: 650 !important;
+  letter-spacing: -.025em !important;
+}
+
+.space-banner-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .4rem;
+}
+
+.space-banner-meta span {
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .1);
+  padding: .34rem .62rem;
+  color: #fff;
+  font-family: var(--font-metrics);
+  font-size: .68rem;
+  font-weight: 600;
+}
+
+.plant-row-details > summary {
+  min-height: 4.75rem;
+  padding: .85rem .35rem !important;
+  cursor: pointer;
+}
+
+.plant-row-details > summary:hover {
+  background: var(--pc-surface-subtle);
+}
+
+.plant-row-details[open] > summary {
+  border-bottom: 1px solid var(--pc-border);
+  background: #f8faf8;
+}
+
+.plant-row-details > summary span.font-black {
+  font-weight: 650 !important;
+  letter-spacing: -.015em;
+}
+
+.calendar-header {
+  align-items: end !important;
+  gap: 1.25rem !important;
+  padding: .5rem 0 1.1rem;
+  border-bottom: 1px solid var(--pc-border);
+}
+
+.calendar-title-block h1 {
+  margin-top: .15rem;
+  font-size: clamp(1.6rem, 3vw, 2.25rem) !important;
+  font-weight: 620 !important;
+  letter-spacing: -.04em !important;
+}
+
+.calendar-toolbar {
+  gap: .55rem !important;
+  border: 1px solid var(--pc-border);
+  border-radius: var(--pc-radius-sm);
+  background: var(--pc-surface);
+  padding: .45rem;
+  box-shadow: var(--pc-shadow-sm);
+}
+
+.calendar-history-controls {
+  gap: .2rem !important;
+}
+
+.calendar-icon-button,
+.today-control,
+.view-toggle button {
+  min-height: 2.35rem;
+  border-radius: .55rem !important;
+  font-weight: 600 !important;
+}
+
+.calendar-icon-button {
+  min-width: 2.35rem;
+}
+
+.today-control {
+  padding-inline: .8rem !important;
+}
+
+.calendar-month-picker {
+  padding-inline: .65rem;
+  border-inline: 1px solid var(--pc-border);
+}
+
+.calendar-month-picker span,
+.calendar-plant-picker > span {
+  color: var(--pc-muted) !important;
+  font-size: .68rem !important;
+  font-weight: 650 !important;
+}
+
+.view-toggle {
+  border: 1px solid var(--pc-border) !important;
+  border-radius: .65rem !important;
+  background: var(--pc-surface-subtle) !important;
+  padding: .18rem !important;
+}
+
+.view-toggle button.active {
+  background: var(--pc-surface) !important;
+  color: var(--pc-primary) !important;
+  box-shadow: 0 1px 3px rgba(20, 32, 25, .12) !important;
+}
+
+.calendar-layout {
+  overflow: hidden;
+  border: 1px solid var(--pc-border) !important;
+  border-radius: var(--pc-radius) !important;
+  background: var(--pc-surface) !important;
+  box-shadow: var(--pc-shadow-sm) !important;
+}
+
+.calendar-sidebar {
+  border-color: var(--pc-border) !important;
+  background: var(--pc-surface-subtle) !important;
+}
+
+.calendar-create-button {
+  background: var(--pc-primary) !important;
+  box-shadow: none !important;
+}
+
+.form-control {
+  border: 1px solid var(--pc-border-strong) !important;
+  border-radius: .65rem !important;
+  background: var(--pc-surface) !important;
+  color: var(--pc-foreground) !important;
+  font-size: .875rem;
+  font-weight: 500 !important;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.form-control:hover:not(:disabled) {
+  border-color: #9eaea5 !important;
+}
+
+.form-control:focus-visible {
+  border-color: var(--pc-primary) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(23, 107, 77, .14) !important;
+}
+
+label:has(> .form-control) {
+  color: var(--pc-foreground) !important;
+  font-size: .75rem !important;
+  font-weight: 650 !important;
+}
+
+.empty-state {
+  display: flex !important;
+  min-height: 10rem;
+  align-items: center;
+  justify-content: center;
+  gap: .9rem;
+  border: 1px dashed var(--pc-border-strong) !important;
+  border-radius: var(--pc-radius) !important;
+  background: var(--pc-surface-subtle) !important;
+  padding: 1.5rem !important;
+  text-align: left;
+  box-shadow: none !important;
+}
+
+.empty-state > span {
+  display: grid !important;
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(23, 107, 77, .15);
+  border-radius: .75rem !important;
+  background: #eaf4ee !important;
+  color: var(--pc-primary) !important;
+  font-size: 1rem;
+}
+
+.empty-state h3 {
+  color: var(--pc-foreground) !important;
+  font-size: .95rem !important;
+  font-weight: 650 !important;
+  letter-spacing: -.015em;
+}
+
+.empty-state p {
+  max-width: 34rem;
+  margin-top: .25rem !important;
+  color: var(--pc-muted) !important;
+  font-size: .8rem !important;
+  font-weight: 500 !important;
+  line-height: 1.55;
+}
+
+@media (max-width: 760px) {
+  .spaces-command-header { align-items: stretch; }
+  .spaces-search-control { width: 100%; }
+  .environment-entry-heading { display: grid; }
+  .environment-entry-badge { width: fit-content; }
+  .space-banner { align-items: flex-start; }
+  .space-banner-meta { display: grid; justify-items: end; }
+  .calendar-header { align-items: stretch !important; }
+  .calendar-toolbar { width: 100%; }
+  .calendar-month-picker { border-inline: 0; }
+}
 .mobile-tab .nav-icon { font-size: 1rem; }
 .mobile-tab:focus-visible { outline: 3px solid var(--pc-ring); outline-offset: -2px; }
 

@@ -2880,23 +2880,30 @@ function SpacesSection({
 
   return (
     <section className="mx-auto mt-7 max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <SectionHeader eyebrow="Cultivos" title="Espacios y plantas" />
-        <label className="grid min-w-64 gap-1 text-sm font-black text-moss-950">
+      <div className="spaces-command-header">
+        <div>
+          <SectionHeader eyebrow="Cultivos" title="Espacios y plantas" />
+          <p className="spaces-command-copy">Explorá cada ambiente, abrí una maceta para ver su historial o registrá una medición sin perder contexto.</p>
+        </div>
+        <label className="spaces-search-control">
           Buscar
           <input
             aria-label="Buscar por espacio o planta"
             className="form-control"
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Nombre de planta o espacio"
+            type="search"
             value={query}
           />
         </label>
       </div>
 
-      <Card as="section" className="mt-5 p-4 sm:p-5" id="mediciones-ambientales">
-        <SectionHeader eyebrow="Carga por maceta" title="Mediciones ambientales" />
-        <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-stone-700">
+      <Card as="section" className="environment-entry-card mt-5 p-4 sm:p-5" id="mediciones-ambientales" variant="elevated">
+        <div className="environment-entry-heading">
+          <SectionHeader eyebrow="Carga por maceta" title="Mediciones ambientales" />
+          <span className="environment-entry-badge">Temperatura + humedad → VPD</span>
+        </div>
+        <p className="environment-entry-copy">
           Elegí una maceta y cargá una lectura manual. Temperatura y humedad permiten calcular VPD; el resto de los campos es opcional.
         </p>
         {activePlants.length > 0 ? (
@@ -2998,7 +3005,10 @@ function SpacesSection({
                     {space.region} - {space.mode}
                   </p>
                 </div>
-                <span className="rounded-md bg-white/16 px-3 py-1.5 text-xs font-black text-white">{space.privacyLevel}</span>
+                <div className="space-banner-meta">
+                  <span>{space.plants.length} maceta{space.plants.length === 1 ? "" : "s"}</span>
+                  <span>{space.privacyLevel}</span>
+                </div>
               </div>
               <div className="grid gap-0 divide-y divide-moss-950/10 p-4">
                 {space.plants.map((plant) => (
@@ -5110,6 +5120,7 @@ function CalendarSection({
         <div className="calendar-title-block">
           <p className="eyebrow text-emerald-800">Calendario</p>
           <h1>{calendarPeriodLabel}</h1>
+          <p className="calendar-context-copy">Planificá tareas, revisá el historial y registrá acciones por maceta.</p>
         </div>
         <div className="calendar-toolbar" aria-label="Navegacion del calendario">
           <div className="calendar-history-controls">
@@ -5148,11 +5159,11 @@ function CalendarSection({
               value={getYearMonthValue(anchorDate)}
             />
           </label>
-          <div className="view-toggle" aria-label="Vista de calendario">
-            <button className={viewMode === "month" ? "active" : ""} onClick={() => setViewMode("month")} type="button">
+          <div className="view-toggle" aria-label="Vista de calendario" role="group">
+            <button aria-pressed={viewMode === "month"} className={viewMode === "month" ? "active" : ""} onClick={() => setViewMode("month")} type="button">
               Mes
             </button>
-            <button className={viewMode === "week" ? "active" : ""} onClick={() => setViewMode("week")} type="button">
+            <button aria-pressed={viewMode === "week"} className={viewMode === "week" ? "active" : ""} onClick={() => setViewMode("week")} type="button">
               Semana
             </button>
           </div>
@@ -6636,7 +6647,7 @@ function InfoCard({ title, body }: { title: string; body: string }) {
 function EmptyState({ body, title }: { body: string; title: string }) {
   return (
     <article className="empty-state">
-      <span aria-hidden="true" />
+      <span aria-hidden="true">✦</span>
       <div>
         <h3>{title}</h3>
         <p>{body}</p>
