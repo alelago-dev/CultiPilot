@@ -119,6 +119,29 @@ export type PlantEnvironmentalAlertSettings = {
   substrateMoistureMaxPercent?: number;
 };
 
+export type IrrigationRecipe = {
+  id: string;
+  name: string;
+  waterAmountMl?: number;
+  irrigationPh?: number;
+  irrigationEcMsCm?: number;
+  irrigationPpm?: number;
+  observations?: string;
+};
+
+export type PlantInspection = {
+  id: string;
+  plantId: string;
+  inspectedAt: string;
+  category: "pest" | "symptom" | "structure" | "other";
+  area: string;
+  severity: "low" | "medium" | "high";
+  observation: string;
+  photoDataUrl?: string;
+  followUpDate?: string;
+  status: "open" | "resolved";
+};
+
 export type PlantAnalysisContext = {
   calendarEvents: CalendarEvent[];
   entries: CareEntry[];

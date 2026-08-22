@@ -47,10 +47,12 @@ import type {
   CareEntry,
   Dictionary,
   GrowSpace,
+  IrrigationRecipe,
   Locale,
   Plant,
   PlantEnvironmentalAlertSettings,
   PlantMeasurement,
+  PlantInspection,
   SensorDevice,
   Task
 } from "@/lib/types";
@@ -116,9 +118,11 @@ type AppSnapshot = {
   events: CalendarEvent[];
   habitDates: string[];
   measurements: PlantMeasurement[];
+  inspections: PlantInspection[];
   plants: Plant[];
   savedAt: string;
   tasks: Task[];
+  irrigationRecipes: IrrigationRecipe[];
 };
 
 // El tono define el color y el icono del cartel de estado de la cuenta, para
@@ -501,6 +505,8 @@ const storageKeys = {
   events: "plantcare-calendar-events",
   habitDates: "plantcare-habit-dates",
   measurements: "plantcare-plant-measurements",
+  inspections: "plantcare-plant-inspections",
+  irrigationRecipes: "plantcare-irrigation-recipes",
   environmentalAlerts: "plantcare-environmental-alerts",
   onboarding: "plantcare-onboarding-complete",
   plants: "plantcare-plants",
@@ -528,6 +534,8 @@ export function AppShell({
   const [entryState, setEntryState] = useStoredState(storageKeys.entries, entries);
   const [habitDates, setHabitDates] = useStoredState<string[]>(storageKeys.habitDates, []);
   const [measurementState, setMeasurementState] = useStoredState<PlantMeasurement[]>(storageKeys.measurements, []);
+  const [inspectionState, setInspectionState] = useStoredState<PlantInspection[]>(storageKeys.inspections, []);
+  const [irrigationRecipeState, setIrrigationRecipeState] = useStoredState<IrrigationRecipe[]>(storageKeys.irrigationRecipes, []);
   const [environmentalAlertState, setEnvironmentalAlertState] = useStoredState<PlantEnvironmentalAlertSettings[]>(storageKeys.environmentalAlerts, []);
   const [acknowledgedEnvironmentalAlerts, setAcknowledgedEnvironmentalAlerts] = useStoredState<string[]>(storageKeys.acknowledgedEnvironmentalAlerts, []);
   const [weather, setWeather] = useState<WeatherReadiness>(() => getStoredWeatherSnapshot() ?? getWeatherReadiness("Ubicacion sin conectar"));
@@ -639,6 +647,8 @@ export function AppShell({
       events: eventState,
       habitDates,
       measurements: measurementState,
+      inspections: inspectionState,
+      irrigationRecipes: irrigationRecipeState,
       plants: plantState,
       savedAt: new Date().toISOString(),
       tasks: taskState
@@ -674,6 +684,8 @@ export function AppShell({
       setMeasurementState(snapshot.measurements);
       persistStoredState(storageKeys.measurements, snapshot.measurements);
     }
+    if (snapshot.inspections) { setInspectionState(snapshot.inspections); persistStoredState(storageKeys.inspections, snapshot.inspections); }
+    if (snapshot.irrigationRecipes) { setIrrigationRecipeState(snapshot.irrigationRecipes); persistStoredState(storageKeys.irrigationRecipes, snapshot.irrigationRecipes); }
     if (snapshot.environmentalAlerts) {
       setEnvironmentalAlertState(snapshot.environmentalAlerts);
       persistStoredState(storageKeys.environmentalAlerts, snapshot.environmentalAlerts);
@@ -1286,6 +1298,16 @@ export function AppShell({
     persistStoredState(storageKeys.measurements, nextMeasurements);
   }
 
+  function handleSaveIrrigationRecipe(recipe: IrrigationRecipe) {
+    const nextRecipes = irrigationRecipeState.some((item) => item.id === recipe.id) ? irrigationRecipeState.map((item) => item.id === recipe.id ? recipe : item) : [...irrigationRecipeState, recipe];
+    setIrrigationRecipeState(nextRecipes); persistStoredState(storageKeys.irrigationRecipes, nextRecipes);
+  }
+
+  function handleSaveInspection(inspection: PlantInspection) {
+    const nextInspections = inspectionState.some((item) => item.id === inspection.id) ? inspectionState.map((item) => item.id === inspection.id ? inspection : item) : [inspection, ...inspectionState];
+    setInspectionState(nextInspections); persistStoredState(storageKeys.inspections, nextInspections);
+  }
+
   function handleUpdateEnvironmentalAlerts(settings: PlantEnvironmentalAlertSettings) {
     const nextSettings = [...environmentalAlertState.filter((item) => item.plantId !== settings.plantId), settings];
     setEnvironmentalAlertState(nextSettings);
@@ -1632,7 +1654,7 @@ export function AppShell({
     return () => window.clearTimeout(timeoutId);
     // saveRemoteSnapshot reads the current snapshot from state; these dependencies are the autosave trigger surface.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountStatus.userId, acknowledgedEnvironmentalAlerts, entryState, environmentalAlertState, eventState, habitDates, measurementState, plantState, remoteSyncReady, taskState, viewingShare]);
+  }, [accountStatus.userId, acknowledgedEnvironmentalAlerts, entryState, environmentalAlertState, eventState, habitDates, inspectionState, irrigationRecipeState, measurementState, plantState, remoteSyncReady, taskState, viewingShare]);
 
   useEffect(() => {
     if (!accountStatus.isSignedIn || !accountStatus.userId || viewingShare) {
@@ -1654,6 +1676,8 @@ export function AppShell({
     setEntryState([]);
     setHabitDates([]);
     setMeasurementState([]);
+    setInspectionState([]);
+    setIrrigationRecipeState([]);
     setEnvironmentalAlertState([]);
     setAcknowledgedEnvironmentalAlerts([]);
     persistStoredState(storageKeys.plants, []);
@@ -1662,6 +1686,8 @@ export function AppShell({
     persistStoredState(storageKeys.entries, []);
     persistStoredState(storageKeys.habitDates, []);
     persistStoredState(storageKeys.measurements, []);
+    persistStoredState(storageKeys.inspections, []);
+    persistStoredState(storageKeys.irrigationRecipes, []);
     persistStoredState(storageKeys.environmentalAlerts, []);
     persistStoredState(storageKeys.acknowledgedEnvironmentalAlerts, []);
     removeStoredState(storageKeys.calendarDate);
@@ -1778,6 +1804,7 @@ export function AppShell({
           careScore={careScore}
           dictionary={dictionary}
           environmentalAlerts={environmentalAlertState}
+          inspections={inspectionState}
           locale={locale}
           onSaveRemoteSnapshot={() => saveRemoteSnapshot(undefined, { manual: true })}
           onAcknowledgeEnvironmentalAlert={handleAcknowledgeEnvironmentalAlert}
@@ -1810,9 +1837,13 @@ export function AppShell({
           entries={entryState}
           environmentalAlerts={environmentalAlertState}
           measurements={measurementState}
+          inspections={inspectionState}
+          irrigationRecipes={irrigationRecipeState}
           onAddJournalEntry={handleAddJournalEntry}
           onAddCalendarEvent={handleAddCalendarEvent}
           onAddMeasurement={handleAddMeasurement}
+          onSaveInspection={handleSaveInspection}
+          onSaveIrrigationRecipe={handleSaveIrrigationRecipe}
           onDeleteMeasurement={handleDeleteMeasurement}
           onUpdateEnvironmentalAlerts={handleUpdateEnvironmentalAlerts}
           onCreateSensorDevice={handleCreateSensorDevice}
@@ -2081,6 +2112,7 @@ function TodaySection({
   calendarEvents,
   dictionary,
   environmentalAlerts,
+  inspections,
   locale,
   onSaveRemoteSnapshot,
   onAcknowledgeEnvironmentalAlert,
@@ -2103,6 +2135,7 @@ function TodaySection({
   calendarEvents: CalendarEvent[];
   dictionary: Dictionary;
   environmentalAlerts: PlantEnvironmentalAlertSettings[];
+  inspections: PlantInspection[];
   locale: Locale;
   onSaveRemoteSnapshot: () => void;
   onAcknowledgeEnvironmentalAlert: (alertKey: string) => void;
@@ -2169,6 +2202,7 @@ function TodaySection({
         </div>
         <EnvironmentalQuickAccess locale={locale} measurements={measurements} plants={plants} />
         <TodayEnvironmentalAlerts acknowledgedAlerts={acknowledgedEnvironmentalAlerts} environmentalAlerts={environmentalAlerts} locale={locale} measurements={measurements} onAcknowledge={onAcknowledgeEnvironmentalAlert} plants={plants} />
+        <TodayInspectionFollowUps inspections={inspections} locale={locale} plants={plants} />
       </section>
 
       <section className="mx-auto grid max-w-7xl gap-5 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
@@ -2235,6 +2269,13 @@ function TodaySection({
       </section>
     </>
   );
+}
+
+function TodayInspectionFollowUps({ inspections, locale, plants }: { inspections: PlantInspection[]; locale: Locale; plants: Plant[] }) {
+  const today = getTodayIso();
+  const open = inspections.filter((inspection) => inspection.status === "open" && inspection.followUpDate).sort((first, second) => first.followUpDate!.localeCompare(second.followUpDate!));
+  if (open.length === 0) return null;
+  return <Card as="section" className="inspection-followups mt-3 p-4 sm:p-5"><SectionHeader eyebrow="Seguimiento declarado" title="Próximas inspecciones" /><div>{open.slice(0, 6).map((inspection) => { const plant = plants.find((item) => item.id === inspection.plantId); return <article key={inspection.id}><div><strong>{plant?.name ?? "Maceta"} · {inspection.area}</strong><p>{inspection.observation}</p><small>{inspection.followUpDate! <= today ? "Revisión pendiente" : "Próxima revisión"}: {formatDisplayDate(inspection.followUpDate!)}</small></div><Link className="text-button" href={`${getInternalSectionHref(locale, "spaces")}#${inspection.plantId}` as Route}>Ver maceta</Link></article>; })}</div></Card>;
 }
 
 function TodayEnvironmentalAlerts({ acknowledgedAlerts, environmentalAlerts, locale, measurements, onAcknowledge, plants }: { acknowledgedAlerts: string[]; environmentalAlerts: PlantEnvironmentalAlertSettings[]; locale: Locale; measurements: PlantMeasurement[]; onAcknowledge: (alertKey: string) => void; plants: Plant[] }) {
@@ -2660,10 +2701,14 @@ function SpacesSection({
   calendarEvents,
   entries,
   environmentalAlerts,
+  inspections,
+  irrigationRecipes,
   measurements,
   onAddCalendarEvent,
   onAddJournalEntry,
   onAddMeasurement,
+  onSaveInspection,
+  onSaveIrrigationRecipe,
   onDeleteMeasurement,
   onUpdateEnvironmentalAlerts,
   onCreateSensorDevice,
@@ -2679,10 +2724,14 @@ function SpacesSection({
   calendarEvents: CalendarEvent[];
   entries: CareEntry[];
   environmentalAlerts: PlantEnvironmentalAlertSettings[];
+  inspections: PlantInspection[];
+  irrigationRecipes: IrrigationRecipe[];
   measurements: PlantMeasurement[];
   onAddCalendarEvent: (event: CalendarEvent) => void;
   onAddJournalEntry: (entry: CareEntry) => void;
   onAddMeasurement: (measurement: PlantMeasurement) => void;
+  onSaveInspection: (inspection: PlantInspection) => void;
+  onSaveIrrigationRecipe: (recipe: IrrigationRecipe) => void;
   onDeleteMeasurement: (measurementId: string) => void;
   onUpdateEnvironmentalAlerts: (settings: PlantEnvironmentalAlertSettings) => void;
   onCreateSensorDevice: (plantId: string, name: string) => Promise<string | null>;
@@ -2756,6 +2805,8 @@ function SpacesSection({
           </div>
         ) : <EmptyState body="Creá una planta o maceta antes de registrar mediciones." title="No hay macetas disponibles" />}
       </Card>
+
+      <BatchIrrigationPanel onAddMeasurement={onAddMeasurement} onSaveRecipe={onSaveIrrigationRecipe} plants={activePlants} recipes={irrigationRecipes} />
 
       <div className="genetics-reference-panel mt-5 rounded-lg border p-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -2841,10 +2892,12 @@ function SpacesSection({
                       entries={entries}
                       environmentalAlertSettings={environmentalAlerts.find((settings) => settings.plantId === plant.id)}
                       measurements={measurements.filter((measurement) => measurement.plantId === plant.id)}
+                      inspections={inspections.filter((inspection) => inspection.plantId === plant.id)}
                       key={plant.id}
                       onAddJournalEntry={onAddJournalEntry}
                       onAddCalendarEvent={onAddCalendarEvent}
                       onAddMeasurement={onAddMeasurement}
+                      onSaveInspection={onSaveInspection}
                       onDeleteMeasurement={onDeleteMeasurement}
                       onUpdateEnvironmentalAlerts={onUpdateEnvironmentalAlerts}
                       onCreateSensorDevice={onCreateSensorDevice}
@@ -2882,10 +2935,12 @@ function PlantSpaceRow({
   calendarEvents,
   entries,
   environmentalAlertSettings,
+  inspections,
   measurements,
   onAddCalendarEvent,
   onAddJournalEntry,
   onAddMeasurement,
+  onSaveInspection,
   onDeleteMeasurement,
   onUpdateEnvironmentalAlerts,
   onCreateSensorDevice,
@@ -2901,10 +2956,12 @@ function PlantSpaceRow({
   calendarEvents: CalendarEvent[];
   entries: CareEntry[];
   environmentalAlertSettings?: PlantEnvironmentalAlertSettings;
+  inspections: PlantInspection[];
   measurements: PlantMeasurement[];
   onAddCalendarEvent: (event: CalendarEvent) => void;
   onAddJournalEntry: (entry: CareEntry) => void;
   onAddMeasurement: (measurement: PlantMeasurement) => void;
+  onSaveInspection: (inspection: PlantInspection) => void;
   onDeleteMeasurement: (measurementId: string) => void;
   onUpdateEnvironmentalAlerts: (settings: PlantEnvironmentalAlertSettings) => void;
   onCreateSensorDevice: (plantId: string, name: string) => Promise<string | null>;
@@ -2960,6 +3017,7 @@ function PlantSpaceRow({
             onUpdateAlertSettings={onUpdateEnvironmentalAlerts}
             plant={plant}
           />
+          <PlantInspectionPanel inspections={inspections} onSaveInspection={onSaveInspection} plant={plant} />
           <PlantWeeklySummary
             calendarEvents={calendarEvents}
             entries={entries}
@@ -3135,6 +3193,25 @@ function PlantDataCoverage({ measurements, plant }: { measurements: PlantMeasure
   const coverage = [["Temperatura", recent.filter((item) => item.temperatureC !== undefined).length], ["Humedad ambiental", recent.filter((item) => item.ambientHumidityPercent !== undefined).length], ["Temperatura foliar", recent.filter((item) => item.leafTemperatureC !== undefined).length], ["PPFD", recent.filter((item) => item.ppfdUmolM2S !== undefined).length], ["Sustrato", recent.filter((item) => item.substrateMoisturePercent !== undefined).length], ["Altura", recent.filter((item) => item.heightCm !== undefined).length], ["Riego", recent.filter((item) => item.waterAmountMl !== undefined).length], ["Fotos", recent.filter((item) => item.photoDataUrl).length]] as const;
   const covered = coverage.filter(([, count]) => count > 0).length;
   return <section className="plant-data-coverage" aria-label={`Cobertura de datos de ${plant.name}`}><header><div><p className="plant-calculation-eyebrow">Calidad del historial</p><h4>Cobertura de los últimos 30 días</h4><span>Cuenta solamente campos realmente registrados desde {formatDisplayDate(startDate)}.</span></div><span className="pill pill-blue">{covered} de {coverage.length} variables</span></header><dl>{coverage.map(([label, count]) => <div className={count === 0 ? "is-missing" : ""} key={label}><dt>{label}</dt><dd>{count === 0 ? "Sin datos" : `${count} registro${count === 1 ? "" : "s"}`}</dd></div>)}</dl><p>La ausencia de una variable no implica un problema de cultivo; solo indica que no fue registrada durante esta ventana.</p></section>;
+}
+
+function BatchIrrigationPanel({ onAddMeasurement, onSaveRecipe, plants, recipes }: { onAddMeasurement: (measurement: PlantMeasurement) => void; onSaveRecipe: (recipe: IrrigationRecipe) => void; plants: Plant[]; recipes: IrrigationRecipe[] }) {
+  const [selectedPlantIds, setSelectedPlantIds] = useState<string[]>([]);
+  const [measuredAt, setMeasuredAt] = useState(getLocalDateTimeValue());
+  const [water, setWater] = useState(""); const [ph, setPh] = useState(""); const [ec, setEc] = useState(""); const [ppm, setPpm] = useState(""); const [observations, setObservations] = useState("");
+  const [recipeName, setRecipeName] = useState(""); const [status, setStatus] = useState("");
+  function togglePlant(id: string) { setSelectedPlantIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]); }
+  function loadRecipe(id: string) { const recipe = recipes.find((item) => item.id === id); if (!recipe) return; setWater(recipe.waterAmountMl?.toString() ?? ""); setPh(recipe.irrigationPh?.toString() ?? ""); setEc(recipe.irrigationEcMsCm?.toString() ?? ""); setPpm(recipe.irrigationPpm?.toString() ?? ""); setObservations(recipe.observations ?? ""); setStatus(`Receta “${recipe.name}” cargada; revisá los valores antes de registrar.`); }
+  function saveRecipe() { if (!recipeName.trim()) { setStatus("Escribí un nombre para guardar la receta."); return; } if (![water, ph, ec, ppm, observations].some((value) => value.trim())) { setStatus("Cargá al menos un valor o una observación para la receta."); return; } onSaveRecipe({ id: `recipe-${Date.now()}`, irrigationEcMsCm: parseOptionalNumber(ec), irrigationPh: parseOptionalNumber(ph), irrigationPpm: parseOptionalNumber(ppm), name: recipeName.trim(), observations: observations.trim() || undefined, waterAmountMl: parseOptionalNumber(water) }); setRecipeName(""); setStatus("Receta propia guardada."); }
+  function registerBatch(event: FormEvent<HTMLFormElement>) { event.preventDefault(); if (selectedPlantIds.length === 0) { setStatus("Seleccioná al menos una maceta."); return; } if (![water, ph, ec, ppm, observations].some((value) => value.trim())) { setStatus("Cargá al menos un valor o una observación."); return; } const iso = new Date(measuredAt).toISOString(); selectedPlantIds.forEach((plantId, index) => onAddMeasurement({ id: `measurement-${plantId}-${Date.now()}-${index}`, irrigationEcMsCm: parseOptionalNumber(ec), irrigationPh: parseOptionalNumber(ph), irrigationPpm: parseOptionalNumber(ppm), measuredAt: iso, observations: observations.trim() ? `Registro por lote: ${observations.trim()}` : "Registro de riego por lote.", plantId, source: "manual", waterAmountMl: parseOptionalNumber(water) })); setStatus(`Riego guardado como ${selectedPlantIds.length} registro${selectedPlantIds.length === 1 ? "" : "s"} independiente${selectedPlantIds.length === 1 ? "" : "s"}.`); }
+  return <Card as="section" className="batch-irrigation-panel mt-5 p-4 sm:p-5"><SectionHeader eyebrow="Acción múltiple" title="Registrar riego por lote" /><p>Elegí macetas y cargá únicamente los valores realmente aplicados o medidos. Se crea una medición separada para cada maceta.</p><form onSubmit={registerBatch}><fieldset><legend>Macetas</legend><div className="batch-plant-picker">{plants.map((plant) => <label key={plant.id}><input checked={selectedPlantIds.includes(plant.id)} onChange={() => togglePlant(plant.id)} type="checkbox" /> {plant.name} · {plant.pot}</label>)}</div></fieldset><div className="batch-irrigation-fields"><label>Fecha y hora<input className="form-control" onChange={(event) => setMeasuredAt(event.target.value)} type="datetime-local" value={measuredAt} /></label><label>Agua (ml)<input className="form-control" min="0" onChange={(event) => setWater(event.target.value)} type="number" value={water} /></label><label>pH medido<input className="form-control" max="14" min="0" onChange={(event) => setPh(event.target.value)} step="0.01" type="number" value={ph} /></label><label>EC (mS/cm)<input className="form-control" min="0" onChange={(event) => setEc(event.target.value)} step="0.01" type="number" value={ec} /></label><label>PPM medidos<input className="form-control" min="0" onChange={(event) => setPpm(event.target.value)} type="number" value={ppm} /></label><label>Observación<input className="form-control" onChange={(event) => setObservations(event.target.value)} value={observations} /></label></div><div className="batch-recipe-row"><label>Usar receta<select className="form-control" defaultValue="" onChange={(event) => loadRecipe(event.target.value)}><option value="">Seleccionar</option>{recipes.map((recipe) => <option key={recipe.id} value={recipe.id}>{recipe.name}</option>)}</select></label><label>Guardar valores como receta<input className="form-control" onChange={(event) => setRecipeName(event.target.value)} placeholder="Nombre propio" value={recipeName} /></label><button className="secondary-button" onClick={saveRecipe} type="button">Guardar receta</button><button className="primary-button" type="submit">Registrar por lote</button></div>{status ? <p role="status">{status}</p> : null}</form></Card>;
+}
+
+function PlantInspectionPanel({ inspections, onSaveInspection, plant }: { inspections: PlantInspection[]; onSaveInspection: (inspection: PlantInspection) => void; plant: Plant }) {
+  const [isAdding, setIsAdding] = useState(false); const [category, setCategory] = useState<PlantInspection["category"]>("symptom"); const [area, setArea] = useState("Hojas"); const [severity, setSeverity] = useState<PlantInspection["severity"]>("low"); const [observation, setObservation] = useState(""); const [followUpDate, setFollowUpDate] = useState(""); const [photoDataUrl, setPhotoDataUrl] = useState("");
+  function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); if (!observation.trim()) return; onSaveInspection({ area, category, followUpDate: followUpDate || undefined, id: `inspection-${plant.id}-${Date.now()}`, inspectedAt: new Date().toISOString(), observation: observation.trim(), photoDataUrl: photoDataUrl || undefined, plantId: plant.id, severity, status: "open" }); setObservation(""); setFollowUpDate(""); setPhotoDataUrl(""); setIsAdding(false); }
+  const sorted = [...inspections].sort((first, second) => second.inspectedAt.localeCompare(first.inspectedAt));
+  return <section className="plant-inspection-panel"><header><div><p className="plant-calculation-eyebrow">Scouting documentado</p><h4>Inspecciones de esta maceta</h4><span>{sorted.filter((item) => item.status === "open").length} seguimiento{sorted.filter((item) => item.status === "open").length === 1 ? "" : "s"} abierto{sorted.filter((item) => item.status === "open").length === 1 ? "" : "s"}</span></div><button className="secondary-button" onClick={() => setIsAdding((current) => !current)} type="button">{isAdding ? "Cerrar" : "Nueva inspección"}</button></header>{isAdding ? <form className="inspection-form" onSubmit={submit}><label>Tipo observado<select className="form-control" onChange={(event) => setCategory(event.target.value as PlantInspection["category"])} value={category}><option value="symptom">Síntoma observado</option><option value="pest">Plaga observada</option><option value="structure">Estructura</option><option value="other">Otro</option></select></label><label>Zona<input className="form-control" onChange={(event) => setArea(event.target.value)} value={area} /></label><label>Severidad declarada<select className="form-control" onChange={(event) => setSeverity(event.target.value as PlantInspection["severity"])} value={severity}><option value="low">Baja</option><option value="medium">Media</option><option value="high">Alta</option></select></label><label>Revisar nuevamente<input className="form-control" min={getTodayIso()} onChange={(event) => setFollowUpDate(event.target.value)} type="date" value={followUpDate} /></label><label className="inspection-wide">Observación<textarea className="form-control" onChange={(event) => setObservation(event.target.value)} required rows={2} value={observation} /></label><label className="inspection-wide">Foto opcional<input accept="image/*" className="form-control" onChange={async (event) => { const file = event.target.files?.[0]; setPhotoDataUrl(file ? await readPhotoFileAsDataUrl(file) : ""); }} type="file" /></label><p className="inspection-wide">Se registra lo observado por el usuario; PlantCare no genera un diagnóstico.</p><button className="primary-button" type="submit">Guardar inspección</button></form> : null}<div className="inspection-list">{sorted.slice(0, 6).map((inspection) => <article key={inspection.id}><div><strong>{inspection.category === "pest" ? "Plaga observada" : inspection.category === "symptom" ? "Síntoma observado" : inspection.category === "structure" ? "Estructura" : "Otra observación"} · {inspection.area} · severidad {inspection.severity === "low" ? "baja" : inspection.severity === "medium" ? "media" : "alta"}</strong><p>{inspection.observation}</p><small>{formatMeasurementDate(inspection.inspectedAt)}{inspection.followUpDate ? ` · revisión ${formatDisplayDate(inspection.followUpDate)}` : ""} · {inspection.status === "open" ? "abierta" : "resuelta"}</small></div>{inspection.photoDataUrl ? <span aria-label={`Inspección de ${plant.name}`} className="inspection-photo" role="img" style={{ backgroundImage: `url(${inspection.photoDataUrl})` }} /> : null}{inspection.status === "open" ? <button className="text-button" onClick={() => onSaveInspection({ ...inspection, status: "resolved" })} type="button">Marcar resuelta</button> : null}</article>)}</div></section>;
 }
 
 function PlantCycleControls({ onUpdatePlant, plant }: { onUpdatePlant: (plantId: string, updates: Partial<Plant>) => void; plant: Plant }) {

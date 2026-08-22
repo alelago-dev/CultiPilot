@@ -1,4 +1,4 @@
-const CACHE_NAME = "plantcare-calendar-v50";
+const CACHE_NAME = "plantcare-calendar-v51";
 const ROUTES = [
   "/",
   "/es/",

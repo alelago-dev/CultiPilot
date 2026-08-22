@@ -96,6 +96,10 @@ Las mediciones conservan fecha, hora y origen (`manual`, `device` o `sensor`) pa
 
 Las lecturas manuales o cargadas desde un dispositivo pueden editarse conservando su identificador y reemplazando el registro dentro del snapshot; las lecturas originadas por sensores permanecen de solo lectura para preservar su procedencia.
 
+El riego por lote permite seleccionar varias macetas y registrar fecha, agua, pH, EC, ppm y observacion comunes. La interfaz crea una medicion independiente por maceta para que luego pueda editarse, compararse o exportarse sin mezclar historiales. El usuario puede guardar esos valores como receta propia y reutilizarlos; PlantCare no incluye dosis predeterminadas ni completa valores faltantes.
+
+Las inspecciones estructuradas registran por maceta el tipo y la zona observada, severidad declarada, nota, foto opcional, fecha de seguimiento y estado abierto o resuelto. Son observaciones del usuario y no diagnosticos automaticos. Recetas e inspecciones forman parte del snapshot sincronizado.
+
 `assessPlantEnvironment` calcula un VPD estimado y lo compara con una banda orientativa segun la etapa declarada. Si el usuario registra temperatura foliar, calcula VPD foliar con temperatura ambiental, foliar y humedad relativa. Si falta ese dato, muestra VPD del aire sin inventar una diferencia fija entre hoja y ambiente. El formulario muestra el VPD en vivo antes de guardar y la ficha presenta tendencias de temperatura, humedad y VPD usando exclusivamente las lecturas registradas, sin completar huecos. La interfaz diferencia la medicion original del valor `calculated`, muestra la banda utilizada y avisa cuando falta temperatura, humedad o PPFD.
 
 El panel `Calculos de esta maceta` obtiene DLI desde PPFD medido y horas de luz declaradas, porcentaje de drenaje desde agua aplicada y drenaje del mismo registro, diferencias de pH/EC y totales o rangos historicos. Cada tarjeta publica la formula, la fuente y los datos faltantes. No convierte EC a ppm, no inventa mediciones y no calcula dosis.
