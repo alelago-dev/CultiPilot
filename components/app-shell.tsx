@@ -110,6 +110,7 @@ type FirstCultivationInput = {
 };
 
 type AppSnapshot = {
+  acknowledgedEnvironmentalAlerts: string[];
   environmentalAlerts: PlantEnvironmentalAlertSettings[];
   entries: CareEntry[];
   events: CalendarEvent[];
@@ -494,6 +495,7 @@ const calendarQuickActions: Array<{
   }
 ];
 const storageKeys = {
+  acknowledgedEnvironmentalAlerts: "plantcare-acknowledged-environmental-alerts",
   calendarDate: "plantcare-calendar-selected-date",
   entries: "plantcare-journal-entries",
   events: "plantcare-calendar-events",
@@ -527,6 +529,7 @@ export function AppShell({
   const [habitDates, setHabitDates] = useStoredState<string[]>(storageKeys.habitDates, []);
   const [measurementState, setMeasurementState] = useStoredState<PlantMeasurement[]>(storageKeys.measurements, []);
   const [environmentalAlertState, setEnvironmentalAlertState] = useStoredState<PlantEnvironmentalAlertSettings[]>(storageKeys.environmentalAlerts, []);
+  const [acknowledgedEnvironmentalAlerts, setAcknowledgedEnvironmentalAlerts] = useStoredState<string[]>(storageKeys.acknowledgedEnvironmentalAlerts, []);
   const [weather, setWeather] = useState<WeatherReadiness>(() => getStoredWeatherSnapshot() ?? getWeatherReadiness("Ubicacion sin conectar"));
   const [weatherStatus, setWeatherStatus] = useState("");
   const [accountStatus, setAccountStatus] = useState<AccountStatus>(() => ({
@@ -630,6 +633,7 @@ export function AppShell({
 
   function getCurrentSnapshot(): AppSnapshot {
     return {
+      acknowledgedEnvironmentalAlerts,
       entries: entryState,
       environmentalAlerts: environmentalAlertState,
       events: eventState,
@@ -642,6 +646,10 @@ export function AppShell({
   }
 
   function applySnapshot(snapshot: Partial<AppSnapshot>) {
+    if (snapshot.acknowledgedEnvironmentalAlerts) {
+      setAcknowledgedEnvironmentalAlerts(snapshot.acknowledgedEnvironmentalAlerts);
+      persistStoredState(storageKeys.acknowledgedEnvironmentalAlerts, snapshot.acknowledgedEnvironmentalAlerts);
+    }
     if (snapshot.plants) {
       setPlantState(snapshot.plants);
       persistStoredState(storageKeys.plants, snapshot.plants);
@@ -1256,10 +1264,19 @@ export function AppShell({
   }
 
   function handleAddMeasurement(measurement: PlantMeasurement) {
-    const nextMeasurements = [measurement, ...measurementState];
+    const exists = measurementState.some((item) => item.id === measurement.id);
+    const nextMeasurements = exists
+      ? measurementState.map((item) => item.id === measurement.id ? measurement : item)
+      : [measurement, ...measurementState];
 
     setMeasurementState(nextMeasurements);
     persistStoredState(storageKeys.measurements, nextMeasurements);
+  }
+
+  function handleAcknowledgeEnvironmentalAlert(alertKey: string) {
+    const nextAcknowledged = acknowledgedEnvironmentalAlerts.includes(alertKey) ? acknowledgedEnvironmentalAlerts : [...acknowledgedEnvironmentalAlerts, alertKey];
+    setAcknowledgedEnvironmentalAlerts(nextAcknowledged);
+    persistStoredState(storageKeys.acknowledgedEnvironmentalAlerts, nextAcknowledged);
   }
 
   function handleDeleteMeasurement(measurementId: string) {
@@ -1615,7 +1632,7 @@ export function AppShell({
     return () => window.clearTimeout(timeoutId);
     // saveRemoteSnapshot reads the current snapshot from state; these dependencies are the autosave trigger surface.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountStatus.userId, entryState, environmentalAlertState, eventState, habitDates, measurementState, plantState, remoteSyncReady, taskState, viewingShare]);
+  }, [accountStatus.userId, acknowledgedEnvironmentalAlerts, entryState, environmentalAlertState, eventState, habitDates, measurementState, plantState, remoteSyncReady, taskState, viewingShare]);
 
   useEffect(() => {
     if (!accountStatus.isSignedIn || !accountStatus.userId || viewingShare) {
@@ -1638,6 +1655,7 @@ export function AppShell({
     setHabitDates([]);
     setMeasurementState([]);
     setEnvironmentalAlertState([]);
+    setAcknowledgedEnvironmentalAlerts([]);
     persistStoredState(storageKeys.plants, []);
     persistStoredState(storageKeys.tasks, []);
     persistStoredState(storageKeys.events, []);
@@ -1645,6 +1663,7 @@ export function AppShell({
     persistStoredState(storageKeys.habitDates, []);
     persistStoredState(storageKeys.measurements, []);
     persistStoredState(storageKeys.environmentalAlerts, []);
+    persistStoredState(storageKeys.acknowledgedEnvironmentalAlerts, []);
     removeStoredState(storageKeys.calendarDate);
     removeStoredState(storageKeys.quickChecks);
     removeStoredState(storageKeys.weatherConsent);
@@ -1753,6 +1772,7 @@ export function AppShell({
 
       {!shouldShowFirstCultivation && currentSection === "today" ? (
         <TodaySection
+          acknowledgedEnvironmentalAlerts={acknowledgedEnvironmentalAlerts}
           accountStatus={accountStatus}
           agendaItems={agendaItems}
           careScore={careScore}
@@ -1760,6 +1780,7 @@ export function AppShell({
           environmentalAlerts={environmentalAlertState}
           locale={locale}
           onSaveRemoteSnapshot={() => saveRemoteSnapshot(undefined, { manual: true })}
+          onAcknowledgeEnvironmentalAlert={handleAcknowledgeEnvironmentalAlert}
           onSendMagicLink={handleSendMagicLink}
           onSignOut={handleSignOut}
           onToggleTask={handleToggleTask}
@@ -2053,6 +2074,7 @@ function FirstCultivationScreen({
 }
 
 function TodaySection({
+  acknowledgedEnvironmentalAlerts,
   accountStatus,
   agendaItems,
   careScore,
@@ -2061,6 +2083,7 @@ function TodaySection({
   environmentalAlerts,
   locale,
   onSaveRemoteSnapshot,
+  onAcknowledgeEnvironmentalAlert,
   onSendMagicLink,
   onSignOut,
   onUseDeviceWeather,
@@ -2073,6 +2096,7 @@ function TodaySection({
   weather,
   weatherStatus
 }: {
+  acknowledgedEnvironmentalAlerts: string[];
   accountStatus: AccountStatus;
   agendaItems: AgendaItem[];
   careScore: number;
@@ -2081,6 +2105,7 @@ function TodaySection({
   environmentalAlerts: PlantEnvironmentalAlertSettings[];
   locale: Locale;
   onSaveRemoteSnapshot: () => void;
+  onAcknowledgeEnvironmentalAlert: (alertKey: string) => void;
   onSendMagicLink: (email: string) => void;
   onSignOut: () => void;
   onUseDeviceWeather: () => void;
@@ -2143,7 +2168,7 @@ function TodaySection({
           />
         </div>
         <EnvironmentalQuickAccess locale={locale} measurements={measurements} plants={plants} />
-        <TodayEnvironmentalAlerts environmentalAlerts={environmentalAlerts} locale={locale} measurements={measurements} plants={plants} />
+        <TodayEnvironmentalAlerts acknowledgedAlerts={acknowledgedEnvironmentalAlerts} environmentalAlerts={environmentalAlerts} locale={locale} measurements={measurements} onAcknowledge={onAcknowledgeEnvironmentalAlert} plants={plants} />
       </section>
 
       <section className="mx-auto grid max-w-7xl gap-5 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
@@ -2212,14 +2237,15 @@ function TodaySection({
   );
 }
 
-function TodayEnvironmentalAlerts({ environmentalAlerts, locale, measurements, plants }: { environmentalAlerts: PlantEnvironmentalAlertSettings[]; locale: Locale; measurements: PlantMeasurement[]; plants: Plant[] }) {
+function TodayEnvironmentalAlerts({ acknowledgedAlerts, environmentalAlerts, locale, measurements, onAcknowledge, plants }: { acknowledgedAlerts: string[]; environmentalAlerts: PlantEnvironmentalAlertSettings[]; locale: Locale; measurements: PlantMeasurement[]; onAcknowledge: (alertKey: string) => void; plants: Plant[] }) {
   const configuredPlantIds = new Set(environmentalAlerts.map((settings) => settings.plantId));
   const activeAlerts = plants.flatMap((plant) => {
     const latestMeasurement = measurements.filter((measurement) => measurement.plantId === plant.id).sort((first, second) => second.measuredAt.localeCompare(first.measuredAt))[0];
+    if (!latestMeasurement) return [];
     const settings = environmentalAlerts.find((item) => item.plantId === plant.id);
     const assessment = assessPlantEnvironment(plant, latestMeasurement);
-    return getConfiguredEnvironmentalAlerts(settings, latestMeasurement, assessment.vpdKpa).map((alert) => ({ alert, measurement: latestMeasurement, plant }));
-  });
+    return getConfiguredEnvironmentalAlerts(settings, latestMeasurement, assessment.vpdKpa).map((alert) => ({ alert, alertKey: `${latestMeasurement.id}:${alert.label}:${alert.direction}:${alert.value}:${alert.limit}`, measurement: latestMeasurement, plant }));
+  }).filter((item) => !acknowledgedAlerts.includes(item.alertKey));
 
   return (
     <Card as="section" className="today-environment-alerts mt-3 p-4 sm:p-5" aria-labelledby="today-environment-alerts-title">
@@ -2229,10 +2255,10 @@ function TodayEnvironmentalAlerts({ environmentalAlerts, locale, measurements, p
       </header>
       {activeAlerts.length > 0 ? (
         <div className="today-environment-alert-list" role="alert">
-          {activeAlerts.slice(0, 8).map(({ alert, measurement, plant }) => (
+          {activeAlerts.slice(0, 8).map(({ alert, alertKey, measurement, plant }) => (
             <article key={`${plant.id}-${alert.label}-${alert.direction}`}>
               <div><strong>{plant.name} · {alert.label}</strong><p>{alert.value}{alert.unit}, {alert.direction === "below" ? "por debajo del mínimo" : "por encima del máximo"} {alert.limit}{alert.unit}.</p><small>Última lectura: {formatMeasurementDate(measurement.measuredAt)} · {formatMeasurementSource(measurement.source)}</small></div>
-              <Link className="text-button" href={`${getInternalSectionHref(locale, "spaces")}#${plant.id}` as Route}>Ver maceta</Link>
+              <div className="today-environment-alert-actions"><button className="text-button" onClick={() => onAcknowledge(alertKey)} type="button">Marcar revisada</button><Link className="text-button" href={`${getInternalSectionHref(locale, "spaces")}#${plant.id}` as Route}>Ver maceta</Link></div>
             </article>
           ))}
         </div>
@@ -3040,10 +3066,11 @@ function PlantWeeklySummary({
 type PeriodMetric = { count: number; value?: number };
 
 function PlantPeriodComparison({ measurements, plant }: { measurements: PlantMeasurement[]; plant: Plant }) {
+  const [periodDays, setPeriodDays] = useState<7 | 30>(7);
   const today = getTodayIso();
-  const currentStart = offsetDate(today, -6);
-  const previousEnd = offsetDate(today, -7);
-  const previousStart = offsetDate(today, -13);
+  const currentStart = offsetDate(today, -(periodDays - 1));
+  const previousEnd = offsetDate(today, -periodDays);
+  const previousStart = offsetDate(today, -(periodDays * 2 - 1));
   const inRange = (measurement: PlantMeasurement, start: string, end: string) => {
     const date = measurement.measuredAt.slice(0, 10);
     return date >= start && date <= end;
@@ -3073,8 +3100,8 @@ function PlantPeriodComparison({ measurements, plant }: { measurements: PlantMea
   return (
     <section className="plant-period-comparison" aria-label={`Comparación de períodos de ${plant.name}`}>
       <header>
-        <div><p className="plant-calculation-eyebrow">Comparación verificable</p><h4>Esta semana vs. la anterior</h4><span>{formatDisplayDate(currentStart)}–{formatDisplayDate(today)} frente a {formatDisplayDate(previousStart)}–{formatDisplayDate(previousEnd)}</span></div>
-        <span className="pill pill-blue">{comparableCount} métricas comparables</span>
+        <div><p className="plant-calculation-eyebrow">Comparación verificable</p><h4>Período actual vs. anterior</h4><span>{formatDisplayDate(currentStart)}–{formatDisplayDate(today)} frente a {formatDisplayDate(previousStart)}–{formatDisplayDate(previousEnd)}</span></div>
+        <div className="period-comparison-controls"><label>Ventana<select className="form-control" onChange={(event) => setPeriodDays(Number(event.target.value) as 7 | 30)} value={periodDays}><option value="7">7 días</option><option value="30">30 días</option></select></label><span className="pill pill-blue">{comparableCount} métricas comparables</span></div>
       </header>
       <div className="period-comparison-grid">
         {comparisons.map((item) => <PeriodComparisonMetric key={item.label} {...item} />)}
@@ -3800,6 +3827,7 @@ function PlantEnvironmentPanel({
                 key={measurement.id}
                 measurement={measurement}
                 onDeleteMeasurement={onDeleteMeasurement}
+                onSaveMeasurement={onAddMeasurement}
                 plant={plant}
               />
             ))}
@@ -3813,12 +3841,15 @@ function PlantEnvironmentPanel({
 function MeasurementHistoryCard({
   measurement,
   onDeleteMeasurement,
+  onSaveMeasurement,
   plant
 }: {
   measurement: PlantMeasurement;
   onDeleteMeasurement: (measurementId: string) => void;
+  onSaveMeasurement: (measurement: PlantMeasurement) => void;
   plant: Plant;
 }) {
+  const [isEditing, setIsEditing] = useState(false);
   const assessment = assessPlantEnvironment(plant, measurement);
   const facts = [
     ["Temperatura", formatOptionalMeasurement(measurement.temperatureC, "°C")],
@@ -3840,16 +3871,10 @@ function MeasurementHistoryCard({
         {measurement.source === "sensor" ? (
           <span className="plant-measurement-readonly">Lectura del sensor</span>
         ) : (
-          <button
-            aria-label={`Eliminar medicion del ${formatMeasurementDate(measurement.measuredAt)}`}
-            className="text-button danger"
-            onClick={() => onDeleteMeasurement(measurement.id)}
-            type="button"
-          >
-            Eliminar
-          </button>
+          <div className="measurement-history-actions"><button className="text-button" onClick={() => setIsEditing((current) => !current)} type="button">{isEditing ? "Cerrar edición" : "Editar"}</button><button aria-label={`Eliminar medicion del ${formatMeasurementDate(measurement.measuredAt)}`} className="text-button danger" onClick={() => onDeleteMeasurement(measurement.id)} type="button">Eliminar</button></div>
         )}
       </header>
+      {isEditing ? <PlantMeasurementForm initialMeasurement={measurement} onAddMeasurement={onSaveMeasurement} onDone={() => setIsEditing(false)} plant={plant} /> : null}
       <dl className="measurement-history-facts">
         {facts.map(([label, value]) => (
           <div className={value === "Sin dato" ? "is-missing" : ""} key={label}>
@@ -4268,33 +4293,36 @@ function formatSuggestionDate(isoDate: string) {
 }
 
 function PlantMeasurementForm({
+  initialMeasurement,
   onAddMeasurement,
   onDone,
   plant,
   resetAfterSave = false
 }: {
+  initialMeasurement?: PlantMeasurement;
   onAddMeasurement: (measurement: PlantMeasurement) => void;
   onDone: () => void;
   plant: Plant;
   resetAfterSave?: boolean;
 }) {
-  const [measuredAt, setMeasuredAt] = useState(() => getLocalDateTimeValue());
-  const [source, setSource] = useState<PlantMeasurement["source"]>("manual");
-  const [temperature, setTemperature] = useState("");
-  const [leafTemperature, setLeafTemperature] = useState("");
-  const [humidity, setHumidity] = useState("");
-  const [substrateMoisture, setSubstrateMoisture] = useState("");
-  const [ppfd, setPpfd] = useState("");
-  const [height, setHeight] = useState("");
-  const [waterAmount, setWaterAmount] = useState("");
-  const [irrigationPh, setIrrigationPh] = useState("");
-  const [irrigationEc, setIrrigationEc] = useState("");
-  const [irrigationPpm, setIrrigationPpm] = useState("");
-  const [runoffAmount, setRunoffAmount] = useState("");
-  const [runoffPh, setRunoffPh] = useState("");
-  const [runoffEc, setRunoffEc] = useState("");
-  const [observations, setObservations] = useState("");
-  const [photoDataUrl, setPhotoDataUrl] = useState("");
+  const field = (value?: number) => value?.toString() ?? "";
+  const [measuredAt, setMeasuredAt] = useState(() => initialMeasurement ? toLocalDateTimeValue(initialMeasurement.measuredAt) : getLocalDateTimeValue());
+  const [source, setSource] = useState<PlantMeasurement["source"]>(initialMeasurement?.source ?? "manual");
+  const [temperature, setTemperature] = useState(() => field(initialMeasurement?.temperatureC));
+  const [leafTemperature, setLeafTemperature] = useState(() => field(initialMeasurement?.leafTemperatureC));
+  const [humidity, setHumidity] = useState(() => field(initialMeasurement?.ambientHumidityPercent));
+  const [substrateMoisture, setSubstrateMoisture] = useState(() => field(initialMeasurement?.substrateMoisturePercent));
+  const [ppfd, setPpfd] = useState(() => field(initialMeasurement?.ppfdUmolM2S));
+  const [height, setHeight] = useState(() => field(initialMeasurement?.heightCm));
+  const [waterAmount, setWaterAmount] = useState(() => field(initialMeasurement?.waterAmountMl));
+  const [irrigationPh, setIrrigationPh] = useState(() => field(initialMeasurement?.irrigationPh));
+  const [irrigationEc, setIrrigationEc] = useState(() => field(initialMeasurement?.irrigationEcMsCm));
+  const [irrigationPpm, setIrrigationPpm] = useState(() => field(initialMeasurement?.irrigationPpm));
+  const [runoffAmount, setRunoffAmount] = useState(() => field(initialMeasurement?.runoffAmountMl));
+  const [runoffPh, setRunoffPh] = useState(() => field(initialMeasurement?.runoffPh));
+  const [runoffEc, setRunoffEc] = useState(() => field(initialMeasurement?.runoffEcMsCm));
+  const [observations, setObservations] = useState(initialMeasurement?.observations ?? "");
+  const [photoDataUrl, setPhotoDataUrl] = useState(initialMeasurement?.photoDataUrl ?? "");
   const previewAssessment = useMemo(
     () =>
       assessPlantEnvironment(plant, {
@@ -4317,7 +4345,7 @@ function PlantMeasurementForm({
 
     onAddMeasurement({
       ambientHumidityPercent: parseOptionalNumber(humidity),
-      id: `measurement-${plant.id}-${Date.now()}`,
+      id: initialMeasurement?.id ?? `measurement-${plant.id}-${Date.now()}`,
       measuredAt: new Date(measuredAt).toISOString(),
       leafTemperatureC: parseOptionalNumber(leafTemperature),
       observations: observations.trim() || undefined,
@@ -4354,7 +4382,6 @@ function PlantMeasurementForm({
         <select className="form-control" onChange={(event) => setSource(event.target.value as PlantMeasurement["source"])} value={source}>
           <option value="manual">Carga manual</option>
           <option value="device">Dispositivo</option>
-          <option value="sensor">Sensor conectado</option>
         </select>
       </label>
       <label>
@@ -4417,7 +4444,7 @@ function PlantMeasurementForm({
           Fórmula Tetens. {previewAssessment.vpdBasis === "leaf" ? "Usa la temperatura foliar ingresada." : "Sin temperatura foliar, no se supone una diferencia con el aire."}
         </small>
       </div>
-      <button className="primary-button" type="submit">Guardar medicion</button>
+      <button className="primary-button" type="submit">{initialMeasurement ? "Guardar cambios" : "Guardar medicion"}</button>
     </form>
   );
 }
@@ -6734,6 +6761,12 @@ function parseOptionalNumber(value: string) {
 function getLocalDateTimeValue() {
   const now = new Date();
   const offsetAdjusted = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+  return offsetAdjusted.toISOString().slice(0, 16);
+}
+
+function toLocalDateTimeValue(value: string) {
+  const date = new Date(value);
+  const offsetAdjusted = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
   return offsetAdjusted.toISOString().slice(0, 16);
 }
 

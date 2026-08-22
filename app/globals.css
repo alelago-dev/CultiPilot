@@ -6170,6 +6170,9 @@ textarea {
   .plant-period-comparison > header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.65rem; }
   .plant-period-comparison > header h4 { margin-top: 0.15rem; color: #13231b; font-size: 1rem; font-weight: 900; }
   .plant-period-comparison > header span:not(.pill) { display: block; margin-top: 0.2rem; color: #65746c; font-size: 0.7rem; font-weight: 800; }
+  .period-comparison-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 0.5rem; }
+  .period-comparison-controls label { display: grid; gap: 0.2rem; color: #65746c; font-size: 0.62rem; font-weight: 850; }
+  .period-comparison-controls .form-control { min-width: 7rem; padding-block: 0.42rem; }
   .period-comparison-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
   .period-comparison-grid article { display: grid; gap: 0.22rem; min-width: 0; border: 1px solid rgba(49, 72, 62, 0.16); border-radius: 9px; background: rgba(255, 255, 255, 0.7); padding: 0.65rem; }
   .period-comparison-grid article.is-comparable { border-color: rgba(55, 134, 168, 0.3); background: rgba(232, 244, 248, 0.72); }
@@ -6248,6 +6251,8 @@ textarea {
   .today-environment-alerts > header p:last-child { margin-top: 0.25rem; color: #5f6f66; font-size: 0.75rem; font-weight: 750; }
   .today-environment-alert-list { display: grid; gap: 0.45rem; }
   .today-environment-alert-list article { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; border-left: 4px solid #c46a43; border-radius: 8px; background: rgba(255, 244, 235, 0.78); padding: 0.65rem 0.75rem; }
+  .today-environment-alert-actions { display: flex; flex: none; flex-wrap: wrap; justify-content: flex-end; gap: 0.4rem; }
+  .measurement-history-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.35rem; }
   .today-environment-alert-list strong { color: #4f2f22; font-size: 0.8rem; }
   .today-environment-alert-list p { margin-top: 0.12rem; color: #684638; font-size: 0.72rem; font-weight: 750; }
   .today-environment-alert-list small { color: #7a6157; font-size: 0.64rem; font-weight: 750; }

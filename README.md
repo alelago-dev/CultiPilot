@@ -94,6 +94,8 @@ PlantCare puede incorporar mediciones periodicas asociadas a una planta o espaci
 
 Las mediciones conservan fecha, hora y origen (`manual`, `device` o `sensor`) para construir series historicas y analizar evolucion. El acceso `Mediciones ambientales` esta visible desde Hoy y al comienzo de Espacios. Permite elegir una maceta independiente y registrar fecha/hora, temperatura y humedad; tambien admite temperatura foliar, humedad de sustrato, PPFD, altura, agua, pH, EC/ppm, drenaje, observaciones y foto. EC y ppm se guardan como mediciones independientes y nunca se convierten ni se inventan. La ficha expandida de cada maceta muestra el VPD calculado de cada lectura, todos los campos registrados y una galeria cronologica para comparar dos fotografias de la misma maceta sin inferir diagnosticos. Esos datos forman parte del snapshot del usuario y se sincronizan junto con sus plantas cuando la cuenta esta conectada.
 
+Las lecturas manuales o cargadas desde un dispositivo pueden editarse conservando su identificador y reemplazando el registro dentro del snapshot; las lecturas originadas por sensores permanecen de solo lectura para preservar su procedencia.
+
 `assessPlantEnvironment` calcula un VPD estimado y lo compara con una banda orientativa segun la etapa declarada. Si el usuario registra temperatura foliar, calcula VPD foliar con temperatura ambiental, foliar y humedad relativa. Si falta ese dato, muestra VPD del aire sin inventar una diferencia fija entre hoja y ambiente. El formulario muestra el VPD en vivo antes de guardar y la ficha presenta tendencias de temperatura, humedad y VPD usando exclusivamente las lecturas registradas, sin completar huecos. La interfaz diferencia la medicion original del valor `calculated`, muestra la banda utilizada y avisa cuando falta temperatura, humedad o PPFD.
 
 El panel `Calculos de esta maceta` obtiene DLI desde PPFD medido y horas de luz declaradas, porcentaje de drenaje desde agua aplicada y drenaje del mismo registro, diferencias de pH/EC y totales o rangos historicos. Cada tarjeta publica la formula, la fuente y los datos faltantes. No convierte EC a ppm, no inventa mediciones y no calcula dosis.
@@ -102,13 +104,15 @@ Cada maceta puede exportarse por ultimos 7 dias, ultimos 30 dias, ciclo registra
 
 Cada maceta incluye un resumen movil de los ultimos siete dias. Cuenta mediciones, riegos, notas, fotos y acciones completadas con fechas existentes; muestra las tareas abiertas como pendientes actuales porque no tienen una fecha de ejecucion confirmada. La tendencia VPD compara solamente la primera y la ultima lectura calculable del periodo y explicita cuando faltan datos.
 
-El comparador semanal enfrenta los ultimos siete dias con los siete anteriores para temperatura, humedad, VPD calculado, agua registrada y altura. Publica el numero de muestras usado en cada periodo y solo muestra una diferencia cuando ambos tienen datos; no atribuye causas ni convierte el cambio en un diagnostico.
+El comparador permite elegir ventanas equivalentes de 7 o 30 dias para temperatura, humedad, VPD calculado, agua registrada y altura. Publica el numero de muestras usado en cada periodo y solo muestra una diferencia cuando ambos tienen datos; no atribuye causas ni convierte el cambio en un diagnostico.
 
 Cada maceta puede cerrar y archivar su ciclo con una fecha y nota declaradas por el usuario. El cierre no borra mediciones, riegos, fotos ni bitacora y puede revertirse. Espacios separa los ciclos cerrados de los activos y permite comparar duracion registrada, cantidad de datos y VPD promedio calculado solamente sobre lecturas disponibles.
 
 Las alertas personalizadas permiten que el usuario defina por maceta limites minimos y maximos de temperatura, humedad ambiental, VPD calculado y humedad de sustrato. No hay umbrales personalizados implicitos. Cada aviso cita el valor, el limite configurado y la fecha/hora de la ultima medicion que lo activo; los limites forman parte del snapshot sincronizado.
 
 Hoy reúne las alertas activas de todas las macetas y enlaza directamente a cada ficha. El resumen y la ficha usan la misma funcion de comparacion para evitar resultados distintos; solo evalúan la ultima lectura contra limites definidos por el usuario y no controlan equipos automaticamente.
+
+Una alerta de Hoy puede marcarse como revisada. La confirmacion queda vinculada al identificador de la lectura, metrica, valor y limite, y se guarda en el snapshot del usuario; si llega otra lectura o cambia el valor o el umbral, la nueva alerta vuelve a mostrarse.
 
 `buildCultivationSuggestions` transforma la etapa declarada, las mediciones recientes, el setup y los datos de catalogo disponibles en revisiones explicables. Cada sugerencia muestra evidencia, origen, datos faltantes y una fecha orientativa. Nunca entra al calendario automaticamente: el usuario debe pulsar `Agregar al calendario`. Tampoco calcula dosis universales de agua o fertilizante ni fuerza poda, flora, cosecha o ajustes de equipos.
 
