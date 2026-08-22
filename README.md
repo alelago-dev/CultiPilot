@@ -102,6 +102,8 @@ Cada maceta puede exportarse por ultimos 7 dias, ultimos 30 dias, ciclo registra
 
 Cada maceta incluye un resumen movil de los ultimos siete dias. Cuenta mediciones, riegos, notas, fotos y acciones completadas con fechas existentes; muestra las tareas abiertas como pendientes actuales porque no tienen una fecha de ejecucion confirmada. La tendencia VPD compara solamente la primera y la ultima lectura calculable del periodo y explicita cuando faltan datos.
 
+El comparador semanal enfrenta los ultimos siete dias con los siete anteriores para temperatura, humedad, VPD calculado, agua registrada y altura. Publica el numero de muestras usado en cada periodo y solo muestra una diferencia cuando ambos tienen datos; no atribuye causas ni convierte el cambio en un diagnostico.
+
 Cada maceta puede cerrar y archivar su ciclo con una fecha y nota declaradas por el usuario. El cierre no borra mediciones, riegos, fotos ni bitacora y puede revertirse. Espacios separa los ciclos cerrados de los activos y permite comparar duracion registrada, cantidad de datos y VPD promedio calculado solamente sobre lecturas disponibles.
 
 Las alertas personalizadas permiten que el usuario defina por maceta limites minimos y maximos de temperatura, humedad ambiental, VPD calculado y humedad de sustrato. No hay umbrales personalizados implicitos. Cada aviso cita el valor, el limite configurado y la fecha/hora de la ultima medicion que lo activo; los limites forman parte del snapshot sincronizado.

@@ -6166,6 +6166,22 @@ textarea {
   .plant-weekly-findings { display: grid; gap: 0.35rem; border-radius: 8px; background: rgba(255, 251, 235, 0.72); padding: 0.65rem; }
   .plant-weekly-findings p { color: #4f4a36; font-size: 0.72rem; font-weight: 750; line-height: 1.45; }
 
+  .plant-period-comparison { display: grid; gap: 0.65rem; margin-top: 0.85rem; border-top: 1px solid rgba(49, 72, 62, 0.18); padding-top: 0.9rem; }
+  .plant-period-comparison > header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.65rem; }
+  .plant-period-comparison > header h4 { margin-top: 0.15rem; color: #13231b; font-size: 1rem; font-weight: 900; }
+  .plant-period-comparison > header span:not(.pill) { display: block; margin-top: 0.2rem; color: #65746c; font-size: 0.7rem; font-weight: 800; }
+  .period-comparison-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+  .period-comparison-grid article { display: grid; gap: 0.22rem; min-width: 0; border: 1px solid rgba(49, 72, 62, 0.16); border-radius: 9px; background: rgba(255, 255, 255, 0.7); padding: 0.65rem; }
+  .period-comparison-grid article.is-comparable { border-color: rgba(55, 134, 168, 0.3); background: rgba(232, 244, 248, 0.72); }
+  .period-comparison-grid article.is-missing { opacity: 0.76; }
+  .period-comparison-grid span, .period-comparison-grid small { color: #65746c; font-size: 0.64rem; font-weight: 850; }
+  .period-comparison-grid strong { color: #13231b; font-size: 0.9rem; }
+  .period-comparison-grid p, .plant-period-comparison > p { color: #586861; font-size: 0.66rem; font-weight: 750; line-height: 1.45; }
+
+  @media (min-width: 900px) {
+    .period-comparison-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  }
+
   @media (max-width: 560px) {
     .plant-weekly-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }

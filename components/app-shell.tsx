@@ -2901,6 +2901,7 @@ function PlantSpaceRow({
             plant={plant}
             tasks={tasks}
           />
+          <PlantPeriodComparison measurements={measurements} plant={plant} />
           <PlantSensorPanel
             devices={sensorDevices}
             onCreateSensorDevice={onCreateSensorDevice}
@@ -2997,6 +2998,66 @@ function PlantWeeklySummary({
         {!hasActivity ? <p>No se agregaron fechas ni valores: este resumen solo cuenta registros existentes dentro del período.</p> : null}
       </div>
     </section>
+  );
+}
+
+type PeriodMetric = { count: number; value?: number };
+
+function PlantPeriodComparison({ measurements, plant }: { measurements: PlantMeasurement[]; plant: Plant }) {
+  const today = getTodayIso();
+  const currentStart = offsetDate(today, -6);
+  const previousEnd = offsetDate(today, -7);
+  const previousStart = offsetDate(today, -13);
+  const inRange = (measurement: PlantMeasurement, start: string, end: string) => {
+    const date = measurement.measuredAt.slice(0, 10);
+    return date >= start && date <= end;
+  };
+  const current = measurements.filter((measurement) => inRange(measurement, currentStart, today));
+  const previous = measurements.filter((measurement) => inRange(measurement, previousStart, previousEnd));
+  const metric = (records: PlantMeasurement[], select: (measurement: PlantMeasurement) => number | undefined): PeriodMetric => {
+    const values = records.flatMap((measurement) => {
+      const value = select(measurement);
+      return value === undefined ? [] : [value];
+    });
+    return { count: values.length, value: values.length === 0 ? undefined : Number((values.reduce((total, value) => total + value, 0) / values.length).toFixed(2)) };
+  };
+  const totalWater = (records: PlantMeasurement[]): PeriodMetric => {
+    const values = records.flatMap((measurement) => measurement.waterAmountMl === undefined ? [] : [measurement.waterAmountMl]);
+    return { count: values.length, value: values.length === 0 ? undefined : Number(values.reduce((total, value) => total + value, 0).toFixed(1)) };
+  };
+  const comparisons = [
+    { current: metric(current, (item) => item.temperatureC), label: "Temperatura promedio", previous: metric(previous, (item) => item.temperatureC), unit: " °C" },
+    { current: metric(current, (item) => item.ambientHumidityPercent), label: "Humedad promedio", previous: metric(previous, (item) => item.ambientHumidityPercent), unit: "%" },
+    { current: metric(current, (item) => assessPlantEnvironment(plant, item).vpdKpa), label: "VPD promedio calculado", previous: metric(previous, (item) => assessPlantEnvironment(plant, item).vpdKpa), unit: " kPa" },
+    { current: totalWater(current), label: "Agua registrada total", previous: totalWater(previous), unit: " ml" },
+    { current: metric(current, (item) => item.heightCm), label: "Altura promedio registrada", previous: metric(previous, (item) => item.heightCm), unit: " cm" }
+  ];
+  const comparableCount = comparisons.filter((item) => item.current.value !== undefined && item.previous.value !== undefined).length;
+
+  return (
+    <section className="plant-period-comparison" aria-label={`Comparación de períodos de ${plant.name}`}>
+      <header>
+        <div><p className="plant-calculation-eyebrow">Comparación verificable</p><h4>Esta semana vs. la anterior</h4><span>{formatDisplayDate(currentStart)}–{formatDisplayDate(today)} frente a {formatDisplayDate(previousStart)}–{formatDisplayDate(previousEnd)}</span></div>
+        <span className="pill pill-blue">{comparableCount} métricas comparables</span>
+      </header>
+      <div className="period-comparison-grid">
+        {comparisons.map((item) => <PeriodComparisonMetric key={item.label} {...item} />)}
+      </div>
+      <p>Promedios y diferencias calculados únicamente con registros disponibles. La cantidad de muestras puede variar entre métricas; un cambio no implica por sí solo una causa ni un diagnóstico.</p>
+    </section>
+  );
+}
+
+function PeriodComparisonMetric({ current, label, previous, unit }: { current: PeriodMetric; label: string; previous: PeriodMetric; unit: string }) {
+  const comparable = current.value !== undefined && previous.value !== undefined;
+  const difference = comparable ? Number((current.value! - previous.value!).toFixed(2)) : undefined;
+  return (
+    <article className={comparable ? "is-comparable" : "is-missing"}>
+      <span>{label}</span>
+      <strong>{current.value === undefined ? "Sin datos actuales" : `${current.value}${unit}`}</strong>
+      <small>Actual: {current.count} registro{current.count === 1 ? "" : "s"} · Anterior: {previous.count}</small>
+      <p>{difference === undefined ? "Faltan registros en uno de los períodos." : `Cambio calculado: ${difference > 0 ? "+" : ""}${difference}${unit}`}</p>
+    </article>
   );
 }
 
