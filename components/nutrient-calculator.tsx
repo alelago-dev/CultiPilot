@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import { Card } from "@/components/card";
 import { createEventId } from "@/lib/calendar-events";
+import { formatDictionaryString } from "@/lib/i18n";
+import type { Dictionary } from "@/lib/types";
 
 type NutrientRow = {
   id: string;
@@ -16,7 +18,8 @@ function createRow(): NutrientRow {
   return { id: createEventId("nutrient-row"), name: "", doseValue: "", doseUnit: "ml" };
 }
 
-export function NutrientCalculator() {
+export function NutrientCalculator({ dictionary }: { dictionary: Dictionary }) {
+  const calculator = dictionary.seeds.nutrientCalculator;
   const [reservoirLiters, setReservoirLiters] = useState("10");
   const [rows, setRows] = useState<NutrientRow[]>([createRow()]);
 
@@ -49,20 +52,17 @@ export function NutrientCalculator() {
     <Card as="section" aria-labelledby="nutrient-calculator-title" className="nutrient-calculator mt-4 p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="eyebrow text-emerald-800">Calculadora</p>
+          <p className="eyebrow text-emerald-800">{calculator.eyebrow}</p>
           <h2 className="mt-1 text-xl font-black tracking-tight text-moss-950 sm:text-2xl" id="nutrient-calculator-title">
-            Mezcla de nutrientes por reservorio
+            {calculator.title}
           </h2>
         </div>
       </div>
 
-      <p className="mt-2 text-sm leading-6 text-stone-600">
-        Cargá la dosis que declara la etiqueta de cada producto (por litro) y el tamaño de tu reservorio. Esta
-        calculadora solo multiplica lo que vos cargaste — no sugiere productos, marcas ni cantidades.
-      </p>
+      <p className="mt-2 text-sm leading-6 text-stone-600">{calculator.description}</p>
 
       <label className="mt-4 grid max-w-[12rem] gap-1 text-sm font-black text-moss-950">
-        Reservorio (L)
+        {calculator.reservoirLabel}
         <input
           className="form-control"
           inputMode="decimal"
@@ -78,16 +78,16 @@ export function NutrientCalculator() {
         {rowTotals.map((row) => (
           <div className="nutrient-calculator-row" key={row.id}>
             <label className="grid gap-1 text-sm font-black text-moss-950">
-              Producto
+              {calculator.productLabel}
               <input
                 className="form-control"
                 onChange={(event) => updateRow(row.id, { name: event.target.value })}
-                placeholder="Nombre del producto"
+                placeholder={calculator.productPlaceholder}
                 value={row.name}
               />
             </label>
             <label className="grid gap-1 text-sm font-black text-moss-950">
-              Dosis declarada (por litro)
+              {calculator.doseLabel}
               <div className="nutrient-calculator-dose-input">
                 <input
                   className="form-control"
@@ -99,7 +99,7 @@ export function NutrientCalculator() {
                   value={row.doseValue}
                 />
                 <select
-                  aria-label="Unidad de la dosis"
+                  aria-label={calculator.doseUnitAriaLabel}
                   className="form-control"
                   onChange={(event) => updateRow(row.id, { doseUnit: event.target.value as NutrientRow["doseUnit"] })}
                   value={row.doseUnit}
@@ -110,8 +110,8 @@ export function NutrientCalculator() {
               </div>
             </label>
             <div className="nutrient-calculator-total">
-              <span className="text-xs font-black uppercase text-stone-500">Total para este reservorio</span>
-              <strong>{row.total === undefined ? "Sin dato" : `${formatAmount(row.total)} ${row.doseUnit}`}</strong>
+              <span className="text-xs font-black uppercase text-stone-500">{calculator.totalForReservoirLabel}</span>
+              <strong>{row.total === undefined ? calculator.noDataLabel : `${formatAmount(row.total)} ${row.doseUnit}`}</strong>
             </div>
             <button
               className="text-button danger"
@@ -119,24 +119,27 @@ export function NutrientCalculator() {
               onClick={() => removeRow(row.id)}
               type="button"
             >
-              Quitar
+              {calculator.removeButton}
             </button>
           </div>
         ))}
       </div>
 
       <button className="secondary-button mt-3" onClick={() => setRows((current) => [...current, createRow()])} type="button">
-        + Agregar producto
+        {calculator.addProductButton}
       </button>
 
       <div className="seed-result mt-4">
-        <p className="text-sm font-black text-moss-950">Total de la mezcla</p>
+        <p className="text-sm font-black text-moss-950">{calculator.totalMixLabel}</p>
         <p className="mt-1 text-sm leading-6 text-stone-700">
           {!reservoirValid
-            ? "Cargá un tamaño de reservorio valido para calcular."
+            ? calculator.invalidReservoirMessage
             : summaryParts.length === 0
-              ? "Cargá al menos una dosis para calcular el total."
-              : `${summaryParts.join(" + ")} en total para ${formatAmount(parsedReservoir)} L de reservorio.`}
+              ? calculator.noProductsMessage
+              : formatDictionaryString(calculator.summaryTemplate, {
+                  parts: summaryParts.join(" + "),
+                  reservoir: formatAmount(parsedReservoir)
+                })}
         </p>
       </div>
     </Card>

@@ -37,7 +37,7 @@ import {
   type AppSection,
   type NavigationItem
 } from "@/lib/navigation";
-import { formatDictionaryString } from "@/lib/i18n";
+import { formatDictionaryString, getDictionary } from "@/lib/i18n";
 import { getGeneticsCatalogAlphabetically, type GeneticReferenceEntry } from "@/lib/genetics-catalog";
 import { requestReminderNotification } from "@/lib/notifications";
 import { assessPlantEnvironment, getConfiguredEnvironmentalAlerts, type EnvironmentalStatus } from "@/lib/environment-intelligence";
@@ -2139,6 +2139,7 @@ function FirstCultivationScreen({
                 <SectionHeader eyebrow="Datos declarados" title="Identificacion" />
                 <GeneticFinderWizard
                   compact
+                  dictionary={getDictionary("es")}
                   onSelectGenetic={(name) => {
                     setGeneticName(name);
                     setCustomGeneticName("");

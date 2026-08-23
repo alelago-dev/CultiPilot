@@ -2,12 +2,14 @@
 
 import { useMemo, useState } from "react";
 
+import { formatDictionaryString } from "@/lib/i18n";
 import {
   getGeneticsCatalogAlphabetically,
   type GeneticReferenceEntry,
   type GeneticRawFieldValue,
   type GeneticType
 } from "@/lib/genetics-catalog";
+import type { Dictionary } from "@/lib/types";
 
 type FinderGrowPlace = "any" | "indoor" | "outdoor";
 type FinderSeedType = "any" | "autoflowering" | "feminized" | "regular";
@@ -33,108 +35,14 @@ type FinderState = {
 
 type FinderStep = "place" | "type" | "effect" | "flavors";
 
-type FinderOption<T extends string> = {
-  description: string;
-  icon: string;
-  id: T;
-  label: string;
-};
-
 type GeneticFinderWizardProps = {
   compact?: boolean;
+  dictionary: Dictionary;
   onSelectGenetic?: (name: string) => void;
 };
 
 const steps: FinderStep[] = ["place", "type", "effect", "flavors"];
 const geneticsCatalog = getGeneticsCatalogAlphabetically();
-
-const growPlaceOptions: Array<FinderOption<FinderGrowPlace>> = [
-  {
-    description: "Carpa, armario o habitacion controlada.",
-    icon: "IN",
-    id: "indoor",
-    label: "Interior"
-  },
-  {
-    description: "Balcon, terraza, patio, jardin o invernaculo.",
-    icon: "EX",
-    id: "outdoor",
-    label: "Exterior"
-  },
-  {
-    description: "Mostrar coincidencias sin filtrar por lugar.",
-    icon: "ALL",
-    id: "any",
-    label: "Me da igual"
-  }
-];
-
-const seedTypeOptions: Array<FinderOption<FinderSeedType>> = [
-  {
-    description: "Ciclo automatico declarado por el banco.",
-    icon: "AU",
-    id: "autoflowering",
-    label: "Automatica"
-  },
-  {
-    description: "Fotoperiodica feminizada declarada.",
-    icon: "FE",
-    id: "feminized",
-    label: "Feminizada"
-  },
-  {
-    description: "Regular declarada por el banco.",
-    icon: "RE",
-    id: "regular",
-    label: "Regular"
-  },
-  {
-    description: "No filtrar por tipo.",
-    icon: "ALL",
-    id: "any",
-    label: "Cualquiera"
-  }
-];
-
-const effectOptions: Array<FinderOption<FinderEffect>> = [
-  {
-    description: "Busca notas publicadas de calma o descanso.",
-    icon: "REL",
-    id: "relax",
-    label: "Relajacion"
-  },
-  {
-    description: "Busca notas de energia, creatividad o perfil activo.",
-    icon: "ENE",
-    id: "energy",
-    label: "Energia"
-  },
-  {
-    description: "Busca perfiles publicados como hibridos o balanceados.",
-    icon: "BAL",
-    id: "balanced",
-    label: "Equilibrado"
-  },
-  {
-    description: "No filtrar por efecto.",
-    icon: "ALL",
-    id: "any",
-    label: "Cualquiera"
-  }
-];
-
-const flavorOptions: Array<FinderOption<FinderFlavor>> = [
-  { description: "Frutas, frutos rojos, tropical o banana.", icon: "FR", id: "fruity", label: "Afrutado" },
-  { description: "Limon, lima, naranja, pomelo o mandarina.", icon: "CI", id: "citrus", label: "Citrico" },
-  { description: "Notas dulces, caramelo, galleta o cola.", icon: "DU", id: "sweet", label: "Dulce" },
-  { description: "Crema, vainilla o perfiles suaves.", icon: "CR", id: "creamy", label: "Cremoso" },
-  { description: "Pimienta, especias o perfiles picantes.", icon: "SP", id: "spicy", label: "Especias" },
-  { description: "Pino, cedro, madera o herbal.", icon: "MA", id: "wood", label: "Madera" },
-  { description: "Skunk, queso o perfiles intensos.", icon: "SK", id: "skunk", label: "Skunk" },
-  { description: "Acido, sour o notas punzantes.", icon: "AC", id: "acid", label: "Acido" },
-  { description: "Gas, diesel, petroleo o combustible.", icon: "GA", id: "fuel", label: "Gasolina" },
-  { description: "Tierra, mineral o sustrato.", icon: "TE", id: "earthy", label: "Terroso" }
-];
 
 const initialFinderState: FinderState = {
   effect: "any",
@@ -143,7 +51,8 @@ const initialFinderState: FinderState = {
   seedType: "any"
 };
 
-export function GeneticFinderWizard({ compact = false, onSelectGenetic }: GeneticFinderWizardProps) {
+export function GeneticFinderWizard({ compact = false, dictionary, onSelectGenetic }: GeneticFinderWizardProps) {
+  const finder = dictionary.seeds.finder;
   const [finderState, setFinderState] = useState<FinderState>(initialFinderState);
   const [stepIndex, setStepIndex] = useState(0);
   const currentStep = steps[stepIndex];
@@ -167,57 +76,51 @@ export function GeneticFinderWizard({ compact = false, onSelectGenetic }: Geneti
     }));
   }
 
+  const stepCountText = formatDictionaryString(finder.stepCountTemplate, {
+    current: String(stepIndex + 1),
+    total: String(steps.length)
+  });
+
   return (
     <section className={compact ? "genetic-finder compact" : "genetic-finder"} aria-labelledby="genetic-finder-title">
       <div className="finder-header">
         <div>
-          <p className="eyebrow text-emerald-800">Buscador guiado</p>
-          <h3 id="genetic-finder-title">Encuentra una genetica de referencia</h3>
-          <p>
-            Filtra por ambiente, tipo, efecto y sabores publicados. No calcula tareas ni completa campos de cultivo.
-          </p>
+          <p className="eyebrow text-emerald-800">{finder.eyebrow}</p>
+          <h3 id="genetic-finder-title">{finder.title}</h3>
+          <p>{finder.description}</p>
         </div>
-        <span className="mode-badge manual">Manual</span>
+        <span className="mode-badge manual">{finder.modeLabel}</span>
       </div>
 
       <details className="finder-education">
-        <summary>Como leer la informacion del catalogo</summary>
+        <summary>{finder.educationSummary}</summary>
         <div className="finder-education-grid">
           <article>
-            <h4>THC publicado</h4>
-            <p>
-              Como referencia comparativa: bajo es menos de 10%, medio entre 10% y 20%, y alto mas de 20%. Es un dato
-              informado por la fuente, no una indicacion medica ni una prediccion del efecto.
-            </p>
+            <h4>{finder.thcTitle}</h4>
+            <p>{finder.thcBody}</p>
           </article>
           <article>
-            <h4>Duracion de floracion</h4>
-            <p>
-              Corta: hasta 8 semanas. Media: 9 a 10 semanas. Larga: 11 semanas o mas. Son rangos publicados, no fechas
-              calculadas para tu cultivo.
-            </p>
+            <h4>{finder.floweringTitle}</h4>
+            <p>{finder.floweringBody}</p>
           </article>
           <article>
-            <h4>Tipo de semilla</h4>
-            <p>
-              Feminizada indica semillas comercializadas como femeninas; autofloreciente declara un ciclo automatico;
-              regular puede producir plantas masculinas o femeninas.
-            </p>
+            <h4>{finder.seedTypeTitle}</h4>
+            <p>{finder.seedTypeBody}</p>
           </article>
         </div>
       </details>
 
-      <div className="finder-progress" aria-label={`Paso ${stepIndex + 1} de ${steps.length}`}>
+      <div className="finder-progress" aria-label={stepCountText}>
         <span style={{ width: `${progress}%` }} />
       </div>
-      <p className="finder-step-count">Paso {stepIndex + 1} de {steps.length}</p>
+      <p className="finder-step-count">{stepCountText}</p>
 
       {currentStep === "place" ? (
         <FinderOptionGrid
-          options={growPlaceOptions}
+          options={finder.placeOptions}
           selectedValue={finderState.growPlace}
           onSelect={(growPlace) => {
-            setFinderState((current) => ({ ...current, growPlace }));
+            setFinderState((current) => ({ ...current, growPlace: growPlace as FinderGrowPlace }));
             goNext();
           }}
         />
@@ -225,10 +128,10 @@ export function GeneticFinderWizard({ compact = false, onSelectGenetic }: Geneti
 
       {currentStep === "type" ? (
         <FinderOptionGrid
-          options={seedTypeOptions}
+          options={finder.seedTypeOptions}
           selectedValue={finderState.seedType}
           onSelect={(seedType) => {
-            setFinderState((current) => ({ ...current, seedType }));
+            setFinderState((current) => ({ ...current, seedType: seedType as FinderSeedType }));
             goNext();
           }}
         />
@@ -236,10 +139,10 @@ export function GeneticFinderWizard({ compact = false, onSelectGenetic }: Geneti
 
       {currentStep === "effect" ? (
         <FinderOptionGrid
-          options={effectOptions}
+          options={finder.effectOptions}
           selectedValue={finderState.effect}
           onSelect={(effect) => {
-            setFinderState((current) => ({ ...current, effect }));
+            setFinderState((current) => ({ ...current, effect: effect as FinderEffect }));
             goNext();
           }}
         />
@@ -247,17 +150,17 @@ export function GeneticFinderWizard({ compact = false, onSelectGenetic }: Geneti
 
       {currentStep === "flavors" ? (
         <div className="finder-flavor-step">
-          <h4>Que sabores buscas?</h4>
-          <p>Marca uno o varios. Si no elegis ninguno, se muestran coincidencias por los otros filtros.</p>
+          <h4>{finder.flavorsStepTitle}</h4>
+          <p>{finder.flavorsStepHint}</p>
           <div className="finder-flavor-grid">
-            {flavorOptions.map((option) => {
-              const selected = finderState.flavors.includes(option.id);
+            {finder.flavorOptions.map((option) => {
+              const selected = finderState.flavors.includes(option.id as FinderFlavor);
 
               return (
                 <button
                   className={selected ? "finder-flavor active" : "finder-flavor"}
                   key={option.id}
-                  onClick={() => toggleFlavor(option.id)}
+                  onClick={() => toggleFlavor(option.id as FinderFlavor)}
                   type="button"
                 >
                   <span>{option.icon}</span>
@@ -269,15 +172,15 @@ export function GeneticFinderWizard({ compact = false, onSelectGenetic }: Geneti
         </div>
       ) : null}
 
-      <FinderResults finderState={finderState} matches={matches} onSelectGenetic={onSelectGenetic} />
+      <FinderResults dictionary={dictionary} finderState={finderState} matches={matches} onSelectGenetic={onSelectGenetic} />
 
       <div className="finder-actions">
         <button className="secondary-button" disabled={stepIndex === 0} onClick={goBack} type="button">
-          Atras
+          {finder.backButton}
         </button>
         {stepIndex < steps.length - 1 ? (
           <button className="secondary-button" onClick={goNext} type="button">
-            Continuar filtros
+            {finder.continueFiltersButton}
           </button>
         ) : (
           <button
@@ -288,7 +191,7 @@ export function GeneticFinderWizard({ compact = false, onSelectGenetic }: Geneti
             }}
             type="button"
           >
-            Empezar de nuevo
+            {finder.startOverButton}
           </button>
         )}
       </div>
@@ -296,14 +199,14 @@ export function GeneticFinderWizard({ compact = false, onSelectGenetic }: Geneti
   );
 }
 
-function FinderOptionGrid<T extends string>({
+function FinderOptionGrid({
   onSelect,
   options,
   selectedValue
 }: {
-  onSelect: (value: T) => void;
-  options: Array<FinderOption<T>>;
-  selectedValue: T;
+  onSelect: (value: string) => void;
+  options: Array<{ id: string; icon: string; label: string; description: string }>;
+  selectedValue: string;
 }) {
   return (
     <div className="finder-option-grid">
@@ -324,19 +227,23 @@ function FinderOptionGrid<T extends string>({
 }
 
 function FinderResults({
+  dictionary,
   finderState,
   matches,
   onSelectGenetic
 }: {
+  dictionary: Dictionary;
   finderState: FinderState;
   matches: Array<{ genetic: GeneticReferenceEntry; score: number }>;
   onSelectGenetic?: (name: string) => void;
 }) {
+  const finder = dictionary.seeds.finder;
+
   return (
     <div className="finder-results">
       <div>
-        <h4>Coincidencias de referencia</h4>
-        <p>Estos datos vienen del catalogo estatico. El usuario decide que copiar o cargar manualmente.</p>
+        <h4>{finder.resultsTitle}</h4>
+        <p>{finder.resultsHint}</p>
       </div>
 
       {matches.length > 0 ? (
@@ -347,32 +254,30 @@ function FinderResults({
                 <div>
                   <h5>{genetic.name}</h5>
                   <p className="finder-source">
-                    <span>Fuente</span>
+                    <span>{finder.sourceLabel}</span>
                     {genetic.source}
                   </p>
                 </div>
               </div>
-              <p className="finder-match-summary">{formatMatchSummary(genetic, finderState)}</p>
+              <p className="finder-match-summary">{formatMatchSummary(genetic, finderState, dictionary)}</p>
               <div className="finder-chip-row">
                 <span className={`finder-type-badge ${getGeneticTypeClass(genetic.type)}`}>
-                  {formatGeneticType(genetic.type)}
+                  {formatGeneticType(genetic.type, dictionary)}
                 </span>
-                <span className="finder-data-badge">{formatRange(genetic.flowering_weeks_range, "sem")}</span>
-                <span className="finder-data-badge">{formatThcRange(genetic.thc_percent_range)}</span>
+                <span className="finder-data-badge">{formatRange(genetic.flowering_weeks_range, dictionary.seeds.weeksUnit)}</span>
+                <span className="finder-data-badge">{formatThcRange(genetic.thc_percent_range, dictionary)}</span>
               </div>
-              <p className="finder-notes">{compactText(genetic.flavor_notes || genetic.effect_notes)}</p>
+              <p className="finder-notes">{compactText(genetic.flavor_notes || genetic.effect_notes, dictionary)}</p>
               {onSelectGenetic ? (
                 <button className="finder-use-button" onClick={() => onSelectGenetic(genetic.name)} type="button">
-                  Agregar esta semilla
+                  {finder.addSeedButton}
                 </button>
               ) : null}
             </article>
           ))}
         </div>
       ) : (
-        <div className="finder-empty">
-          No encontre coincidencias con esos filtros. Proba dejando tipo, efecto o sabores en cualquiera.
-        </div>
+        <div className="finder-empty">{finder.emptyResultsMessage}</div>
       )}
     </div>
   );
@@ -415,7 +320,7 @@ function scoreGenetic(genetic: GeneticReferenceEntry, finderState: FinderState) 
   return score;
 }
 
-function formatMatchSummary(genetic: GeneticReferenceEntry, finderState: FinderState) {
+function formatMatchSummary(genetic: GeneticReferenceEntry, finderState: FinderState, dictionary: Dictionary) {
   const searchableText = buildSearchableText(genetic);
   const criteria: boolean[] = [];
 
@@ -444,11 +349,14 @@ function formatMatchSummary(genetic: GeneticReferenceEntry, finderState: FinderS
   }
 
   if (criteria.length === 0) {
-    return "Mostrada sin filtros especificos";
+    return dictionary.seeds.finder.matchSummaryNoFilters;
   }
 
   const matchingCriteria = criteria.filter(Boolean).length;
-  return `Coincide con ${matchingCriteria} de ${criteria.length} filtros elegidos`;
+  return formatDictionaryString(dictionary.seeds.finder.matchSummaryTemplate, {
+    matching: String(matchingCriteria),
+    total: String(criteria.length)
+  });
 }
 
 function geneticMatchesType(geneticType: GeneticType, selectedType: FinderSeedType) {
@@ -511,11 +419,11 @@ function normalizeText(value: string) {
     .toLowerCase();
 }
 
-function formatGeneticType(type: GeneticReferenceEntry["type"]) {
-  if (type === "autoflowering") return "Automatica";
-  if (type === "faster_flowering") return "Rapida";
-  if (type === "regular") return "Regular";
-  return "Feminizada";
+function formatGeneticType(type: GeneticReferenceEntry["type"], dictionary: Dictionary) {
+  if (type === "autoflowering") return dictionary.seeds.geneticTypeAutoflowering;
+  if (type === "faster_flowering") return dictionary.seeds.geneticTypeFasterFlowering;
+  if (type === "regular") return dictionary.seeds.geneticTypeRegular;
+  return dictionary.seeds.geneticTypeFeminized;
 }
 
 function getGeneticTypeClass(type: GeneticReferenceEntry["type"]) {
@@ -529,12 +437,12 @@ function formatRange([min, max]: [number, number], unit: string) {
   return min === max ? `${min} ${unit}` : `${min}-${max} ${unit}`;
 }
 
-function formatThcRange([min, max]: [number, number]) {
-  if (min === 0 && max === 0) return "THC s/d";
+function formatThcRange([min, max]: [number, number], dictionary: Dictionary) {
+  if (min === 0 && max === 0) return dictionary.seeds.finder.thcNotDeclared;
   return min === max ? `${min}% THC` : `${min}-${max}% THC`;
 }
 
-function compactText(value: string) {
-  if (!value || value === "No declarado en Excel") return "Sin notas publicadas de sabor o efecto.";
+function compactText(value: string, dictionary: Dictionary) {
+  if (!value || value === "No declarado en Excel") return dictionary.seeds.finder.noNotesMessage;
   return value.length > 118 ? `${value.slice(0, 115)}...` : value;
 }

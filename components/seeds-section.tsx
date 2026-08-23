@@ -76,7 +76,7 @@ export function SeedsSection({ calendarHref, calendarLinkHref, dictionary, local
         {dictionary.seeds.legalBannerText}
         <span className="mt-2 block">
           {dictionary.seeds.reprocannQuestion}{" "}
-          <Link className="font-black text-emerald-800 underline underline-offset-4" href={"../privacidad/" as Route}>
+          <Link className="font-black text-emerald-800 underline underline-offset-4" href={(locale === "en" ? "../privacy/" : "../privacidad/") as Route}>
             {dictionary.seeds.reprocannLink}
           </Link>
           .
@@ -102,6 +102,7 @@ export function SeedsSection({ calendarHref, calendarLinkHref, dictionary, local
         <div className="mt-4">
           {activeTab === "finder" ? (
             <GeneticFinderWizard
+              dictionary={dictionary}
               onSelectGenetic={(name) => {
                 shouldScrollToGeneticField.current = true;
                 setSelectedGeneticName(name);
@@ -130,6 +131,7 @@ export function SeedsSection({ calendarHref, calendarLinkHref, dictionary, local
                 <ManualCannabisForm
                   calendarHref={calendarHref}
                   calendarLinkHref={calendarLinkHref}
+                  dictionary={dictionary}
                   onCreateEvents={onCreateManualEvents}
                   selectedGeneticName={selectedGeneticName}
                 />
@@ -139,8 +141,8 @@ export function SeedsSection({ calendarHref, calendarLinkHref, dictionary, local
 
           {activeTab === "horticultural" ? (
             <>
-              <HorticultureCalculator />
-              <NutrientCalculator />
+              <HorticultureCalculator dictionary={dictionary} />
+              <NutrientCalculator dictionary={dictionary} />
             </>
           ) : null}
 

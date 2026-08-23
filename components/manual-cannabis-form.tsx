@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { addDays, createEventId, getTodayIso } from "@/lib/calendar-events";
 import { CopyValueButton } from "@/components/copy-button";
+import { formatDictionaryString } from "@/lib/i18n";
 import { getReferenceRow, type SeedType } from "@/lib/cultivation-reference";
 import {
   getGeneticsCatalogAlphabetically,
@@ -13,73 +14,7 @@ import {
   type GeneticReferenceEntry,
   type GeneticType
 } from "@/lib/genetics-catalog";
-import type { CalendarEvent, CalendarEventKind } from "@/lib/types";
-
-const seedTypeOptions: Array<{ label: string; value: SeedType }> = [
-  { label: "Feminizada", value: "feminized" },
-  { label: "Regular", value: "regular" },
-  { label: "Automatica", value: "autoflowering" }
-];
-
-const bankOptions = [
-  "Catalogo propio",
-  "BSF",
-  "Zig Zag",
-  "Banco legal local",
-  "Otro banco autorizado",
-  "No declarado"
-];
-
-const floweringDayOptions = [
-  "No declarado",
-  "15-30 dias",
-  "21-45 dias",
-  "30-60 dias",
-  "Definir en agenda"
-];
-
-const floweringWeekOptions = [
-  "No declarado",
-  "5-8 semanas",
-  "7-9 semanas",
-  "8-10 semanas",
-  "10-12 semanas",
-  "Definir en agenda"
-];
-
-const indoorSizeOptions = [
-  "No aplica",
-  "40 x 40 cm",
-  "60 x 60 cm",
-  "80 x 80 cm",
-  "100 x 100 cm",
-  "120 x 120 cm",
-  "Otro tamano declarado"
-];
-
-const potOptions = ["No declarado", "3 L", "5 L", "7 L", "10 L", "15 L", "20 L", "25 L", "Otro volumen"];
-
-const reminderOptions = [
-  { label: "No programado", value: "none" },
-  { label: "Hoy", value: "0" },
-  { label: "En 3 dias", value: "3" },
-  { label: "En 7 dias", value: "7" },
-  { label: "En 14 dias", value: "14" }
-];
-
-const recurrenceOptions = [
-  { label: "No repetir", value: "0" },
-  { label: "Cada 3 dias", value: "3" },
-  { label: "Cada 7 dias", value: "7" },
-  { label: "Cada 14 dias", value: "14" }
-];
-
-const recurrenceEndOptions = [
-  { label: "Sin fecha de fin", value: "none" },
-  { label: "Durante 30 dias", value: "30" },
-  { label: "Durante 60 dias", value: "60" },
-  { label: "Durante 90 dias", value: "90" }
-];
+import type { CalendarEvent, CalendarEventKind, Dictionary } from "@/lib/types";
 
 type ReminderPresetFields = Partial<{
   closingReminder: string;
@@ -95,66 +30,39 @@ type ReminderPresetFields = Partial<{
   structureReminder: string;
 }>;
 
-const reviewSuggestionPresets: Array<{
-  fields: ReminderPresetFields;
-  summary: string;
-  title: string;
-}> = [
+const reviewSuggestionPresetFields: ReminderPresetFields[] = [
   {
-    fields: {
-      moistureReminder: "0",
-      photoReminder: "0"
-    },
-    summary: "Revision de humedad y registro visual para dejar asentado el estado del dia.",
-    title: "Chequeo de hoy"
+    moistureReminder: "0",
+    photoReminder: "0"
   },
   {
-    fields: {
-      maintenanceReminder: "7",
-      moistureReminder: "0",
-      pestReminder: "7",
-      photoReminder: "7",
-      recurrenceDays: "7",
-      recurrenceEnd: "30"
-    },
-    summary: "Agenda editable para revisar humedad, foto, mantenimiento y control visual semanal.",
-    title: "Rutina semanal"
+    maintenanceReminder: "7",
+    moistureReminder: "0",
+    pestReminder: "7",
+    photoReminder: "7",
+    recurrenceDays: "7",
+    recurrenceEnd: "30"
   },
   {
-    fields: {
-      maintenanceReminder: "7",
-      nutritionReminder: "7",
-      pestReminder: "7",
-      structureReminder: "7"
-    },
-    summary: "Recordatorios manuales para revisar estructura, mantenimiento, nutricion y plagas.",
-    title: "Revision completa"
+    maintenanceReminder: "7",
+    nutritionReminder: "7",
+    pestReminder: "7",
+    structureReminder: "7"
   },
   {
-    fields: {
-      closingReminder: "7",
-      dryingReminder: "14",
-      photoReminder: "7",
-      stageReminder: "7"
-    },
-    summary: "Hitos editables para registrar cambio de etapa, cierre declarado, foto y secado.",
-    title: "Hitos declarados"
+    closingReminder: "7",
+    dryingReminder: "14",
+    photoReminder: "7",
+    stageReminder: "7"
   }
 ];
 
 const geneticsCatalogAlphabetically = getGeneticsCatalogAlphabetically();
-const geneticSelectOptions = [
-  { label: "No seleccionada", value: "No seleccionada" },
-  ...geneticsCatalogAlphabetically.map((genetic) => ({
-    label: genetic.name,
-    value: genetic.name
-  })),
-  { label: "Otra / no listada", value: "Otra / no listada" }
-];
 
 export function ManualCannabisForm({
   calendarHref,
   calendarLinkHref,
+  dictionary,
   onCreateEvents,
   selectedGeneticName
 }: {
@@ -162,17 +70,32 @@ export function ManualCannabisForm({
   calendarHref: string;
   /** Sin prefijo: se usa en next/link, que lo agrega solo. */
   calendarLinkHref: string;
+  dictionary: Dictionary;
   onCreateEvents: (events: CalendarEvent[]) => void;
   selectedGeneticName?: string;
 }) {
+  const manualForm = dictionary.seeds.manualForm;
+  const seedTypeOptions = manualForm.seedTypeOptions;
+  const reviewSuggestionPresets = manualForm.presets.map((preset, index) => ({
+    ...preset,
+    fields: reviewSuggestionPresetFields[index]
+  }));
+  const geneticSelectOptions = [
+    { label: manualForm.pickGeneticPlaceholder, value: "No seleccionada" },
+    ...geneticsCatalogAlphabetically.map((genetic) => ({
+      label: genetic.name,
+      value: genetic.name
+    }))
+  ];
+
   const [seedType, setSeedType] = useState<SeedType>("feminized");
   const [geneticName, setGeneticName] = useState(selectedGeneticName || "No seleccionada");
-  const [daysToFlower, setDaysToFlower] = useState(floweringDayOptions[0]);
-  const [floweringWeeks, setFloweringWeeks] = useState(floweringWeekOptions[0]);
-  const [spaceType, setSpaceType] = useState("Interior");
-  const [indoorSize, setIndoorSize] = useState(indoorSizeOptions[0]);
-  const [lightType, setLightType] = useState("LED");
-  const [potLiters, setPotLiters] = useState(potOptions[0]);
+  const [daysToFlower, setDaysToFlower] = useState(manualForm.daysToFlowerOptions[0]);
+  const [floweringWeeks, setFloweringWeeks] = useState(manualForm.floweringWeeksOptions[0]);
+  const [spaceType, setSpaceType] = useState(manualForm.spaceTypeOptions[0]);
+  const [indoorSize, setIndoorSize] = useState(manualForm.indoorSizeOptions[0]);
+  const [lightType, setLightType] = useState(manualForm.lightTypeOptions[0]);
+  const [potLiters, setPotLiters] = useState(manualForm.potOptions[0]);
   const [geneticNote, setGeneticNote] = useState("");
   const [moistureReminder, setMoistureReminder] = useState("0");
   const [stageReminder, setStageReminder] = useState("none");
@@ -199,57 +122,57 @@ export function ManualCannabisForm({
       value: string;
     }> = [
       {
-        description: "Fecha declarada manualmente por el usuario para revisar humedad antes de decidir riego.",
+        description: manualForm.eventMoistureDescription,
         kind: "watering",
-        title: "Revision de humedad",
+        title: manualForm.eventMoistureTitle,
         value: moistureReminder
       },
       {
-        description: "Fecha declarada manualmente por el usuario para registrar cambio de etapa.",
+        description: manualForm.eventStageDescription,
         kind: "review",
-        title: "Cambio de etapa / flora",
+        title: manualForm.eventStageTitle,
         value: stageReminder
       },
       {
-        description: "Fecha declarada manualmente por el usuario para registrar secado de ramas.",
+        description: manualForm.eventDryingDescription,
         kind: "review",
-        title: "Secado de ramas",
+        title: manualForm.eventDryingTitle,
         value: dryingReminder
       },
       {
-        description: "Fecha declarada manualmente por el usuario para mantenimiento del espacio.",
+        description: manualForm.eventMaintenanceDescription,
         kind: "cleaning",
-        title: "Mantenimiento",
+        title: manualForm.eventMaintenanceTitle,
         value: maintenanceReminder
       },
       {
-        description: "Fecha declarada manualmente por el usuario para registrar foto de seguimiento.",
+        description: manualForm.eventPhotoDescription,
         kind: "photo",
-        title: "Registro fotografico",
+        title: manualForm.eventPhotoTitle,
         value: photoReminder
       },
       {
-        description: "Fecha declarada manualmente por el usuario para trabajo de estructura o poda.",
+        description: manualForm.eventStructureDescription,
         kind: "review",
-        title: "Trabajo de estructura / poda",
+        title: manualForm.eventStructureTitle,
         value: structureReminder
       },
       {
-        description: "Fecha declarada manualmente por el usuario para registrar nutricion o fertilizacion.",
+        description: manualForm.eventNutritionDescription,
         kind: "review",
-        title: "Nutricion / fertilizacion",
+        title: manualForm.eventNutritionTitle,
         value: nutritionReminder
       },
       {
-        description: "Fecha declarada manualmente por el usuario para prevencion o revision de plagas.",
+        description: manualForm.eventPestDescription,
         kind: "review",
-        title: "Prevencion de plagas",
+        title: manualForm.eventPestTitle,
         value: pestReminder
       },
       {
-        description: "Fecha declarada manualmente por el usuario para cierre de riego o fertilizacion.",
+        description: manualForm.eventClosingDescription,
         kind: "review",
-        title: "Cierre de riego / fertilizacion",
+        title: manualForm.eventClosingTitle,
         value: closingReminder
       }
     ];
@@ -261,10 +184,14 @@ export function ManualCannabisForm({
         const startDate = addDays(todayIso, Number(definition.value));
         const recurrenceEndDate =
           everyDays > 0 && recurrenceEnd !== "none" ? addDays(startDate, Number(recurrenceEnd)) : undefined;
+        const geneticSuffix = formatDictionaryString(manualForm.eventGeneticSuffixTemplate, { name: geneticName });
+        const typeSuffix = formatDictionaryString(manualForm.eventTypeSuffixTemplate, {
+          type: formatSeedType(seedType, dictionary)
+        });
 
         return {
           completedDates: [],
-          description: `${definition.description} Genetica: ${geneticName}. Tipo: ${formatSeedType(seedType)}.`,
+          description: `${definition.description} ${geneticSuffix} ${typeSuffix}`,
           id: createEventId("event-manual"),
           kind: definition.kind,
           plantId: "plant-manual-regulated",
@@ -283,13 +210,13 @@ export function ManualCannabisForm({
       });
 
     if (nextEvents.length === 0) {
-      setStatusMessage("No hay fechas manuales seleccionadas para crear eventos.");
+      setStatusMessage(manualForm.noManualDatesMessage);
       setShowCalendarLink(false);
       return;
     }
 
     onCreateEvents(nextEvents);
-    setStatusMessage(`${nextEvents.length} evento(s) manual(es) agregados. Abriendo calendario...`);
+    setStatusMessage(formatDictionaryString(manualForm.eventsAddedMessageTemplate, { count: String(nextEvents.length) }));
     setShowCalendarLink(true);
     window.setTimeout(() => {
       window.location.href = calendarHref;
@@ -308,21 +235,22 @@ export function ManualCannabisForm({
     if (fields.closingReminder) setClosingReminder(fields.closingReminder);
     if (fields.recurrenceDays) setRecurrenceDays(fields.recurrenceDays);
     if (fields.recurrenceEnd) setRecurrenceEnd(fields.recurrenceEnd);
-    setStatusMessage(`Sugerencia "${title}" aplicada. Podes ajustar cada desplegable antes de crear eventos.`);
+    setStatusMessage(formatDictionaryString(manualForm.suggestionAppliedTemplate, { title }));
     setShowCalendarLink(false);
   }
 
   return (
     <div className="grid gap-4">
-      <FormGroup title="Identificacion">
-        <FormSelect label="Banco o catalogo" options={bankOptions} recentKey="bank" />
-        <GeneticPredictiveSelect value={geneticName} onChange={setGeneticName} />
-        <FormSelect label="Registro legal" options={["Confirmado", "Pendiente de verificar", "No aplica"]} />
+      <FormGroup title={manualForm.groupIdentification}>
+        <FormSelect dictionary={dictionary} label={manualForm.bankLabel} options={manualForm.bankOptions} recentKey="bank" />
+        <GeneticPredictiveSelect dictionary={dictionary} geneticSelectOptions={geneticSelectOptions} value={geneticName} onChange={setGeneticName} />
+        <FormSelect dictionary={dictionary} label={manualForm.legalRegistrationLabel} options={manualForm.legalRegistrationOptions} />
       </FormGroup>
 
-      <FormGroup title="Datos de cultivo">
+      <FormGroup title={manualForm.groupCultivationData}>
         <GeneticDataReference
           daysToFlower={daysToFlower}
+          dictionary={dictionary}
           floweringWeeks={floweringWeeks}
           genetic={selectedGenetic}
           geneticNote={geneticNote}
@@ -333,71 +261,76 @@ export function ManualCannabisForm({
           onSeedTypeChange={(nextValue) => setSeedType(nextValue as SeedType)}
           potLiters={potLiters}
           seedType={seedType}
+          seedTypeOptions={seedTypeOptions}
           visualReference={visualReference}
         />
-        <FormSelect allowClipboardPaste label="Tipo de espacio" options={["Interior", "Exterior", "Invernadero"]} value={spaceType} onChange={setSpaceType} />
-        <FormSelect allowClipboardPaste label="Tamano indoor" options={indoorSizeOptions} recentKey="indoor-size" value={indoorSize} onChange={setIndoorSize} />
+        <FormSelect allowClipboardPaste dictionary={dictionary} label={manualForm.spaceTypeLabel} options={manualForm.spaceTypeOptions} value={spaceType} onChange={setSpaceType} />
+        <FormSelect allowClipboardPaste dictionary={dictionary} label={manualForm.indoorSizeLabel} options={manualForm.indoorSizeOptions} recentKey="indoor-size" value={indoorSize} onChange={setIndoorSize} />
         <FormSelect
           allowClipboardPaste
-          label="Tipo de luz"
-          options={["LED", "Sodio", "Mixta", "Luz natural", "No declarado"]}
+          dictionary={dictionary}
+          label={manualForm.lightTypeLabel}
+          options={manualForm.lightTypeOptions}
           recentKey="light-type"
           value={lightType}
           onChange={setLightType}
         />
       </FormGroup>
 
-      <FormGroup title="Fechas y recordatorios">
-        <ReviewSuggestionPanel onApply={applyReviewSuggestion} />
-        <FormSelect label="Proxima revision de humedad" options={reminderOptions} value={moistureReminder} onChange={setMoistureReminder} />
-        <FormSelect label="Cambio de etapa / flora" options={reminderOptions} value={stageReminder} onChange={setStageReminder} />
-        <FormSelect label="Secado de ramas" options={reminderOptions} value={dryingReminder} onChange={setDryingReminder} />
-        <FormSelect label="Mantenimiento" options={reminderOptions} value={maintenanceReminder} onChange={setMaintenanceReminder} />
-        <FormSelect label="Registro fotografico" options={reminderOptions} value={photoReminder} onChange={setPhotoReminder} />
-        <FormSelect label="Trabajo de estructura / poda" options={reminderOptions} value={structureReminder} onChange={setStructureReminder} />
-        <FormSelect label="Nutricion / fertilizacion" options={reminderOptions} value={nutritionReminder} onChange={setNutritionReminder} />
-        <FormSelect label="Prevencion de plagas" options={reminderOptions} value={pestReminder} onChange={setPestReminder} />
-        <FormSelect label="Cierre de riego / fertilizacion" options={reminderOptions} value={closingReminder} onChange={setClosingReminder} />
-        <FormSelect label="Recurrencia" options={recurrenceOptions} value={recurrenceDays} onChange={setRecurrenceDays} />
-        <FormSelect label="Fin recurrencia" options={recurrenceEndOptions} value={recurrenceEnd} onChange={setRecurrenceEnd} />
+      <FormGroup title={manualForm.groupDatesReminders}>
+        <ReviewSuggestionPanel dictionary={dictionary} presets={reviewSuggestionPresets} onApply={applyReviewSuggestion} />
+        <FormSelect dictionary={dictionary} label={manualForm.moistureLabel} options={manualForm.reminderOptions} value={moistureReminder} onChange={setMoistureReminder} />
+        <FormSelect dictionary={dictionary} label={manualForm.stageLabel} options={manualForm.reminderOptions} value={stageReminder} onChange={setStageReminder} />
+        <FormSelect dictionary={dictionary} label={manualForm.dryingLabel} options={manualForm.reminderOptions} value={dryingReminder} onChange={setDryingReminder} />
+        <FormSelect dictionary={dictionary} label={manualForm.maintenanceLabel} options={manualForm.reminderOptions} value={maintenanceReminder} onChange={setMaintenanceReminder} />
+        <FormSelect dictionary={dictionary} label={manualForm.photoLabel} options={manualForm.reminderOptions} value={photoReminder} onChange={setPhotoReminder} />
+        <FormSelect dictionary={dictionary} label={manualForm.structureLabel} options={manualForm.reminderOptions} value={structureReminder} onChange={setStructureReminder} />
+        <FormSelect dictionary={dictionary} label={manualForm.nutritionLabel} options={manualForm.reminderOptions} value={nutritionReminder} onChange={setNutritionReminder} />
+        <FormSelect dictionary={dictionary} label={manualForm.pestLabel} options={manualForm.reminderOptions} value={pestReminder} onChange={setPestReminder} />
+        <FormSelect dictionary={dictionary} label={manualForm.closingLabel} options={manualForm.reminderOptions} value={closingReminder} onChange={setClosingReminder} />
+        <FormSelect dictionary={dictionary} label={manualForm.recurrenceLabel} options={manualForm.recurrenceOptions} value={recurrenceDays} onChange={setRecurrenceDays} />
+        <FormSelect dictionary={dictionary} label={manualForm.recurrenceEndLabel} options={manualForm.recurrenceEndOptions} value={recurrenceEnd} onChange={setRecurrenceEnd} />
       </FormGroup>
 
       <div className="flex flex-wrap items-center gap-3">
         <button className="primary-button" type="button" onClick={handleCreateEvents}>
-          Crear eventos manuales
+          {manualForm.createEventsButton}
         </button>
         {statusMessage ? <span className="text-sm font-bold text-stone-600">{statusMessage}</span> : null}
         {showCalendarLink ? (
           <Link className="secondary-button" href={calendarLinkHref as Route}>
-            Ver calendario
+            {manualForm.viewCalendarLink}
           </Link>
         ) : null}
       </div>
 
-      <p className="text-xs font-bold leading-5 text-stone-600">
-        Estos campos sirven para agenda y recordatorios definidos por el usuario. Evita guardar numeros de registro,
-        domicilios exactos o datos medicos en esta demo publica.
-      </p>
+      <p className="text-xs font-bold leading-5 text-stone-600">{manualForm.disclaimerText}</p>
     </div>
   );
 }
 
 function ReviewSuggestionPanel({
-  onApply
+  dictionary,
+  onApply,
+  presets
 }: {
+  dictionary: Dictionary;
   onApply: (fields: ReminderPresetFields, title: string) => void;
+  presets: Array<{ fields: ReminderPresetFields; summary: string; title: string }>;
 }) {
+  const manualForm = dictionary.seeds.manualForm;
+
   return (
     <div className="review-suggestion-panel sm:col-span-2">
       <div className="review-suggestion-header">
         <div>
-          <p>Agenda sugerida</p>
-          <strong>Revisiones manuales rapidas</strong>
+          <p>{manualForm.suggestedAgendaLabel}</p>
+          <strong>{manualForm.quickManualReviewsLabel}</strong>
         </div>
-        <span>Editable</span>
+        <span>{manualForm.editableLabel}</span>
       </div>
       <div className="review-suggestion-grid">
-        {reviewSuggestionPresets.map((preset) => (
+        {presets.map((preset) => (
           <button
             className="review-suggestion-card"
             key={preset.title}
@@ -409,15 +342,14 @@ function ReviewSuggestionPanel({
           </button>
         ))}
       </div>
-      <p className="review-suggestion-note">
-        Estas sugerencias solo acomodan recordatorios visibles. No calculan fechas, riego, rendimiento ni decisiones de cultivo.
-      </p>
+      <p className="review-suggestion-note">{manualForm.presetsNote}</p>
     </div>
   );
 }
 
 function GeneticDataReference({
   daysToFlower,
+  dictionary,
   floweringWeeks,
   genetic,
   geneticNote,
@@ -428,9 +360,11 @@ function GeneticDataReference({
   onSeedTypeChange,
   potLiters,
   seedType,
+  seedTypeOptions,
   visualReference
 }: {
   daysToFlower: string;
+  dictionary: Dictionary;
   floweringWeeks: string;
   genetic?: GeneticReferenceEntry;
   geneticNote: string;
@@ -441,135 +375,166 @@ function GeneticDataReference({
   onSeedTypeChange: (value: string) => void;
   potLiters: string;
   seedType: SeedType;
+  seedTypeOptions: Array<{ label: string; value: string }>;
   visualReference?: ReturnType<typeof getReferenceRow>;
 }) {
-  const referenceFloweringWeeks = genetic ? formatWeekRange(genetic.flowering_weeks_range) : visualReference?.flowering_weeks_range ?? "No declarado";
-  const referenceDaysToFlower = visualReference?.days_to_flower_range ?? "No declarado";
-  const geneticType = genetic ? formatGeneticType(genetic.type) : "Segun tipo declarado";
-  const thcReference = genetic ? formatThcRange(genetic.thc_percent_range) : "No declarado";
+  const manualForm = dictionary.seeds.manualForm;
+  const referenceFloweringWeeks = genetic
+    ? formatWeekRange(genetic.flowering_weeks_range, dictionary)
+    : visualReference?.flowering_weeks_range ?? dictionary.seeds.notDeclared;
+  const referenceDaysToFlower = visualReference?.days_to_flower_range ?? dictionary.seeds.notDeclared;
+  const geneticType = genetic ? formatGeneticType(genetic.type, dictionary) : manualForm.geneticTypeReferenceLabel;
+  const thcReference = genetic ? formatThcRange(genetic.thc_percent_range, dictionary) : dictionary.seeds.notDeclared;
 
   return (
-    <article className="manual-reference-card sm:col-span-2" aria-label="Referencia visual de la genetica seleccionada">
+    <article className="manual-reference-card sm:col-span-2" aria-label={manualForm.referenceNotAutocompleteLabel}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-black uppercase text-stone-500">Referencia visible, no autocompleta</p>
-          <h4 className="mt-1 font-black text-moss-950">{genetic?.name ?? "Elegí una genética para ver datos publicados"}</h4>
+          <p className="text-[11px] font-black uppercase text-stone-500">{manualForm.referenceNotAutocompleteLabel}</p>
+          <h4 className="mt-1 font-black text-moss-950">{genetic?.name ?? manualForm.pickGeneticPlaceholder}</h4>
           <p className="mt-1 text-sm font-bold text-stone-600">
-            {genetic ? `${genetic.cross} - ${genetic.source}` : "Los valores quedan como ayuda para copiar o elegir manualmente."}
+            {genetic ? `${genetic.cross} - ${genetic.source}` : manualForm.referenceHelpText}
           </p>
         </div>
-        <span className="mode-badge manual">Manual</span>
+        <span className="mode-badge manual">{dictionary.seeds.modeManual}</span>
       </div>
       <div className="reference-field-grid">
-        <ReferenceFieldPair label="Tipo publicado" targetField="Tipo declarado" value={geneticType}>
+        <ReferenceFieldPair destination={dictionary.seeds.targetDeclaredType} dictionary={dictionary} label={manualForm.geneticTypeReferenceLabel} value={geneticType}>
           <FormSelect
             allowClipboardPaste
-            label="Tipo declarado"
+            dictionary={dictionary}
+            label={dictionary.seeds.targetDeclaredType}
             options={seedTypeOptions}
             value={seedType}
             onChange={onSeedTypeChange}
           />
         </ReferenceFieldPair>
-        <ReferenceFieldPair label="Dias a flora ref." targetField="Dias a flora" value={referenceDaysToFlower}>
+        <ReferenceFieldPair destination={dictionary.seeds.targetDaysToFlower} dictionary={dictionary} label={manualForm.daysToFlowerReferenceLabel} value={referenceDaysToFlower}>
           <FormSelect
             allowClipboardPaste
-            label="Dias a flora"
-            options={floweringDayOptions}
+            dictionary={dictionary}
+            label={dictionary.seeds.targetDaysToFlower}
+            options={manualForm.daysToFlowerOptions}
             value={daysToFlower}
             onChange={onDaysToFlowerChange}
           />
         </ReferenceFieldPair>
-        <ReferenceFieldPair label="Floracion/ciclo" targetField="Semanas de floracion" value={referenceFloweringWeeks}>
+        <ReferenceFieldPair destination={dictionary.seeds.targetFloweringWeeks} dictionary={dictionary} label={manualForm.floweringReferenceLabel} value={referenceFloweringWeeks}>
           <FormSelect
             allowClipboardPaste
-            label="Semanas de floracion"
-            options={floweringWeekOptions}
+            dictionary={dictionary}
+            label={dictionary.seeds.targetFloweringWeeks}
+            options={manualForm.floweringWeeksOptions}
             value={floweringWeeks}
             onChange={onFloweringWeeksChange}
           />
         </ReferenceFieldPair>
-        <ReferenceFieldPair label="Maceta ref." targetField="Maceta en litros" value={visualReference?.pot_liters_range ?? "No declarado"}>
+        <ReferenceFieldPair destination={dictionary.seeds.targetPotLiters} dictionary={dictionary} label={manualForm.potReferenceLabel} value={visualReference?.pot_liters_range ?? dictionary.seeds.notDeclared}>
           <FormSelect
             allowClipboardPaste
-            label="Maceta en litros"
-            options={potOptions}
+            dictionary={dictionary}
+            label={dictionary.seeds.targetPotLiters}
+            options={manualForm.potOptions}
             recentKey="pot-liters"
             value={potLiters}
             onChange={onPotLitersChange}
           />
         </ReferenceFieldPair>
-        <ReferenceFieldPair label="THC publicado" targetField="Nota manual de genetica" value={thcReference}>
+        <ReferenceFieldPair destination={dictionary.seeds.targetGeneticNote} dictionary={dictionary} label={manualForm.thcReferenceLabel} value={thcReference}>
           <FormTextInput
             allowClipboardPaste
-            label="Nota manual de genetica"
-            placeholder="Ej: THC publicado 18-22%"
+            dictionary={dictionary}
+            label={dictionary.seeds.targetGeneticNote}
+            placeholder={manualForm.thcNotePlaceholder}
             value={geneticNote}
             onChange={onGeneticNoteChange}
           />
         </ReferenceFieldPair>
       </div>
-      {genetic?.raw_fields ? <RawFieldsPanel fields={genetic.raw_fields} /> : null}
+      {genetic?.raw_fields ? <RawFieldsPanel dictionary={dictionary} fields={genetic.raw_fields} /> : null}
     </article>
   );
 }
 
 function ReferenceFieldPair({
   children,
+  destination,
+  dictionary,
   label,
-  targetField,
   value
 }: {
   children: ReactNode;
+  destination: string;
+  dictionary: Dictionary;
   label: string;
-  targetField: string;
   value: string;
 }) {
   return (
     <div className="reference-field-pair">
-      <ReferenceValue label={label} targetField={targetField} value={value} />
+      <ReferenceValue destination={destination} dictionary={dictionary} label={label} value={value} />
       <div className="reference-destination-control">{children}</div>
     </div>
   );
 }
 
-function ReferenceValue({ label, targetField, value }: { label: string; targetField?: string; value: string }) {
-  const destination = targetField ?? getManualReferenceTarget(label);
+function ReferenceValue({
+  destination,
+  dictionary,
+  label,
+  value
+}: {
+  destination?: string;
+  dictionary: Dictionary;
+  label: string;
+  value: string;
+}) {
+  const resolvedDestination = destination ?? getManualReferenceTarget(label, dictionary);
 
   return (
     <div className="reference-value">
       <span>{label}</span>
       <strong>{value}</strong>
       <div className="reference-copy-row">
-        <span className="reference-target-field">Campo: {destination}</span>
-        <CopyValueButton label={destination} value={value} />
+        <span className="reference-target-field">
+          {formatDictionaryString(dictionary.seeds.copyFieldPrefix, { field: resolvedDestination })}
+        </span>
+        <CopyValueButton label={resolvedDestination} value={value} />
       </div>
     </div>
   );
 }
 
-function RawFieldsPanel({ fields }: { fields: NonNullable<GeneticReferenceEntry["raw_fields"]> }) {
+function RawFieldsPanel({
+  dictionary,
+  fields
+}: {
+  dictionary: Dictionary;
+  fields: NonNullable<GeneticReferenceEntry["raw_fields"]>;
+}) {
   return (
     <details className="mt-3 rounded-md border border-moss-950/10 bg-white/70 p-2">
-      <summary className="cursor-pointer text-xs font-black uppercase text-stone-500">Campos originales del Excel</summary>
+      <summary className="cursor-pointer text-xs font-black uppercase text-stone-500">
+        {dictionary.seeds.reference.rawFieldsSummary}
+      </summary>
       <div className="mt-2 grid gap-2 sm:grid-cols-2">
         {Object.entries(fields).map(([label, rawValue]) => {
-          const value = rawValue === null ? "No declarado" : String(rawValue);
-          return <ReferenceValue key={label} label={label} value={value} />;
+          const value = rawValue === null ? dictionary.seeds.notDeclared : String(rawValue);
+          return <ReferenceValue dictionary={dictionary} key={label} label={label} value={value} />;
         })}
       </div>
     </details>
   );
 }
 
-function getManualReferenceTarget(label: string) {
+function getManualReferenceTarget(label: string, dictionary: Dictionary) {
   const normalizedLabel = label.toLowerCase();
 
-  if (normalizedLabel.includes("floracion") || normalizedLabel.includes("ciclo")) return "Semanas de floracion";
-  if (normalizedLabel.includes("flora")) return "Dias a flora";
-  if (normalizedLabel.includes("tipo")) return "Tipo declarado";
-  if (normalizedLabel.includes("maceta")) return "Maceta en litros";
-  if (normalizedLabel.includes("luz")) return "Tipo de luz";
-  return "Campo manual correspondiente";
+  if (normalizedLabel.includes("floracion") || normalizedLabel.includes("ciclo")) return dictionary.seeds.targetFloweringWeeks;
+  if (normalizedLabel.includes("flora")) return dictionary.seeds.targetDaysToFlower;
+  if (normalizedLabel.includes("tipo")) return dictionary.seeds.targetDeclaredType;
+  if (normalizedLabel.includes("maceta")) return dictionary.seeds.targetPotLiters;
+  if (normalizedLabel.includes("luz")) return dictionary.seeds.targetLightType;
+  return dictionary.seeds.manualForm.manualTargetGenericLabel;
 }
 
 function FormGroup({ children, title }: { children: ReactNode; title: string }) {
@@ -581,7 +546,18 @@ function FormGroup({ children, title }: { children: ReactNode; title: string }) 
   );
 }
 
-function GeneticPredictiveSelect({ onChange, value }: { onChange: (value: string) => void; value: string }) {
+function GeneticPredictiveSelect({
+  dictionary,
+  geneticSelectOptions,
+  onChange,
+  value
+}: {
+  dictionary: Dictionary;
+  geneticSelectOptions: Array<{ label: string; value: string }>;
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  const manualForm = dictionary.seeds.manualForm;
   const query = value === "No seleccionada" ? "" : value;
   const results = useMemo(() => searchGeneticsByName(query), [query]);
   const showResults = query.trim().length >= 2 && results.length > 0 && query !== value;
@@ -594,12 +570,12 @@ function GeneticPredictiveSelect({ onChange, value }: { onChange: (value: string
   return (
     <div className="genetic-entry-card scroll-mt-28 sm:col-span-2" id="manual-genetic-selection">
       <label className="grid gap-1 text-sm font-black text-moss-950">
-        Buscar genetica
+        {manualForm.searchGeneticLabel}
         <input
-          aria-label="Buscar genetica por nombre, banco o linaje"
+          aria-label={manualForm.searchGeneticAriaLabel}
           className="form-control"
           list="manual-genetic-options"
-          placeholder="Escribi para buscar: Gorilla, Baseball, Kush..."
+          placeholder={manualForm.searchGeneticPlaceholder}
           value={query}
           onChange={(event) => {
             const nextQuery = event.target.value;
@@ -607,14 +583,14 @@ function GeneticPredictiveSelect({ onChange, value }: { onChange: (value: string
           }}
         />
         <datalist id="manual-genetic-options">
-          {geneticSelectOptions.slice(1, -1).map((option) => (
+          {geneticSelectOptions.slice(1).map((option) => (
             <option key={option.value} value={option.value} />
           ))}
         </datalist>
       </label>
 
       {showResults ? (
-        <div className="genetic-suggestion-list" aria-label="Coincidencias de genetica">
+        <div className="genetic-suggestion-list" aria-label={manualForm.suggestionsAriaLabel}>
           {results.slice(0, 6).map((genetic) => (
             <button
               className="genetic-suggestion-option"
@@ -623,7 +599,7 @@ function GeneticPredictiveSelect({ onChange, value }: { onChange: (value: string
               type="button"
             >
               <strong>{genetic.name}</strong>
-              <span>{formatGeneticType(genetic.type)} - {formatWeekRange(genetic.flowering_weeks_range)}</span>
+              <span>{formatGeneticType(genetic.type, dictionary)} - {formatWeekRange(genetic.flowering_weeks_range, dictionary)}</span>
             </button>
           ))}
         </div>
@@ -632,34 +608,35 @@ function GeneticPredictiveSelect({ onChange, value }: { onChange: (value: string
       {selectedGenetic ? (
         <article className="selected-genetic-card">
           <div>
-            <span>Genetica seleccionada</span>
+            <span>{manualForm.selectedGeneticLabel}</span>
             <strong>{selectedGenetic.name}</strong>
             <small>{selectedGenetic.source}</small>
           </div>
           <dl>
             <div>
-              <dt>Tipo</dt>
-              <dd>{formatGeneticType(selectedGenetic.type)}</dd>
+              <dt>{manualForm.typeLabel}</dt>
+              <dd>{formatGeneticType(selectedGenetic.type, dictionary)}</dd>
             </div>
             <div>
-              <dt>Floracion</dt>
-              <dd>{formatWeekRange(selectedGenetic.flowering_weeks_range)}</dd>
+              <dt>{manualForm.floweringLabel}</dt>
+              <dd>{formatWeekRange(selectedGenetic.flowering_weeks_range, dictionary)}</dd>
             </div>
           </dl>
         </article>
       ) : (
-        <p className="genetic-entry-help">
-          Busca por nombre o banco. Elegir una genetica solo muestra referencia; no completa dias, luz, riego ni fechas.
-        </p>
+        <p className="genetic-entry-help">{manualForm.noGeneticHelp}</p>
       )}
 
-      <div className="genetic-count-note">{geneticsCatalogAlphabetically.length} geneticas disponibles en el buscador.</div>
+      <div className="genetic-count-note">
+        {formatDictionaryString(manualForm.geneticsAvailableCountTemplate, { count: String(geneticsCatalogAlphabetically.length) })}
+      </div>
     </div>
   );
 }
 
 function FormSelect({
   allowClipboardPaste = false,
+  dictionary,
   label,
   onChange,
   options,
@@ -667,12 +644,14 @@ function FormSelect({
   value
 }: {
   allowClipboardPaste?: boolean;
+  dictionary: Dictionary;
   label: string;
   onChange?: (value: string) => void;
   options: string[] | Array<{ label: string; value: string }>;
   recentKey?: string;
   value?: string;
 }) {
+  const manualForm = dictionary.seeds.manualForm;
   const normalizedOptions = options.map((option) => (typeof option === "string" ? { label: option, value: option } : option));
   const { recentOptions, rememberOption } = useRecentOptions(recentKey, normalizedOptions);
   const [pasteStatus, setPasteStatus] = useState("");
@@ -680,7 +659,7 @@ function FormSelect({
   const currentValue = value ?? normalizedOptions[0]?.value ?? "";
   const pastedOption =
     isControlled && currentValue && !normalizedOptions.some((option) => option.value === currentValue)
-      ? { label: `Pegado: ${currentValue}`, value: currentValue }
+      ? { label: formatDictionaryString(manualForm.pastedOptionLabelTemplate, { value: currentValue }), value: currentValue }
       : null;
   const regularOptions = normalizedOptions.filter((option) => !recentOptions.some((recentOption) => recentOption.value === option.value));
 
@@ -691,7 +670,7 @@ function FormSelect({
 
   async function handlePasteFromClipboard() {
     if (!navigator.clipboard?.readText) {
-      setPasteStatus("El navegador no permite leer el portapapeles.");
+      setPasteStatus(manualForm.pasteUnsupported);
       return;
     }
 
@@ -699,7 +678,7 @@ function FormSelect({
       const clipboardText = (await navigator.clipboard.readText()).trim();
 
       if (!clipboardText) {
-        setPasteStatus("No hay texto copiado.");
+        setPasteStatus(manualForm.pasteEmptyClipboard);
         return;
       }
 
@@ -713,9 +692,9 @@ function FormSelect({
       const nextValue = matchingOption?.value ?? clipboardText;
 
       applyValue(nextValue);
-      setPasteStatus(`Pegado manualmente en ${label}.`);
+      setPasteStatus(formatDictionaryString(manualForm.pastedIntoTemplate, { label }));
     } catch {
-      setPasteStatus("No se pudo leer el portapapeles.");
+      setPasteStatus(manualForm.pasteFailed);
     }
   }
 
@@ -736,13 +715,13 @@ function FormSelect({
                 {pastedOption.label}
               </option>
             ) : null}
-            {recentOptions.length > 0 ? <option disabled>Usados recientemente</option> : null}
+            {recentOptions.length > 0 ? <option disabled>{manualForm.recentlyUsedLabel}</option> : null}
             {recentOptions.map((option) => (
               <option key={`recent-${option.value}`} value={option.value}>
                 {option.label}
               </option>
             ))}
-            {recentOptions.length > 0 ? <option disabled>Opciones</option> : null}
+            {recentOptions.length > 0 ? <option disabled>{manualForm.optionsLabel}</option> : null}
             {regularOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -751,7 +730,7 @@ function FormSelect({
           </select>
           {allowClipboardPaste ? (
             <button className="paste-value-button" onClick={handlePasteFromClipboard} type="button">
-              Pegar
+              {manualForm.pasteButton}
             </button>
           ) : null}
         </div>
@@ -763,22 +742,25 @@ function FormSelect({
 
 function FormTextInput({
   allowClipboardPaste = false,
+  dictionary,
   label,
   onChange,
   placeholder,
   value
 }: {
   allowClipboardPaste?: boolean;
+  dictionary: Dictionary;
   label: string;
   onChange: (value: string) => void;
   placeholder?: string;
   value: string;
 }) {
+  const manualForm = dictionary.seeds.manualForm;
   const [pasteStatus, setPasteStatus] = useState("");
 
   async function handlePasteFromClipboard() {
     if (!navigator.clipboard?.readText) {
-      setPasteStatus("El navegador no permite leer el portapapeles.");
+      setPasteStatus(manualForm.pasteUnsupported);
       return;
     }
 
@@ -786,14 +768,14 @@ function FormTextInput({
       const clipboardText = (await navigator.clipboard.readText()).trim();
 
       if (!clipboardText) {
-        setPasteStatus("No hay texto copiado.");
+        setPasteStatus(manualForm.pasteEmptyClipboard);
         return;
       }
 
       onChange(clipboardText);
-      setPasteStatus(`Pegado manualmente en ${label}.`);
+      setPasteStatus(formatDictionaryString(manualForm.pastedIntoTemplate, { label }));
     } catch {
-      setPasteStatus("No se pudo leer el portapapeles.");
+      setPasteStatus(manualForm.pasteFailed);
     }
   }
 
@@ -811,7 +793,7 @@ function FormTextInput({
           />
           {allowClipboardPaste ? (
             <button className="paste-value-button" onClick={handlePasteFromClipboard} type="button">
-              Pegar
+              {manualForm.pasteButton}
             </button>
           ) : null}
         </div>
@@ -845,25 +827,25 @@ function useRecentOptions(key: string | undefined, options: Array<{ label: strin
   };
 }
 
-function formatSeedType(type: SeedType) {
-  if (type === "autoflowering") return "Automatica";
-  if (type === "regular") return "Regular";
-  return "Feminizada";
+function formatSeedType(type: SeedType, dictionary: Dictionary) {
+  if (type === "autoflowering") return dictionary.seeds.geneticTypeAutoflowering;
+  if (type === "regular") return dictionary.seeds.geneticTypeRegular;
+  return dictionary.seeds.geneticTypeFeminized;
 }
 
-function formatGeneticType(type: GeneticType) {
-  if (type === "autoflowering") return "Automatica";
-  if (type === "faster_flowering") return "Rapida";
-  if (type === "regular") return "Regular";
-  return "Feminizada";
+function formatGeneticType(type: GeneticType, dictionary: Dictionary) {
+  if (type === "autoflowering") return dictionary.seeds.geneticTypeAutoflowering;
+  if (type === "faster_flowering") return dictionary.seeds.geneticTypeFasterFlowering;
+  if (type === "regular") return dictionary.seeds.geneticTypeRegular;
+  return dictionary.seeds.geneticTypeFeminized;
 }
 
-function formatWeekRange(range: [number, number]) {
-  return range[0] === range[1] ? `${range[0]} semanas` : `${range[0]}-${range[1]} semanas`;
+function formatWeekRange(range: [number, number], dictionary: Dictionary) {
+  return range[0] === range[1] ? `${range[0]} ${dictionary.seeds.weeksUnit}` : `${range[0]}-${range[1]} ${dictionary.seeds.weeksUnit}`;
 }
 
-function formatThcRange(range: [number, number]) {
-  if (range[0] === 0 && range[1] === 0) return "No declarado";
+function formatThcRange(range: [number, number], dictionary: Dictionary) {
+  if (range[0] === 0 && range[1] === 0) return dictionary.seeds.notDeclared;
   return range[0] === range[1] ? `${range[0]}%` : `${range[0]}-${range[1]}%`;
 }
 
