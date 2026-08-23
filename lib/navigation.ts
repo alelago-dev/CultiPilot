@@ -42,7 +42,7 @@ export function getSectionFromSlug(locale: Locale, slug: string): AppSection | n
  *
  * Es la que va en los `href` de `next/link` y en `redirect()`: Next ya le
  * agrega el `basePath` por su cuenta, asi que agregarselo aca lo duplicaria
- * (`/cultipilot/cultipilot/es/hoy/`).
+ * (`/CultiPilot/CultiPilot/es/hoy/`).
  */
 export function getInternalSectionHref(locale: Locale, section: AppSection) {
   const item = navigationByLocale[locale].find((navItem) => navItem.key === section);

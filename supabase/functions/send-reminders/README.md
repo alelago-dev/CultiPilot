@@ -12,7 +12,7 @@ Esta Edge Function manda una notificacion push real (llega aunque CultiPilot est
 3. Poner la clave publica en `.env.production` como `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (ya vive en el repo: es publica por diseno, igual que la anon key de Supabase).
 4. Configurar los secrets de la funcion (nunca se commitean):
    ```
-   supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... VAPID_SUBJECT=https://alelago-dev.github.io/cultipilot/ CRON_SECRET=...
+   supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... VAPID_SUBJECT=https://alelago-dev.github.io/CultiPilot/ CRON_SECRET=...
    ```
    `VAPID_PUBLIC_KEY` debe ser la misma clave publica del paso 3. `CRON_SECRET` es un valor random cualquiera, elegido por quien despliega.
 5. Desplegar sin verificacion de JWT de usuario (la unica llamada valida es la de `pg_cron`, autenticada por `x-cron-secret`):

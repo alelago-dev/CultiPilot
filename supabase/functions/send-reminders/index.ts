@@ -35,7 +35,7 @@ Deno.serve(async (request) => {
   const cronSecret = Deno.env.get("CRON_SECRET");
   const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
   const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
-  const vapidSubject = Deno.env.get("VAPID_SUBJECT") ?? "https://alelago-dev.github.io/cultipilot/";
+  const vapidSubject = Deno.env.get("VAPID_SUBJECT") ?? "https://alelago-dev.github.io/CultiPilot/";
 
   if (!supabaseUrl || !serviceRoleKey || !cronSecret || !vapidPublicKey || !vapidPrivateKey) {
     return json({ error: "Funcion sin configurar (faltan secrets)" }, 500);
