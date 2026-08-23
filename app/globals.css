@@ -610,16 +610,40 @@ label:has(> .form-control) {
 }
 
 @media (max-width: 640px) {
-  .app-header-inner { gap: 0.55rem !important; padding-block: 0.55rem !important; }
+  .app-header-inner { gap: 0.4rem !important; padding-block: 0.55rem !important; padding-inline: 0.75rem !important; }
   .brand-lockup { gap: 0.5rem !important; }
   .brand-lockup > span > span:first-child { display: none; }
   .brand-lockup > span > span:last-child { font-size: 0.96rem; }
-  .header-actions { gap: 0.35rem !important; }
-  .header-vpd-button { min-width: 3.25rem; padding-inline: 0.65rem !important; }
+  .header-actions { gap: 0.3rem !important; }
+  /*
+   * En mobile el header ya no tenia lugar para el boton de VPD con su
+   * etiqueta de texto: junto con el logo, el selector de idioma, el
+   * boton de tema y el avatar de cuenta, el total superaba el ancho de
+   * pantallas de 360-390px y el avatar terminaba recortado fuera de
+   * vista (reportado por Ale, empeorado porque ahora el eje horizontal
+   * ya no se puede desplazar a proposito). Se deja el boton de VPD solo
+   * con el icono (como ya son el boton de tema y el avatar) y se
+   * angosta un poco el selector de idioma para que todo entre sin
+   * necesidad de scroll ni de recortar nada.
+   */
+  .header-vpd-button span { display: none !important; }
+  .header-vpd-button { min-width: 0 !important; width: 2.5rem !important; padding-inline: 0 !important; justify-content: center; gap: 0 !important; }
+  .header-locale-option { min-width: 1.7rem !important; padding-inline: 0.25rem !important; }
   .executive-home { padding-top: 1rem !important; }
   .executive-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
   .executive-metrics .metric-card { min-width: 0; padding: 0.7rem !important; }
   .metric-card .text-value { font-size: 1.2rem !important; }
+}
+
+@media (max-width: 400px) {
+  /* Un ultimo achique solo para telefonos angostos (~360-400px): en ese
+     rango el boton de tema y el avatar bajan de 40px a 36px para ganar
+     los pixeles que faltan sin afectar telefonos mas anchos. */
+  .header-theme-button,
+  .account-avatar {
+    width: 2.25rem !important;
+    height: 2.25rem !important;
+  }
 }
 
 .plant-suggestions-panel {
@@ -8425,4 +8449,20 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
 [data-theme="dark"] .wizard-step.active span {
   background: #2f8f5f !important;
   color: #ffffff !important;
+}
+
+/*
+ * .account-avatar (el circulo de la cuenta en el header) nunca tuvo pase
+ * de tema oscuro: a diferencia de .header-theme-button, que esta al lado
+ * y ya usa var(--pc-surface)/var(--pc-foreground), este quedo con
+ * background blanco fijo desde el diseno original. Sin sesion iniciada
+ * (el estado que ve Ale por defecto) se notaba como un circulo blanco
+ * suelto en medio del resto del header ya oscuro. Con sesion iniciada
+ * (.is-signed-in) no hace falta tocar nada: ese estado ya usa un
+ * degrade verde que funciona igual en los dos temas.
+ */
+[data-theme="dark"] .account-avatar:not(.is-signed-in) {
+  border-color: var(--pc-border) !important;
+  background: var(--pc-surface) !important;
+  color: var(--pc-foreground) !important;
 }
