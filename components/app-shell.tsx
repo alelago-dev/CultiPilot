@@ -2989,6 +2989,7 @@ function SpacesSection({
             </label>
             {activePlants.find((plant) => plant.id === measurementPlantId) ? (
               <PlantMeasurementForm
+                dictionary={dictionary}
                 onAddMeasurement={onAddMeasurement}
                 onDone={() => undefined}
                 plant={activePlants.find((plant) => plant.id === measurementPlantId)!}
@@ -4908,18 +4909,21 @@ function formatSuggestionDate(isoDate: string) {
 }
 
 function PlantMeasurementForm({
+  dictionary,
   initialMeasurement,
   onAddMeasurement,
   onDone,
   plant,
   resetAfterSave = false
 }: {
+  dictionary?: Dictionary;
   initialMeasurement?: PlantMeasurement;
   onAddMeasurement: (measurement: PlantMeasurement) => void;
   onDone: () => void;
   plant: Plant;
   resetAfterSave?: boolean;
 }) {
+  const t = dictionary?.spaces.measurementForm;
   const field = (value?: number) => value?.toString() ?? "";
   const [measuredAt, setMeasuredAt] = useState(() => initialMeasurement ? toLocalDateTimeValue(initialMeasurement.measuredAt) : getLocalDateTimeValue());
   const [source, setSource] = useState<PlantMeasurement["source"]>(initialMeasurement?.source ?? "manual");
@@ -4989,82 +4993,87 @@ function PlantMeasurementForm({
   return (
     <form className="plant-measurement-form" onSubmit={handleSubmit}>
       <label>
-        Fecha y hora
+        {t?.dateTimeLabel ?? "Fecha y hora"}
         <input className="form-control" onChange={(event) => setMeasuredAt(event.target.value)} type="datetime-local" value={measuredAt} />
       </label>
       <label>
-        Origen
+        {t?.sourceLabel ?? "Origen"}
         <select className="form-control" onChange={(event) => setSource(event.target.value as PlantMeasurement["source"])} value={source}>
-          <option value="manual">Carga manual</option>
-          <option value="device">Dispositivo</option>
+          <option value="manual">{t?.sourceManual ?? "Carga manual"}</option>
+          <option value="device">{t?.sourceDevice ?? "Dispositivo"}</option>
         </select>
       </label>
       <label>
-        Temperatura (C)
+        {t?.temperatureLabel ?? "Temperatura (C)"}
         <input className="form-control" inputMode="decimal" max="60" min="-10" onChange={(event) => setTemperature(event.target.value)} step="0.1" type="number" value={temperature} />
       </label>
       <label>
-        Humedad ambiental (%)
+        {t?.humidityLabel ?? "Humedad ambiental (%)"}
         <input className="form-control" inputMode="decimal" max="100" min="0" onChange={(event) => setHumidity(event.target.value)} step="0.1" type="number" value={humidity} />
       </label>
       <label>
-        Temperatura de hoja (C, opcional)
+        {t?.leafTemperatureLabel ?? "Temperatura de hoja (C, opcional)"}
         <input className="form-control" inputMode="decimal" max="60" min="-10" onChange={(event) => setLeafTemperature(event.target.value)} step="0.1" type="number" value={leafTemperature} />
       </label>
       <label>
-        Humedad de sustrato (%)
+        {t?.substrateMoistureLabel ?? "Humedad de sustrato (%)"}
         <input className="form-control" inputMode="decimal" max="100" min="0" onChange={(event) => setSubstrateMoisture(event.target.value)} step="0.1" type="number" value={substrateMoisture} />
       </label>
       <label>
-        PPFD (umol/m2/s)
+        {t?.ppfdLabel ?? "PPFD (umol/m2/s)"}
         <input className="form-control" inputMode="numeric" min="0" onChange={(event) => setPpfd(event.target.value)} step="1" type="number" value={ppfd} />
       </label>
       <label>
-        Altura (cm, opcional)
+        {t?.heightLabel ?? "Altura (cm, opcional)"}
         <input className="form-control" inputMode="decimal" min="0" onChange={(event) => setHeight(event.target.value)} step="0.1" type="number" value={height} />
       </label>
       <fieldset className="measurement-irrigation-fields">
-        <legend>Registro de riego (opcional)</legend>
-        <p>Cargá únicamente valores aplicados o medidos. EC y ppm se guardan por separado, sin conversiones automáticas.</p>
-        <label>Agua aplicada (ml)<input className="form-control" inputMode="decimal" min="0" onChange={(event) => setWaterAmount(event.target.value)} step="1" type="number" value={waterAmount} /></label>
-        <label>pH medido<input className="form-control" inputMode="decimal" max="14" min="0" onChange={(event) => setIrrigationPh(event.target.value)} step="0.01" type="number" value={irrigationPh} /></label>
-        <label>EC medida (mS/cm)<input className="form-control" inputMode="decimal" min="0" onChange={(event) => setIrrigationEc(event.target.value)} step="0.01" type="number" value={irrigationEc} /></label>
-        <label>PPM medidos<input className="form-control" inputMode="numeric" min="0" onChange={(event) => setIrrigationPpm(event.target.value)} step="1" type="number" value={irrigationPpm} /></label>
-        <label>Drenaje recolectado (ml)<input className="form-control" inputMode="decimal" min="0" onChange={(event) => setRunoffAmount(event.target.value)} step="1" type="number" value={runoffAmount} /></label>
-        <label>pH del drenaje<input className="form-control" inputMode="decimal" max="14" min="0" onChange={(event) => setRunoffPh(event.target.value)} step="0.01" type="number" value={runoffPh} /></label>
-        <label>EC del drenaje (mS/cm)<input className="form-control" inputMode="decimal" min="0" onChange={(event) => setRunoffEc(event.target.value)} step="0.01" type="number" value={runoffEc} /></label>
+        <legend>{t?.irrigationLegend ?? "Registro de riego (opcional)"}</legend>
+        <p>{t?.irrigationHint ?? "Cargá únicamente valores aplicados o medidos. EC y ppm se guardan por separado, sin conversiones automáticas."}</p>
+        <label>{t?.waterAppliedLabel ?? "Agua aplicada (ml)"}<input className="form-control" inputMode="decimal" min="0" onChange={(event) => setWaterAmount(event.target.value)} step="1" type="number" value={waterAmount} /></label>
+        <label>{t?.phMeasuredLabel ?? "pH medido"}<input className="form-control" inputMode="decimal" max="14" min="0" onChange={(event) => setIrrigationPh(event.target.value)} step="0.01" type="number" value={irrigationPh} /></label>
+        <label>{t?.ecMeasuredLabel ?? "EC medida (mS/cm)"}<input className="form-control" inputMode="decimal" min="0" onChange={(event) => setIrrigationEc(event.target.value)} step="0.01" type="number" value={irrigationEc} /></label>
+        <label>{t?.ppmMeasuredLabel ?? "PPM medidos"}<input className="form-control" inputMode="numeric" min="0" onChange={(event) => setIrrigationPpm(event.target.value)} step="1" type="number" value={irrigationPpm} /></label>
+        <label>{t?.runoffAmountLabel ?? "Drenaje recolectado (ml)"}<input className="form-control" inputMode="decimal" min="0" onChange={(event) => setRunoffAmount(event.target.value)} step="1" type="number" value={runoffAmount} /></label>
+        <label>{t?.runoffPhLabel ?? "pH del drenaje"}<input className="form-control" inputMode="decimal" max="14" min="0" onChange={(event) => setRunoffPh(event.target.value)} step="0.01" type="number" value={runoffPh} /></label>
+        <label>{t?.runoffEcLabel ?? "EC del drenaje (mS/cm)"}<input className="form-control" inputMode="decimal" min="0" onChange={(event) => setRunoffEc(event.target.value)} step="0.01" type="number" value={runoffEc} /></label>
       </fieldset>
       <label className="plant-measurement-notes">
-        Foto (opcional)
+        {t?.photoLabel ?? "Foto (opcional)"}
         <input accept="image/*" className="form-control" onChange={async (event) => {
           const file = event.target.files?.[0];
           if (!file) { setPhotoDataUrl(""); return; }
           try {
             setPhotoDataUrl(await compressPhotoFile(file));
           } catch {
-            window.alert("No se pudo procesar la foto. Proba elegirla desde galeria.");
+            window.alert(t?.photoErrorMessage ?? "No se pudo procesar la foto. Proba elegirla desde galeria.");
           }
         }} type="file" />
       </label>
       <label className="plant-measurement-notes">
-        Observaciones
+        {t?.observationsLabel ?? "Observaciones"}
         <textarea className="form-control" onChange={(event) => setObservations(event.target.value)} rows={2} value={observations} />
       </label>
       <div className={`measurement-vpd-preview status-${previewAssessment.vpdStatus}`} role="status">
         <div>
-          <span>VPD calculado en vivo</span>
-          <strong>{previewAssessment.vpdKpa === undefined ? "Ingresá temperatura y humedad" : `${previewAssessment.vpdKpa} kPa`}</strong>
+          <span>{t?.vpdLiveLabel ?? "VPD calculado en vivo"}</span>
+          <strong>{previewAssessment.vpdKpa === undefined ? (t?.vpdMissingPrompt ?? "Ingresá temperatura y humedad") : `${previewAssessment.vpdKpa} kPa`}</strong>
         </div>
         <p>
           {previewAssessment.vpdKpa === undefined
-            ? `Falta: ${previewAssessment.missingInputs.filter((item) => item !== "PPFD a nivel de la copa").join(", ") || "temperatura y humedad"}.`
-            : `${previewAssessment.vpdBasis === "leaf" ? "VPD foliar" : "VPD del aire"} estimado · ${formatEnvironmentalStatus(previewAssessment.vpdStatus)}.`}
+            ? `${t?.vpdMissingPrefix ?? "Falta:"} ${previewAssessment.missingInputs.filter((item) => item !== "PPFD a nivel de la copa").join(", ") || (t?.vpdMissingFallback ?? "temperatura y humedad")}.`
+            : t
+              ? formatDictionaryString(t.vpdEstimatedTemplate, {
+                  basis: previewAssessment.vpdBasis === "leaf" ? t.vpdLeafLabel : t.vpdAirLabel,
+                  status: formatEnvironmentalStatus(previewAssessment.vpdStatus, dictionary)
+                })
+              : `${previewAssessment.vpdBasis === "leaf" ? "VPD foliar" : "VPD del aire"} estimado · ${formatEnvironmentalStatus(previewAssessment.vpdStatus)}.`}
         </p>
         <small>
-          Fórmula Tetens. {previewAssessment.vpdBasis === "leaf" ? "Usa la temperatura foliar ingresada." : "Sin temperatura foliar, no se supone una diferencia con el aire."}
+          {t?.vpdFormulaNote ?? "Fórmula Tetens."} {previewAssessment.vpdBasis === "leaf" ? (t?.vpdLeafNote ?? "Usa la temperatura foliar ingresada.") : (t?.vpdNoLeafNote ?? "Sin temperatura foliar, no se supone una diferencia con el aire.")}
         </small>
       </div>
-      <button className="primary-button" type="submit">{initialMeasurement ? "Guardar cambios" : "Guardar medicion"}</button>
+      <button className="primary-button" type="submit">{initialMeasurement ? (t?.saveChangesButton ?? "Guardar cambios") : (t?.saveMeasurementButton ?? "Guardar medicion")}</button>
     </form>
   );
 }
@@ -5140,12 +5149,13 @@ function MeasurementSparkline({ color, label, points, unit }: { color: string; l
   );
 }
 
-function formatEnvironmentalStatus(status: EnvironmentalStatus) {
-  if (status === "in-range") return "dentro de la banda orientativa de la etapa declarada";
-  if (status === "low") return "por debajo de la banda orientativa";
-  if (status === "high") return "por encima de la banda orientativa";
-  if (status === "critical") return "fuera de la zona orientativa habitual; conviene confirmar la medición";
-  return "sin banda disponible para clasificar";
+function formatEnvironmentalStatus(status: EnvironmentalStatus, dictionary?: Dictionary) {
+  const t = dictionary?.spaces.measurementForm;
+  if (status === "in-range") return t?.environmentalStatusInRange ?? "dentro de la banda orientativa de la etapa declarada";
+  if (status === "low") return t?.environmentalStatusLow ?? "por debajo de la banda orientativa";
+  if (status === "high") return t?.environmentalStatusHigh ?? "por encima de la banda orientativa";
+  if (status === "critical") return t?.environmentalStatusCritical ?? "fuera de la zona orientativa habitual; conviene confirmar la medición";
+  return t?.environmentalStatusMissing ?? "sin banda disponible para clasificar";
 }
 
 function EnvironmentMetric({
