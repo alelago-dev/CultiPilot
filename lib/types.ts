@@ -211,6 +211,28 @@ export type Dictionary = {
     quickAccessLastMeasurement: string;
     quickAccessNoMeasurements: string;
   };
+  seeds: {
+    eyebrow: string;
+    title: string;
+    legalRulePill: string;
+    legalBannerText: string;
+    reprocannQuestion: string;
+    reprocannLink: string;
+    tabsAriaLabel: string;
+    tabFinder: string;
+    tabManual: string;
+    tabHorticultural: string;
+    tabSetups: string;
+    tabReference: string;
+    manualEyebrow: string;
+    manualTitle: string;
+    selectedFromFinder: string;
+    stepperAriaLabel: string;
+    stepperPrevious: string;
+    stepperStart: string;
+    stepperNext: string;
+    stepperEnd: string;
+  };
 };
 
 export type GrowMode = "Exterior" | "Interior" | "Invernadero";

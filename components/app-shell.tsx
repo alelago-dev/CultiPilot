@@ -1946,6 +1946,7 @@ export function AppShell({
         <SeedsSection
           calendarHref={calendarHref}
           calendarLinkHref={calendarLinkHref}
+          dictionary={dictionary}
           locale={locale}
           onCreateManualEvents={handleAddManualEvents}
         />

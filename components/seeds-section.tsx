@@ -19,25 +19,19 @@ import {
   searchGeneticsByName,
   type GeneticReferenceEntry
 } from "@/lib/genetics-catalog";
+import { formatDictionaryString } from "@/lib/i18n";
 import { seedCatalog } from "@/lib/seed-catalog";
-import type { CalendarEvent, Locale } from "@/lib/types";
+import type { CalendarEvent, Dictionary, Locale } from "@/lib/types";
 
 type SeedsSectionProps = {
   calendarHref: string;
   calendarLinkHref: string;
+  dictionary: Dictionary;
   locale: Locale;
   onCreateManualEvents: (events: CalendarEvent[]) => void;
 };
 
 type SeedTab = "finder" | "manual" | "horticultural" | "setups" | "reference";
-
-const tabs: Array<{ id: SeedTab; label: string }> = [
-  { id: "finder", label: "Finder" },
-  { id: "manual", label: "Mi cultivo" },
-  { id: "horticultural", label: "Calculadora" },
-  { id: "setups", label: "Setups" },
-  { id: "reference", label: "Referencia" }
-];
 
 const regulatedSeedOptions = seedCatalog.filter((seed) => seed.regulated);
 const geneticsCatalogAlphabetically = getGeneticsCatalogAlphabetically();
@@ -155,10 +149,17 @@ const manualTaskTemplates = [
   }
 ];
 
-export function SeedsSection({ calendarHref, calendarLinkHref, locale, onCreateManualEvents }: SeedsSectionProps) {
+export function SeedsSection({ calendarHref, calendarLinkHref, dictionary, locale, onCreateManualEvents }: SeedsSectionProps) {
   const [activeTab, setActiveTab] = useState<SeedTab>("finder");
   const [selectedGeneticName, setSelectedGeneticName] = useState("");
   const shouldScrollToGeneticField = useRef(false);
+  const tabs: Array<{ id: SeedTab; label: string }> = [
+    { id: "finder", label: dictionary.seeds.tabFinder },
+    { id: "manual", label: dictionary.seeds.tabManual },
+    { id: "horticultural", label: dictionary.seeds.tabHorticultural },
+    { id: "setups", label: dictionary.seeds.tabSetups },
+    { id: "reference", label: dictionary.seeds.tabReference }
+  ];
   const activeTabIndex = tabs.findIndex((tab) => tab.id === activeTab);
   const previousTab = activeTabIndex > 0 ? tabs[activeTabIndex - 1] : null;
   const nextTab = activeTabIndex >= 0 && activeTabIndex < tabs.length - 1 ? tabs[activeTabIndex + 1] : null;
@@ -180,24 +181,23 @@ export function SeedsSection({ calendarHref, calendarLinkHref, locale, onCreateM
   return (
     <section className="mx-auto mt-7 max-w-7xl px-4 sm:px-6 lg:px-8" id="seeds">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <SectionHeader eyebrow="Semillas" title="Registro y referencia" />
-        <span className="pill pill-soft">Regla legal activa</span>
+        <SectionHeader eyebrow={dictionary.seeds.eyebrow} title={dictionary.seeds.title} />
+        <span className="pill pill-soft">{dictionary.seeds.legalRulePill}</span>
       </div>
 
       <div className="mt-4 rounded-lg border border-moss-950/10 bg-white/88 p-3 text-sm font-bold leading-6 text-stone-700">
-        La clasificacion legal se mantiene como metadato. Las estimaciones dependen de datos suficientes cargados por
-        el usuario, de catalogo o de mediciones; si falta un dato, la app lo indica en vez de inventarlo.
+        {dictionary.seeds.legalBannerText}
         <span className="mt-2 block">
-          ¿Estas registrado en REPROCANN?{" "}
+          {dictionary.seeds.reprocannQuestion}{" "}
           <Link className="font-black text-emerald-800 underline underline-offset-4" href={"../privacidad/" as Route}>
-            Consulta la informacion legal y de privacidad
+            {dictionary.seeds.reprocannLink}
           </Link>
           .
         </span>
       </div>
 
       <div className="mt-5">
-        <div className="seed-tabs" role="tablist" aria-label="Secciones de semillas">
+        <div className="seed-tabs" role="tablist" aria-label={dictionary.seeds.tabsAriaLabel}>
           {tabs.map((tab) => (
             <button
               aria-selected={activeTab === tab.id}
@@ -227,9 +227,9 @@ export function SeedsSection({ calendarHref, calendarLinkHref, locale, onCreateM
             <Card as="section" aria-labelledby="manual-seed-title" className="p-4 sm:p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="eyebrow text-emerald-800">Carga manual</p>
+                  <p className="eyebrow text-emerald-800">{dictionary.seeds.manualEyebrow}</p>
                   <h3 className="mt-1 text-xl font-black tracking-tight text-moss-950" id="manual-seed-title">
-                    Mi cultivo
+                    {dictionary.seeds.manualTitle}
                   </h3>
                 </div>
                 <ModeBadge mode="manual" />
@@ -237,7 +237,7 @@ export function SeedsSection({ calendarHref, calendarLinkHref, locale, onCreateM
               <div className="mt-4">
                 {selectedGeneticName ? (
                   <div className="mb-3 rounded-lg border border-emerald-900/15 bg-mint-100/70 p-3 text-sm font-black text-moss-950">
-                    Semilla seleccionada desde Finder: {selectedGeneticName}
+                    {formatDictionaryString(dictionary.seeds.selectedFromFinder, { name: selectedGeneticName })}
                   </div>
                 ) : null}
                 <ManualCannabisForm
@@ -262,7 +262,7 @@ export function SeedsSection({ calendarHref, calendarLinkHref, locale, onCreateM
           {activeTab === "reference" ? <ReferenceTab locale={locale} /> : null}
         </div>
 
-        <nav className="tab-stepper" aria-label="Avanzar entre solapas de semillas">
+        <nav className="tab-stepper" aria-label={dictionary.seeds.stepperAriaLabel}>
           <button
             className={previousTab ? "stepper-button secondary" : "stepper-button disabled"}
             disabled={!previousTab}
@@ -271,8 +271,8 @@ export function SeedsSection({ calendarHref, calendarLinkHref, locale, onCreateM
           >
             <span aria-hidden="true">←</span>
             <span>
-              <small>Solapa anterior</small>
-              {previousTab?.label ?? "Inicio"}
+              <small>{dictionary.seeds.stepperPrevious}</small>
+              {previousTab?.label ?? dictionary.seeds.stepperStart}
             </span>
           </button>
           <button
@@ -282,8 +282,8 @@ export function SeedsSection({ calendarHref, calendarLinkHref, locale, onCreateM
             type="button"
           >
             <span>
-              <small>Siguiente solapa</small>
-              {nextTab?.label ?? "Fin"}
+              <small>{dictionary.seeds.stepperNext}</small>
+              {nextTab?.label ?? dictionary.seeds.stepperEnd}
             </span>
             <span aria-hidden="true">→</span>
           </button>

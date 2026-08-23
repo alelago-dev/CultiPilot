@@ -230,6 +230,29 @@ const dictionaries: Record<Locale, Dictionary> = {
       quickAccessRegister: "Registrar medición",
       quickAccessLastMeasurement: "Última medición: {age}",
       quickAccessNoMeasurements: "Sin mediciones"
+    },
+    seeds: {
+      eyebrow: "Semillas",
+      title: "Registro y referencia",
+      legalRulePill: "Regla legal activa",
+      legalBannerText:
+        "La clasificacion legal se mantiene como metadato. Las estimaciones dependen de datos suficientes cargados por el usuario, de catalogo o de mediciones; si falta un dato, la app lo indica en vez de inventarlo.",
+      reprocannQuestion: "¿Estas registrado en REPROCANN?",
+      reprocannLink: "Consulta la informacion legal y de privacidad",
+      tabsAriaLabel: "Secciones de semillas",
+      tabFinder: "Finder",
+      tabManual: "Mi cultivo",
+      tabHorticultural: "Calculadora",
+      tabSetups: "Setups",
+      tabReference: "Referencia",
+      manualEyebrow: "Carga manual",
+      manualTitle: "Mi cultivo",
+      selectedFromFinder: "Semilla seleccionada desde Finder: {name}",
+      stepperAriaLabel: "Avanzar entre solapas de semillas",
+      stepperPrevious: "Solapa anterior",
+      stepperStart: "Inicio",
+      stepperNext: "Siguiente solapa",
+      stepperEnd: "Fin"
     }
   },
   en: {
@@ -459,6 +482,29 @@ const dictionaries: Record<Locale, Dictionary> = {
       quickAccessRegister: "Log a measurement",
       quickAccessLastMeasurement: "Last measurement: {age}",
       quickAccessNoMeasurements: "No measurements"
+    },
+    seeds: {
+      eyebrow: "Seeds",
+      title: "Log and reference",
+      legalRulePill: "Legal rule active",
+      legalBannerText:
+        "The legal classification is kept as metadata. Estimates depend on enough data logged by the user, from the catalog, or from measurements; if a data point is missing, the app says so instead of making it up.",
+      reprocannQuestion: "Registered with REPROCANN?",
+      reprocannLink: "See the legal and privacy info",
+      tabsAriaLabel: "Seeds sections",
+      tabFinder: "Finder",
+      tabManual: "My grow",
+      tabHorticultural: "Calculator",
+      tabSetups: "Setups",
+      tabReference: "Reference",
+      manualEyebrow: "Manual entry",
+      manualTitle: "My grow",
+      selectedFromFinder: "Seed selected from Finder: {name}",
+      stepperAriaLabel: "Move between seeds tabs",
+      stepperPrevious: "Previous tab",
+      stepperStart: "Start",
+      stepperNext: "Next tab",
+      stepperEnd: "End"
     }
   }
 };
