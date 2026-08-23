@@ -1954,6 +1954,7 @@ export function AppShell({
       {!shouldShowFirstCultivation && currentSection === "spaces" ? (
         <SpacesSection
           calendarEvents={eventState}
+          dictionary={dictionary}
           entries={entryState}
           environmentalAlerts={environmentalAlertState}
           measurements={measurementState}
@@ -2852,6 +2853,7 @@ function OnboardingFlow({ dictionary, onClose, todayHref }: { dictionary: Dictio
 
 function SpacesSection({
   calendarEvents,
+  dictionary,
   entries,
   environmentalAlerts,
   inspections,
@@ -2887,6 +2889,7 @@ function SpacesSection({
   tasks
 }: {
   calendarEvents: CalendarEvent[];
+  dictionary: Dictionary;
   entries: CareEntry[];
   environmentalAlerts: PlantEnvironmentalAlertSettings[];
   inspections: PlantInspection[];
@@ -2921,6 +2924,7 @@ function SpacesSection({
   spaces: GrowSpace[];
   tasks: Task[];
 }) {
+  const spacesText = dictionary.spaces;
   const [query, setQuery] = useState("");
   const [referenceGeneticId, setReferenceGeneticId] = useState("");
   const [referencePotCount, setReferencePotCount] = useState(4);
@@ -2950,37 +2954,35 @@ function SpacesSection({
     <section className="mx-auto mt-7 max-w-7xl px-4 sm:px-6 lg:px-8">
       <div className="spaces-command-header">
         <div>
-          <SectionHeader eyebrow="Cultivos" title="Espacios y plantas" />
-          <p className="spaces-command-copy">Explorá cada ambiente, abrí una maceta para ver su historial o registrá una medición sin perder contexto.</p>
+          <SectionHeader eyebrow={spacesText.eyebrow} title={spacesText.title} />
+          <p className="spaces-command-copy">{spacesText.description}</p>
         </div>
         <div className="spaces-command-actions">
         <label className="spaces-search-control">
-          Buscar
+          {spacesText.searchLabel}
           <input
-            aria-label="Buscar por espacio o planta"
+            aria-label={spacesText.searchAriaLabel}
             className="form-control"
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Nombre de planta o espacio"
+            placeholder={spacesText.searchPlaceholder}
             type="search"
             value={query}
           />
         </label>
-        <CreateSpaceForm onCreateSpace={onCreateSpace} />
+        <CreateSpaceForm dictionary={dictionary} onCreateSpace={onCreateSpace} />
         </div>
       </div>
 
       <Card as="section" className="environment-entry-card mt-5 p-4 sm:p-5" id="mediciones-ambientales" variant="elevated">
         <div className="environment-entry-heading">
-          <SectionHeader eyebrow="Carga por maceta" title="Mediciones ambientales" />
-          <span className="environment-entry-badge">Temperatura + humedad → VPD</span>
+          <SectionHeader eyebrow={spacesText.measurementCardEyebrow} title={spacesText.measurementCardTitle} />
+          <span className="environment-entry-badge">{spacesText.measurementCardBadge}</span>
         </div>
-        <p className="environment-entry-copy">
-          Elegí una maceta y cargá una lectura manual. Temperatura y humedad permiten calcular VPD; el resto de los campos es opcional.
-        </p>
+        <p className="environment-entry-copy">{spacesText.measurementCardCopy}</p>
         {activePlants.length > 0 ? (
           <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(220px,0.45fr)_1fr]">
             <label className="grid content-start gap-1 text-sm font-black text-moss-950">
-              Planta o maceta
+              {spacesText.plantOrPotLabel}
               <select className="form-control" onChange={(event) => setMeasurementPlantId(event.target.value)} value={measurementPlantId}>
                 {activePlants.map((plant) => <option key={plant.id} value={plant.id}>{plant.name} · {plant.pot}</option>)}
               </select>
@@ -2994,7 +2996,7 @@ function SpacesSection({
               />
             ) : null}
           </div>
-        ) : <EmptyState body="Creá una planta o maceta antes de registrar mediciones." title="No hay macetas disponibles" />}
+        ) : <EmptyState body={spacesText.noPlantsEmptyBody} title={spacesText.noPlantsEmptyTitle} />}
       </Card>
 
       <ProductCatalogPanel items={productCatalog} onSaveItem={onSaveProductCatalogItem} plants={activePlants} />
@@ -3004,30 +3006,28 @@ function SpacesSection({
       <div className="genetics-reference-panel mt-5 rounded-lg border p-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="eyebrow">Referencia rapida</p>
-            <h3 className="genetics-panel-title mt-1 text-lg font-black">Elegir semilla y ver caracteristicas</h3>
-            <p className="genetics-panel-copy mt-1 text-sm font-bold leading-6">
-              Esta ficha es solo lectura para comparar datos publicados. La cantidad de macetas la declara el usuario.
-            </p>
+            <p className="eyebrow">{spacesText.genReferenceEyebrow}</p>
+            <h3 className="genetics-panel-title mt-1 text-lg font-black">{spacesText.genReferenceTitle}</h3>
+            <p className="genetics-panel-copy mt-1 text-sm font-bold leading-6">{spacesText.genReferenceCopy}</p>
           </div>
           <div className="grid w-full min-w-0 gap-2 sm:w-auto sm:min-w-72 sm:grid-cols-[1fr_140px]">
             <label className="grid gap-1 text-sm font-black">
-              Genetica de referencia
+              {spacesText.genReferenceGeneticLabel}
               <select
                 className="form-control"
                 value={referenceGeneticId}
                 onChange={(event) => setReferenceGeneticId(event.target.value)}
               >
-                <option value="">Seleccionar genetica</option>
+                <option value="">{spacesText.genReferenceSelectPlaceholder}</option>
                 {geneticsCatalogAlphabetically.map((genetic) => (
                   <option key={genetic.id} value={genetic.id}>
-                    {genetic.name} - {formatGeneticType(genetic.type)}
+                    {genetic.name} - {formatGeneticType(genetic.type, dictionary)}
                   </option>
                 ))}
               </select>
             </label>
             <label className="grid gap-1 text-sm font-black">
-              Cantidad
+              {spacesText.genReferenceQuantityLabel}
               <select
                 className="form-control"
                 value={referencePotCount}
@@ -3035,7 +3035,7 @@ function SpacesSection({
               >
                 {[1, 2, 3, 4, 5, 6, 8, 9, 12].map((count) => (
                   <option key={count} value={count}>
-                    {count} maceta{count === 1 ? "" : "s"}
+                    {count} {count === 1 ? spacesText.potSingular : spacesText.potPlural}
                   </option>
                 ))}
               </select>
@@ -3046,18 +3046,18 @@ function SpacesSection({
               onClick={() => selectedReferenceGenetic && setPopupGenetic(selectedReferenceGenetic)}
               type="button"
             >
-              Ver ficha
+              {spacesText.viewSheetButton}
             </button>
           </div>
         </div>
         {selectedReferenceGenetic ? (
-          <div className="genetic-pot-grid mt-4" aria-label="Macetas declaradas para la genetica seleccionada">
+          <div className="genetic-pot-grid mt-4" aria-label={spacesText.declaredPotsAriaLabel}>
             {Array.from({ length: referencePotCount }, (_, index) => (
               <article className="genetic-pot-card" key={`${selectedReferenceGenetic.id}-${index}`}>
                 <span>{index + 1}</span>
                 <div>
                   <p>{selectedReferenceGenetic.name}</p>
-                  <small>Maceta {index + 1} - misma genetica</small>
+                  <small>{formatDictionaryString(spacesText.potLabelTemplate, { n: String(index + 1) })} - {spacesText.sameGeneticNote}</small>
                 </div>
               </article>
             ))}
@@ -3073,16 +3073,17 @@ function SpacesSection({
                 <div>
                   <h3 className="text-xl font-black tracking-tight text-white">{space.name}</h3>
                   <p className="mt-1 text-sm font-semibold text-mint-50/86">
-                    {space.region} - {space.mode}
+                    {space.region} - {formatSpaceMode(space.mode, dictionary)}
                   </p>
                 </div>
                 <div className="space-banner-meta">
-                  <span>{space.plants.length} maceta{space.plants.length === 1 ? "" : "s"}</span>
-                  <span>{space.privacyLevel}</span>
+                  <span>{space.plants.length} {space.plants.length === 1 ? spacesText.potSingular : spacesText.potPlural}</span>
+                  <span>{formatSpacePrivacyLevel(space.privacyLevel, dictionary)}</span>
                 </div>
               </div>
               <SpaceManageControls
                 allSpaces={spaces}
+                dictionary={dictionary}
                 onDeleteSpace={onDeleteSpace}
                 onUpdateSpace={onUpdateSpace}
                 space={space}
@@ -3123,8 +3124,8 @@ function SpacesSection({
         ) : (
           <div className="lg:col-span-2">
             <EmptyState
-              body="No hay coincidencias con tu busqueda. Proba limpiar el filtro o crear un cultivo desde el alta inicial."
-              title="No encontramos cultivos"
+              body={spacesText.noResultsBody}
+              title={spacesText.noResultsTitle}
             />
           </div>
         )}
@@ -3137,7 +3138,8 @@ function SpacesSection({
   );
 }
 
-function CreateSpaceForm({ onCreateSpace }: { onCreateSpace: (space: GrowSpace) => void }) {
+function CreateSpaceForm({ dictionary, onCreateSpace }: { dictionary: Dictionary; onCreateSpace: (space: GrowSpace) => void }) {
+  const spacesText = dictionary.spaces;
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
   const [mode, setMode] = useState<GrowSpace["mode"]>("Exterior");
@@ -3154,45 +3156,45 @@ function CreateSpaceForm({ onCreateSpace }: { onCreateSpace: (space: GrowSpace) 
       mode,
       name: name.trim(),
       privacyLevel,
-      region: region.trim() || "Sin declarar"
+      region: region.trim() || spacesText.undeclaredRegion
     });
     setName("");
     setRegion("");
-    setMessage("Espacio creado.");
+    setMessage(spacesText.spaceCreatedMessage);
     setIsOpen(false);
   }
 
   return (
     <div className="space-create-control">
       <button className="secondary-button" onClick={() => setIsOpen((current) => !current)} type="button">
-        {isOpen ? "Cancelar" : "+ Nuevo espacio"}
+        {isOpen ? spacesText.cancelButton : spacesText.newSpaceButton}
       </button>
       {isOpen ? (
         <form className="space-create-form" onSubmit={submit}>
           <label>
-            Nombre
-            <input className="form-control" onChange={(event) => setName(event.target.value)} placeholder="Ej: Carpa 60x60" required value={name} />
+            {spacesText.nameLabel}
+            <input className="form-control" onChange={(event) => setName(event.target.value)} placeholder={spacesText.namePlaceholder} required value={name} />
           </label>
           <label>
-            Modalidad
+            {spacesText.modeLabel}
             <select className="form-control" onChange={(event) => setMode(event.target.value as GrowSpace["mode"])} value={mode}>
-              <option value="Exterior">Exterior</option>
-              <option value="Interior">Interior</option>
-              <option value="Invernadero">Invernadero</option>
+              <option value="Exterior">{spacesText.modeOutdoor}</option>
+              <option value="Interior">{spacesText.modeIndoor}</option>
+              <option value="Invernadero">{spacesText.modeGreenhouse}</option>
             </select>
           </label>
           <label>
-            Región declarada
-            <input className="form-control" onChange={(event) => setRegion(event.target.value)} placeholder="Ej: Zona sur, CABA" value={region} />
+            {spacesText.regionLabel}
+            <input className="form-control" onChange={(event) => setRegion(event.target.value)} placeholder={spacesText.regionPlaceholder} value={region} />
           </label>
           <label>
-            Privacidad
+            {spacesText.privacyLabel}
             <select className="form-control" onChange={(event) => setPrivacyLevel(event.target.value as GrowSpace["privacyLevel"])} value={privacyLevel}>
-              <option value="Region aproximada">Región aproximada</option>
-              <option value="Interior privado">Interior privado</option>
+              <option value="Region aproximada">{spacesText.privacyApproxRegion}</option>
+              <option value="Interior privado">{spacesText.privacyPrivateIndoor}</option>
             </select>
           </label>
-          <button className="primary-button" type="submit">Crear espacio</button>
+          <button className="primary-button" type="submit">{spacesText.createSpaceButton}</button>
         </form>
       ) : null}
       {message ? <p role="status">{message}</p> : null}
@@ -3205,17 +3207,20 @@ function CreateSpaceForm({ onCreateSpace }: { onCreateSpace: (space: GrowSpace) 
 // primero hay que elegir a que otro espacio se mudan.
 function SpaceManageControls({
   allSpaces,
+  dictionary,
   onDeleteSpace,
   onUpdateSpace,
   space,
   totalPlantCount
 }: {
   allSpaces: GrowSpace[];
+  dictionary: Dictionary;
   onDeleteSpace: (spaceId: string, reassignToSpaceId?: string) => void;
   onUpdateSpace: (spaceId: string, updates: Partial<GrowSpace>) => void;
   space: GrowSpace;
   totalPlantCount: number;
 }) {
+  const spacesText = dictionary.spaces;
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(space.name);
   const [mode, setMode] = useState<GrowSpace["mode"]>(space.mode);
@@ -3230,17 +3235,23 @@ function SpaceManageControls({
     event.preventDefault();
     if (!name.trim()) return;
 
-    onUpdateSpace(space.id, { mode, name: name.trim(), privacyLevel, region: region.trim() || "Sin declarar" });
+    onUpdateSpace(space.id, { mode, name: name.trim(), privacyLevel, region: region.trim() || spacesText.undeclaredRegion });
     setIsEditing(false);
   }
 
   function handleDelete() {
     if (!canDelete) return;
 
-    const targetName = otherSpaces.find((item) => item.id === reassignToSpaceId)?.name ?? "otro espacio";
+    const targetName = otherSpaces.find((item) => item.id === reassignToSpaceId)?.name ?? spacesText.otherSpaceFallback;
+    const potWord = totalPlantCount === 1 ? spacesText.potSingular : spacesText.potPlural;
     const confirmMessage = hasPlants
-      ? `Eliminar "${space.name}"? Sus ${totalPlantCount} maceta${totalPlantCount === 1 ? "" : "s"} (incluidas las archivadas) se mueven a "${targetName}".`
-      : `Eliminar el espacio "${space.name}"? No tiene macetas. Esta acción no se puede deshacer.`;
+      ? formatDictionaryString(spacesText.deleteConfirmWithPlantsTemplate, {
+          count: String(totalPlantCount),
+          name: space.name,
+          potWord,
+          target: targetName
+        })
+      : formatDictionaryString(spacesText.deleteConfirmNoPlantsTemplate, { name: space.name });
     const confirmed = window.confirm(confirmMessage);
 
     if (!confirmed) return;
@@ -3252,52 +3263,52 @@ function SpaceManageControls({
     <div className="space-manage-controls">
       <div className="space-manage-actions">
         <button className="text-button" onClick={() => setIsEditing((current) => !current)} type="button">
-          {isEditing ? "Cancelar edición" : "Editar espacio"}
+          {isEditing ? spacesText.cancelEditButton : spacesText.editSpaceButton}
         </button>
         {allSpaces.length > 1 ? (
           <>
             {hasPlants ? (
               <label className="space-reassign-picker">
-                Mover macetas a
+                {spacesText.movePlantsToLabel}
                 <select className="form-control" onChange={(event) => setReassignToSpaceId(event.target.value)} value={reassignToSpaceId}>
                   {otherSpaces.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
               </label>
             ) : null}
             <button className="danger-button" disabled={!canDelete} onClick={handleDelete} type="button">
-              Eliminar espacio
+              {spacesText.deleteSpaceButton}
             </button>
           </>
         ) : (
-          <span className="space-manage-hint">No se puede borrar: tiene que quedar al menos un espacio.</span>
+          <span className="space-manage-hint">{spacesText.cannotDeleteHint}</span>
         )}
       </div>
       {isEditing ? (
         <form className="space-edit-form" onSubmit={saveEdit}>
           <label>
-            Nombre
+            {spacesText.nameLabel}
             <input className="form-control" onChange={(event) => setName(event.target.value)} required value={name} />
           </label>
           <label>
-            Modalidad
+            {spacesText.modeLabel}
             <select className="form-control" onChange={(event) => setMode(event.target.value as GrowSpace["mode"])} value={mode}>
-              <option value="Exterior">Exterior</option>
-              <option value="Interior">Interior</option>
-              <option value="Invernadero">Invernadero</option>
+              <option value="Exterior">{spacesText.modeOutdoor}</option>
+              <option value="Interior">{spacesText.modeIndoor}</option>
+              <option value="Invernadero">{spacesText.modeGreenhouse}</option>
             </select>
           </label>
           <label>
-            Región declarada
+            {spacesText.regionLabel}
             <input className="form-control" onChange={(event) => setRegion(event.target.value)} value={region} />
           </label>
           <label>
-            Privacidad
+            {spacesText.privacyLabel}
             <select className="form-control" onChange={(event) => setPrivacyLevel(event.target.value as GrowSpace["privacyLevel"])} value={privacyLevel}>
-              <option value="Region aproximada">Región aproximada</option>
-              <option value="Interior privado">Interior privado</option>
+              <option value="Region aproximada">{spacesText.privacyApproxRegion}</option>
+              <option value="Interior privado">{spacesText.privacyPrivateIndoor}</option>
             </select>
           </label>
-          <button className="secondary-button" type="submit">Guardar cambios</button>
+          <button className="secondary-button" type="submit">{spacesText.saveChangesButton}</button>
         </form>
       ) : null}
     </div>
@@ -7334,11 +7345,29 @@ function findGeneticByPlant(plant: Plant) {
   });
 }
 
-function formatGeneticType(type: GeneticReferenceEntry["type"]) {
+function formatGeneticType(type: GeneticReferenceEntry["type"], dictionary?: Dictionary) {
+  if (dictionary) {
+    if (type === "autoflowering") return dictionary.seeds.geneticTypeAutoflowering;
+    if (type === "faster_flowering") return dictionary.seeds.geneticTypeFasterFlowering;
+    if (type === "regular") return dictionary.seeds.geneticTypeRegular;
+    return dictionary.seeds.geneticTypeFeminized;
+  }
+
   if (type === "autoflowering") return "Automatica";
   if (type === "faster_flowering") return "Rapida";
   if (type === "regular") return "Regular";
   return "Feminizada";
+}
+
+function formatSpaceMode(mode: GrowSpace["mode"], dictionary: Dictionary) {
+  if (mode === "Exterior") return dictionary.spaces.modeOutdoor;
+  if (mode === "Interior") return dictionary.spaces.modeIndoor;
+  return dictionary.spaces.modeGreenhouse;
+}
+
+function formatSpacePrivacyLevel(privacyLevel: GrowSpace["privacyLevel"], dictionary: Dictionary) {
+  if (privacyLevel === "Region aproximada") return dictionary.spaces.privacyApproxRegion;
+  return dictionary.spaces.privacyPrivateIndoor;
 }
 
 function formatRange([min, max]: [number, number], unit: string) {
