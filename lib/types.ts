@@ -210,6 +210,22 @@ export type Dictionary = {
     quickAccessRegister: string;
     quickAccessLastMeasurement: string;
     quickAccessNoMeasurements: string;
+    toolboxMeasurementLabel: string;
+    toolboxTasksLabel: string;
+    toolboxWeatherLabel: string;
+    headerTasksToday: string;
+    headerNoTasksToday: string;
+    attentionEyebrow: string;
+    attentionTitle: string;
+    attentionCountPill: string;
+    attentionAllClearTitle: string;
+    attentionAllClearBody: string;
+    attentionChipMeasurement: string;
+    attentionChipInspection: string;
+    attentionChipInventory: string;
+    plantsEyebrow: string;
+    plantsDay: string;
+    plantsNoVariety: string;
   };
   seeds: {
     eyebrow: string;

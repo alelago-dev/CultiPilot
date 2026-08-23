@@ -3,7 +3,7 @@
 import { type ChangeEvent, type Dispatch, type FormEvent, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
-import { Bug, Camera, Droplet, Eye, Leaf, MoonStar, NotebookPen, Scissors, Sparkles, Sun, Thermometer, type LucideIcon } from "lucide-react";
+import { Bug, CalendarDays, Camera, CloudSun, Droplet, Eye, Home, LayoutGrid, Leaf, ListChecks, MoonStar, NotebookPen, ShieldCheck, Scissors, Sparkles, Sprout, Sun, Thermometer, type LucideIcon } from "lucide-react";
 
 import { Card } from "@/components/card";
 import { CopyValueButton } from "@/components/copy-button";
@@ -538,6 +538,19 @@ const storageKeys = {
 };
 
 const remoteSnapshotKey = "primary";
+
+// Iconos reales de la navegación inferior. Antes `item.icon` era una sola
+// letra (H, S, E...) mostrada como texto; el dato de navigation.ts se deja
+// como está (no lo usa nada más) y el mapeo vive acá, así seguimos sin tener
+// que meter JSX en lib/navigation.ts.
+const NAV_ICONS: Record<AppSection, LucideIcon> = {
+  calendar: CalendarDays,
+  journal: NotebookPen,
+  privacy: ShieldCheck,
+  seeds: Sprout,
+  spaces: LayoutGrid,
+  today: Home
+};
 
 export function AppShell({
   calendarEvents,
@@ -1920,6 +1933,7 @@ export function AppShell({
           careScore={careScore}
           dictionary={dictionary}
           environmentalAlerts={environmentalAlertState}
+          habitDates={habitDates}
           inspections={inspectionState}
           inventoryItems={inventoryItemState}
           locale={locale}
@@ -2046,14 +2060,17 @@ export function AppShell({
       ) : null}
 
       <nav className="mobile-tab-bar" aria-label={dictionary.header.mobileNavAriaLabel}>
-        {navItems.map((item) => (
-          <Link className={currentSection === item.key ? "mobile-tab active" : "mobile-tab"} href={getInternalSectionHref(locale, item.key) as Route} key={item.key}>
-            <span className="nav-icon" aria-hidden="true">
-              {item.icon}
-            </span>
-            <span>{item.short}</span>
-          </Link>
-        ))}
+        {navItems.map((item) => {
+          const NavIcon = NAV_ICONS[item.key];
+          return (
+            <Link className={currentSection === item.key ? "mobile-tab active" : "mobile-tab"} href={getInternalSectionHref(locale, item.key) as Route} key={item.key}>
+              <span className="nav-icon" aria-hidden="true">
+                <NavIcon size={18} strokeWidth={2.2} />
+              </span>
+              <span>{item.short}</span>
+            </Link>
+          );
+        })}
       </nav>
     </main>
   );
@@ -2248,6 +2265,7 @@ function TodaySection({
   calendarEvents,
   dictionary,
   environmentalAlerts,
+  habitDates,
   inspections,
   inventoryItems,
   locale,
@@ -2274,6 +2292,7 @@ function TodaySection({
   calendarEvents: CalendarEvent[];
   dictionary: Dictionary;
   environmentalAlerts: PlantEnvironmentalAlertSettings[];
+  habitDates: string[];
   inspections: PlantInspection[];
   inventoryItems: InventoryItem[];
   locale: Locale;
@@ -2293,65 +2312,27 @@ function TodaySection({
   weather: WeatherReadiness;
   weatherStatus: string;
 }) {
-  const racheDescription = dictionary.today.statsStreakDescription;
-  const [showRachaHint, setShowRachaHint] = useState(false);
+  const todayIso = getTodayIso();
 
   return (
-    <>
+    <div className="today-page">
       <section className="executive-home mx-auto max-w-7xl px-4 pb-5 pt-4 sm:px-6 lg:px-8 lg:pt-6">
-        <div className="executive-hero">
-          <div className="executive-hero-copy min-w-0">
-            <div className="today-context-line"><p className="eyebrow">{dictionary.today.panelEyebrow}</p><time dateTime={getTodayIso()}>{formatDisplayDate(getTodayIso())}</time></div>
-            <h1>{dictionary.today.heroTitle}</h1>
-            <p>{dictionary.hero.body}</p>
-          </div>
-          <div className="executive-metrics">
-            <MiniStat
-              description={dictionary.today.statsGrowsDescription}
-              href={getInternalSectionHref(locale, "spaces") as Route}
-              label={dictionary.today.statsGrowsLabel}
-              value={plants.length.toString()}
-            />
-            <MiniStat
-              description={dictionary.today.statsPendingDescription}
-              featured
-              href={"#tareas-hoy" as Route}
-              label={dictionary.today.statsPendingLabel}
-              value={openTasks.toString()}
-            />
-            <MiniStat
-              description={racheDescription}
-              label={dictionary.today.statsStreakLabel}
-              onSelect={() => setShowRachaHint((current) => !current)}
-              value={formatDictionaryString(dictionary.today.statsStreakValue, { n: streakCount })}
-            />
-          </div>
-          {showRachaHint ? (
-            <p className="stat-hint" role="status">
-              {racheDescription}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="executive-overview today-command-grid">
-          <GrowCommandPanel calendarEvents={calendarEvents} dictionary={dictionary} plants={plants} />
-          <HomeAccountPanel
-            accountStatus={accountStatus}
-            dictionary={dictionary}
-            onSaveRemoteSnapshot={onSaveRemoteSnapshot}
-            onSendMagicLink={onSendMagicLink}
-            onSignOut={onSignOut}
-          />
-          <PushNotificationsPanel accountStatus={accountStatus} dictionary={dictionary} />
-        </div>
-        <EnvironmentalQuickAccess dictionary={dictionary} locale={locale} measurements={measurements} plants={plants} />
-        <TodayStageSummary dictionary={dictionary} locale={locale} plants={plants} transitions={stageTransitions} />
-        <TodayEnvironmentalAlerts acknowledgedAlerts={acknowledgedEnvironmentalAlerts} dictionary={dictionary} environmentalAlerts={environmentalAlerts} locale={locale} measurements={measurements} onAcknowledge={onAcknowledgeEnvironmentalAlert} plants={plants} />
-        <TodayInspectionFollowUps dictionary={dictionary} inspections={inspections} locale={locale} plants={plants} />
-        <TodayInventoryAlerts dictionary={dictionary} inventoryItems={inventoryItems} onSaveInventoryItem={onSaveInventoryItem} />
+        <TodayHeader dictionary={dictionary} openTasks={openTasks} streakCount={streakCount} todayIso={todayIso} />
+        <WeekStrip habitDates={habitDates} locale={locale} todayIso={todayIso} />
+        <ToolboxRow dictionary={dictionary} />
+        <AttentionCard
+          acknowledgedEnvironmentalAlerts={acknowledgedEnvironmentalAlerts}
+          dictionary={dictionary}
+          environmentalAlerts={environmentalAlerts}
+          inspections={inspections}
+          inventoryItems={inventoryItems}
+          measurements={measurements}
+          plants={plants}
+        />
+        <PlantCarousel dictionary={dictionary} locale={locale} plants={plants} />
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-5 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <Card as="section" aria-labelledby="today-title" className="p-4 sm:p-5" id="tareas-hoy" variant="elevated">
           <SectionHeader eyebrow={dictionary.today.tasksEyebrow} title={dictionary.today.tasksTitle} />
           <div className="mt-5 grid gap-3">
@@ -2374,7 +2355,28 @@ function TodaySection({
             )}
           </div>
         </Card>
+      </section>
 
+      <section className="mx-auto max-w-7xl px-4 pt-5 sm:px-6 lg:px-8">
+        <div className="executive-overview today-command-grid">
+          <GrowCommandPanel calendarEvents={calendarEvents} dictionary={dictionary} plants={plants} />
+          <HomeAccountPanel
+            accountStatus={accountStatus}
+            dictionary={dictionary}
+            onSaveRemoteSnapshot={onSaveRemoteSnapshot}
+            onSendMagicLink={onSendMagicLink}
+            onSignOut={onSignOut}
+          />
+          <PushNotificationsPanel accountStatus={accountStatus} dictionary={dictionary} />
+        </div>
+        <EnvironmentalQuickAccess dictionary={dictionary} locale={locale} measurements={measurements} plants={plants} />
+        <TodayStageSummary dictionary={dictionary} locale={locale} plants={plants} transitions={stageTransitions} />
+        <TodayEnvironmentalAlerts acknowledgedAlerts={acknowledgedEnvironmentalAlerts} dictionary={dictionary} environmentalAlerts={environmentalAlerts} locale={locale} measurements={measurements} onAcknowledge={onAcknowledgeEnvironmentalAlert} plants={plants} />
+        <TodayInspectionFollowUps dictionary={dictionary} inspections={inspections} locale={locale} plants={plants} />
+        <TodayInventoryAlerts dictionary={dictionary} inventoryItems={inventoryItems} onSaveInventoryItem={onSaveInventoryItem} />
+      </section>
+
+      <section className="mx-auto mt-5 max-w-7xl px-4 sm:px-6 lg:px-8">
         <Card as="section" aria-labelledby="weather-title" className="p-4 sm:p-5" variant="subtle">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <SectionHeader eyebrow={dictionary.today.weatherEyebrow} title={dictionary.today.weatherTitle} />
@@ -2414,7 +2416,221 @@ function TodaySection({
           <SeasonInsights calendarEvents={calendarEvents} careScore={careScore} dictionary={dictionary} plants={plants} tasks={tasks} />
         </div>
       </section>
-    </>
+    </div>
+  );
+}
+
+// Tira de calendario semanal arriba de Hoy, al estilo de las apps de cultivo
+// que Ale tomó como referencia. Usa habitDates (ya guardado para la racha)
+// como única fuente de los puntitos de actividad: un día tiene punto si se
+// marcó al menos una tarea como hecha ese día. No inventa datos nuevos, solo
+// muestra en otra forma algo que la app ya guarda.
+function WeekStrip({ habitDates, locale, todayIso }: { habitDates: string[]; locale: Locale; todayIso: string }) {
+  const habitSet = useMemo(() => new Set(habitDates), [habitDates]);
+  const days = useMemo(() => {
+    const dowFormatter = new Intl.DateTimeFormat(locale === "en" ? "en-US" : "es-AR", { weekday: "narrow" });
+    return Array.from({ length: 7 }, (_, index) => {
+      const iso = addDays(todayIso, index - 6);
+      const date = parseIsoDate(iso);
+      return {
+        dow: dowFormatter.format(date),
+        hasActivity: habitSet.has(iso),
+        iso,
+        isToday: iso === todayIso,
+        num: date.getDate()
+      };
+    });
+  }, [habitSet, locale, todayIso]);
+
+  return (
+    <div className="week-strip">
+      {days.map((day) => (
+        <div className={day.isToday ? "week-strip-day is-today" : "week-strip-day"} key={day.iso}>
+          <span className="week-strip-dow">{day.dow}</span>
+          <span className="week-strip-num">{day.num}</span>
+          <span className={day.hasActivity ? "week-strip-dot" : "week-strip-dot is-empty"} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Atajos circulares al estilo "toolbox" de las apps de referencia. A
+// propósito son solo 3: cada uno apunta a algo que ya existe y hace algo real
+// (anclas a secciones de esta misma página). Nada de acciones inventadas
+// (por ejemplo "Foto" o "Riego" sueltos) hasta que haya un flujo real detrás.
+function ToolboxRow({ dictionary }: { dictionary: Dictionary }) {
+  return (
+    <div className="today-toolbox">
+      <a className="today-toolbox-item" href="#mediciones-hoy">
+        <span className="today-toolbox-icon" aria-hidden="true"><Thermometer size={19} strokeWidth={2.2} /></span>
+        <span>{dictionary.today.toolboxMeasurementLabel}</span>
+      </a>
+      <a className="today-toolbox-item" href="#tareas-hoy">
+        <span className="today-toolbox-icon" aria-hidden="true"><ListChecks size={19} strokeWidth={2.2} /></span>
+        <span>{dictionary.today.toolboxTasksLabel}</span>
+      </a>
+      <a className="today-toolbox-item" href="#weather-title">
+        <span className="today-toolbox-icon" aria-hidden="true"><CloudSun size={19} strokeWidth={2.2} /></span>
+        <span>{dictionary.today.toolboxWeatherLabel}</span>
+      </a>
+    </div>
+  );
+}
+
+// Encabezado compacto: saludo + fecha + tareas de hoy en una sola linea, en
+// vez del card grande con parrafo y tres metric-cards que tenia antes. La
+// racha solo se muestra si hay una racha real (evita "0 dias" sin sentido).
+function TodayHeader({ dictionary, openTasks, streakCount, todayIso }: { dictionary: Dictionary; openTasks: number; streakCount: number; todayIso: string }) {
+  return (
+    <div className="today-header">
+      <p className="eyebrow">{dictionary.today.panelEyebrow}</p>
+      <h1>{dictionary.today.heroTitle}</h1>
+      <p className="today-header-meta">
+        <time dateTime={todayIso}>{formatDisplayDate(todayIso)}</time>
+        <span aria-hidden="true">·</span>
+        <span>
+          {openTasks > 0
+            ? formatDictionaryString(dictionary.today.headerTasksToday, { n: openTasks, plural: openTasks === 1 ? "" : "s" })
+            : dictionary.today.headerNoTasksToday}
+        </span>
+        {streakCount > 0 ? (
+          <>
+            <span aria-hidden="true">·</span>
+            <span title={dictionary.today.statsStreakDescription}>{formatDictionaryString(dictionary.today.statsStreakValue, { n: streakCount })}</span>
+          </>
+        ) : null}
+      </p>
+    </div>
+  );
+}
+
+// Tarjeta "Necesita tu atencion": junta de un vistazo las senales reales que
+// ya calculan por separado las tarjetas de mas abajo (alertas ambientales,
+// revisiones con fecha vencida, insumos bajos o por vencer, mediciones
+// pendientes). No agrega datos nuevos ni calcula nada distinto: cada chip
+// linkea a la tarjeta de abajo que tiene el detalle completo y la accion
+// real (marcar revisada, ver maceta, registrar medicion, etc).
+function AttentionCard({
+  acknowledgedEnvironmentalAlerts,
+  dictionary,
+  environmentalAlerts,
+  inspections,
+  inventoryItems,
+  measurements,
+  plants
+}: {
+  acknowledgedEnvironmentalAlerts: string[];
+  dictionary: Dictionary;
+  environmentalAlerts: PlantEnvironmentalAlertSettings[];
+  inspections: PlantInspection[];
+  inventoryItems: InventoryItem[];
+  measurements: PlantMeasurement[];
+  plants: Plant[];
+}) {
+  const todayIso = getTodayIso();
+
+  const environmentChips = plants.flatMap((plant) => {
+    const latestMeasurement = measurements
+      .filter((measurement) => measurement.plantId === plant.id)
+      .sort((first, second) => second.measuredAt.localeCompare(first.measuredAt))[0];
+    if (!latestMeasurement) return [];
+    const settings = environmentalAlerts.find((item) => item.plantId === plant.id);
+    const assessment = assessPlantEnvironment(plant, latestMeasurement);
+    return getConfiguredEnvironmentalAlerts(settings, latestMeasurement, assessment.vpdKpa)
+      .map((alert) => ({
+        alertKey: `${latestMeasurement.id}:${alert.label}:${alert.direction}:${alert.value}:${alert.limit}`,
+        label: `${plant.name} · ${alert.label}`
+      }))
+      .filter((item) => !acknowledgedEnvironmentalAlerts.includes(item.alertKey));
+  });
+
+  const inspectionChips = inspections
+    .filter((inspection) => inspection.status === "open" && inspection.followUpDate && inspection.followUpDate <= todayIso)
+    .map((inspection) => {
+      const plant = plants.find((item) => item.id === inspection.plantId);
+      return formatDictionaryString(dictionary.today.attentionChipInspection, { plant: plant?.name ?? dictionary.today.inspectionsPotFallback });
+    });
+
+  const lowStock = inventoryItems.filter((item) => item.minimumQuantity !== undefined && item.quantity <= item.minimumQuantity);
+  const expiryWindow = offsetDate(todayIso, 30);
+  const expiring = inventoryItems.filter((item) => item.expiresAt && item.expiresAt <= expiryWindow);
+  const inventoryChips = Array.from(new Set([...lowStock, ...expiring].map((item) => item.name))).map((name) =>
+    formatDictionaryString(dictionary.today.attentionChipInventory, { item: name })
+  );
+
+  const measuredPlantIds = new Set(measurements.map((measurement) => measurement.plantId));
+  const pendingMeasurements = plants.filter((plant) => !measuredPlantIds.has(plant.id)).length;
+
+  const chips: { href: string; key: string; label: string }[] = [
+    ...environmentChips.map((item, index) => ({ href: "#alertas-hoy", key: `env-${index}`, label: item.label })),
+    ...inspectionChips.map((label, index) => ({ href: "#revisiones-hoy", key: `insp-${index}`, label })),
+    ...inventoryChips.map((label, index) => ({ href: "#insumos-hoy", key: `inv-${index}`, label })),
+    ...(pendingMeasurements > 0 ? [{ href: "#mediciones-hoy", key: "measure", label: dictionary.today.attentionChipMeasurement }] : [])
+  ];
+
+  if (plants.length === 0) return null;
+
+  return (
+    <div className="attention-card" aria-labelledby="attention-title">
+      <div className="attention-card-header">
+        <div>
+          <p className="eyebrow">{dictionary.today.attentionEyebrow}</p>
+          <h2 id="attention-title">{chips.length > 0 ? dictionary.today.attentionTitle : dictionary.today.attentionAllClearTitle}</h2>
+        </div>
+        {chips.length > 0 ? (
+          <span className="pill pill-amber">
+            {formatDictionaryString(dictionary.today.attentionCountPill, { n: chips.length, plural: chips.length === 1 ? "" : "s" })}
+          </span>
+        ) : (
+          <span className="pill pill-green" aria-hidden="true">✓</span>
+        )}
+      </div>
+      {chips.length > 0 ? (
+        <div className="attention-chip-cloud">
+          {chips.map((chip) => (
+            <a className="attention-chip" href={chip.href} key={chip.key}>
+              {chip.label}
+            </a>
+          ))}
+        </div>
+      ) : (
+        <p className="attention-empty-body">{dictionary.today.attentionAllClearBody}</p>
+      )}
+    </div>
+  );
+}
+
+// Carrusel horizontal de macetas, al estilo "Tus macetas" de las apps de
+// referencia que trajo Ale. Usa solo datos reales de cada planta (nombre,
+// etapa declarada, variedad, dias desde el inicio declarado). No hay foto de
+// portada porque la app no guarda una por planta: se reutiliza el mismo
+// icono de etapa que ya usa el resto de la app en vez de inventar una imagen.
+function PlantCarousel({ dictionary, locale, plants }: { dictionary: Dictionary; locale: Locale; plants: Plant[] }) {
+  if (plants.length === 0) return null;
+  const todayIso = getTodayIso();
+
+  return (
+    <div className="plant-carousel-wrap">
+      <p className="plant-carousel-eyebrow">{dictionary.today.plantsEyebrow}</p>
+      <div className="plant-carousel" role="list">
+        {plants.map((plant) => {
+          const days = Math.max(0, Math.floor((parseIsoDate(todayIso).getTime() - parseIsoDate(plant.startedAt).getTime()) / 86_400_000));
+          return (
+            <Link className="plant-carousel-card" href={`${getInternalSectionHref(locale, "spaces")}#${plant.id}` as Route} key={plant.id} role="listitem">
+              <span className={`plant-carousel-art ${getPlantStage(plant.stage)}`}>
+                <PlantStateIcon stage={plant.stage} />
+                <span className="plant-carousel-stage">{plant.stage}</span>
+              </span>
+              <strong>{plant.name}</strong>
+              <span className="plant-carousel-meta">
+                {plant.variety || dictionary.today.plantsNoVariety} · {formatDictionaryString(dictionary.today.plantsDay, { n: days })}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -2429,14 +2645,14 @@ function TodayInventoryAlerts({ dictionary, inventoryItems, onSaveInventoryItem 
   const today = getTodayIso(); const expiryWindow = offsetDate(today, 30); const expiring = inventoryItems.filter((item) => item.expiresAt && item.expiresAt <= expiryWindow);
   const visibleItems = inventoryItems.filter((item) => lowStock.includes(item) || expiring.includes(item));
   if (visibleItems.length === 0) return null;
-  return <Card as="section" className="inventory-alerts mt-3 p-4 sm:p-5"><SectionHeader eyebrow={dictionary.today.inventoryAlertsEyebrow} title={dictionary.today.inventoryAlertsTitle} /><div>{visibleItems.map((item) => { const isLow = lowStock.includes(item); const expiryLabel = item.expiresAt ? (item.expiresAt < today ? formatDictionaryString(dictionary.today.inventoryAlertsExpiredOn, { date: formatDisplayDate(item.expiresAt) }) : formatDictionaryString(dictionary.today.inventoryAlertsExpiresOn, { date: formatDisplayDate(item.expiresAt) })) : ""; return <article key={item.id}><div><strong>{item.name}</strong><p>{isLow ? formatDictionaryString(dictionary.today.inventoryAlertsQuantity, { quantity: item.quantity, unit: item.unit, minimum: item.minimumQuantity ?? "" }) : ""}{isLow && expiryLabel ? " · " : ""}{expiryLabel}</p></div>{isLow ? <button className="text-button" onClick={() => onSaveInventoryItem({ ...item, minimumQuantity: undefined })} type="button">{dictionary.today.inventoryAlertsRemoveMinimum}</button> : null}</article>; })}</div><p>{dictionary.today.inventoryAlertsFooter}</p></Card>;
+  return <Card as="section" className="inventory-alerts mt-3 p-4 sm:p-5" id="insumos-hoy"><SectionHeader eyebrow={dictionary.today.inventoryAlertsEyebrow} title={dictionary.today.inventoryAlertsTitle} /><div>{visibleItems.map((item) => { const isLow = lowStock.includes(item); const expiryLabel = item.expiresAt ? (item.expiresAt < today ? formatDictionaryString(dictionary.today.inventoryAlertsExpiredOn, { date: formatDisplayDate(item.expiresAt) }) : formatDictionaryString(dictionary.today.inventoryAlertsExpiresOn, { date: formatDisplayDate(item.expiresAt) })) : ""; return <article key={item.id}><div><strong>{item.name}</strong><p>{isLow ? formatDictionaryString(dictionary.today.inventoryAlertsQuantity, { quantity: item.quantity, unit: item.unit, minimum: item.minimumQuantity ?? "" }) : ""}{isLow && expiryLabel ? " · " : ""}{expiryLabel}</p></div>{isLow ? <button className="text-button" onClick={() => onSaveInventoryItem({ ...item, minimumQuantity: undefined })} type="button">{dictionary.today.inventoryAlertsRemoveMinimum}</button> : null}</article>; })}</div><p>{dictionary.today.inventoryAlertsFooter}</p></Card>;
 }
 
 function TodayInspectionFollowUps({ dictionary, inspections, locale, plants }: { dictionary: Dictionary; inspections: PlantInspection[]; locale: Locale; plants: Plant[] }) {
   const today = getTodayIso();
   const open = inspections.filter((inspection) => inspection.status === "open" && inspection.followUpDate).sort((first, second) => first.followUpDate!.localeCompare(second.followUpDate!));
   if (open.length === 0) return null;
-  return <Card as="section" className="inspection-followups mt-3 p-4 sm:p-5"><SectionHeader eyebrow={dictionary.today.inspectionsEyebrow} title={dictionary.today.inspectionsTitle} /><div>{open.slice(0, 6).map((inspection) => { const plant = plants.find((item) => item.id === inspection.plantId); return <article key={inspection.id}><div><strong>{plant?.name ?? dictionary.today.inspectionsPotFallback} · {inspection.area}</strong><p>{inspection.observation}</p><small>{inspection.followUpDate! <= today ? dictionary.today.inspectionsPendingReview : dictionary.today.inspectionsNextReview}: {formatDisplayDate(inspection.followUpDate!)}</small></div><Link className="text-button" href={`${getInternalSectionHref(locale, "spaces")}#${inspection.plantId}` as Route}>{dictionary.today.inspectionsViewPlant}</Link></article>; })}</div></Card>;
+  return <Card as="section" className="inspection-followups mt-3 p-4 sm:p-5" id="revisiones-hoy"><SectionHeader eyebrow={dictionary.today.inspectionsEyebrow} title={dictionary.today.inspectionsTitle} /><div>{open.slice(0, 6).map((inspection) => { const plant = plants.find((item) => item.id === inspection.plantId); return <article key={inspection.id}><div><strong>{plant?.name ?? dictionary.today.inspectionsPotFallback} · {inspection.area}</strong><p>{inspection.observation}</p><small>{inspection.followUpDate! <= today ? dictionary.today.inspectionsPendingReview : dictionary.today.inspectionsNextReview}: {formatDisplayDate(inspection.followUpDate!)}</small></div><Link className="text-button" href={`${getInternalSectionHref(locale, "spaces")}#${inspection.plantId}` as Route}>{dictionary.today.inspectionsViewPlant}</Link></article>; })}</div></Card>;
 }
 
 function TodayEnvironmentalAlerts({ acknowledgedAlerts, dictionary, environmentalAlerts, locale, measurements, onAcknowledge, plants }: { acknowledgedAlerts: string[]; dictionary: Dictionary; environmentalAlerts: PlantEnvironmentalAlertSettings[]; locale: Locale; measurements: PlantMeasurement[]; onAcknowledge: (alertKey: string) => void; plants: Plant[] }) {
@@ -2450,7 +2666,7 @@ function TodayEnvironmentalAlerts({ acknowledgedAlerts, dictionary, environmenta
   }).filter((item) => !acknowledgedAlerts.includes(item.alertKey));
 
   return (
-    <Card as="section" className="today-environment-alerts mt-3 p-4 sm:p-5" aria-labelledby="today-environment-alerts-title">
+    <Card as="section" className="today-environment-alerts mt-3 p-4 sm:p-5" aria-labelledby="today-environment-alerts-title" id="alertas-hoy">
       <header>
         <div><p className="eyebrow">{dictionary.today.environmentAlertsEyebrow}</p><h2 id="today-environment-alerts-title">{dictionary.today.environmentAlertsTitle}</h2><p>{dictionary.today.environmentAlertsBody}</p></div>
         <span className={activeAlerts.length > 0 ? "pill pill-amber" : "pill pill-green"}>{activeAlerts.length > 0 ? formatDictionaryString(dictionary.today.environmentAlertsActive, { n: activeAlerts.length, plural: activeAlerts.length === 1 ? "" : "s" }) : dictionary.today.environmentAlertsNoneActive}</span>
@@ -2478,7 +2694,7 @@ function EnvironmentalQuickAccess({ dictionary, locale, measurements, plants }: 
   const latestByPlant = plants.map((plant) => ({ latest: measurements.filter((measurement) => measurement.plantId === plant.id).sort((first, second) => second.measuredAt.localeCompare(first.measuredAt))[0], plant }));
 
   return (
-    <Card as="section" className="environment-quick-access mt-5 p-4 sm:p-5">
+    <Card as="section" className="environment-quick-access mt-5 p-4 sm:p-5" id="mediciones-hoy">
       <div>
         <p className="eyebrow">{dictionary.today.quickAccessEyebrow}</p>
         <h2>{dictionary.today.quickAccessTitle}</h2>
@@ -6685,35 +6901,51 @@ function InstallAppButton({ dictionary }: { dictionary: Dictionary }) {
 }
 
 function getInitialTheme(): "light" | "dark" {
-  if (typeof document === "undefined") return "light";
+  if (typeof document === "undefined") return "dark";
   return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
 }
 
 function ThemeToggle({ dictionary }: { dictionary: Dictionary }) {
-  // El atributo data-theme ya lo aplica ThemeScript antes de hidratar (ver
-  // components/theme-script.tsx), asi que alcanza con leerlo del DOM en el
-  // inicializador perezoso de useState en vez de sincronizarlo en un
-  // efecto. Para quien vuelve con modo oscuro guardado puede haber un
-  // mismatch de hidratacion puntual en este boton (icono/aria-label);
-  // React lo resuelve solo, es el mismo tradeoff que usan la mayoria de
-  // los toggles de tema.
-  const [theme, setTheme] = useState<"light" | "dark">(getInitialTheme);
+  // El servidor no tiene acceso a localStorage, asi que el primer render de
+  // este boton siempre arranca en "dark" (el default declarado en
+  // theme-script.tsx) para coincidir exactamente con lo que React renderizo
+  // en el servidor. Leer el DOM en el inicializador de useState -como hacia
+  // antes- rompia la hidratacion (error #418) en el caso real de quien habia
+  // elegido claro a mano: el servidor no puede saberlo, entonces el icono
+  // (Sun/MoonStar, un elemento distinto, no solo un atributo) no coincidia
+  // con lo que el cliente calculaba antes de hidratar. La correccion pasa a
+  // un efecto, que corre despues de la hidratacion y no puede generar ese
+  // mismatch: aplica un parpadeo de un frame como mucho en ese caso, en vez
+  // de un error.
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  // Mismo patron de dos efectos que useStoredState (mas abajo en este
+  // archivo): uno lee la fuente externa (el DOM, aca) y marca "hidratado" sin
+  // comparar contra el estado actual; el otro solo escribe hacia afuera
+  // (DOM + localStorage) una vez que ese primer efecto ya corrio. Asi el
+  // primer render despues de hidratar nunca reescribe el <html> con el
+  // "dark" por defecto antes de tener el valor real.
+  const [hydrated, setHydrated] = useState(false);
 
-  // La hidratacion de React sobre <html> no conoce data-theme (no forma
-  // parte del JSX del layout) y lo saca apenas termina de hidratar, aunque
-  // ThemeScript lo haya puesto antes. Este efecto vuelve a aplicarlo (y
-  // guarda la preferencia) cada vez que cambia el estado, incluida la
-  // primera vez despues de montar: es el uso correcto de un efecto, un
-  // sistema externo (el DOM, localStorage) sincronizado con el estado de
-  // React, no al reves.
   useEffect(() => {
+    const domTheme = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+    // Sincroniza el estado de React con lo que ThemeScript ya aplico al DOM
+    // antes de hidratar (una fuente externa real, no un valor derivable en
+    // el render); el mismo patron que arriba, sin la regla de lint, usa
+    // useStoredState un poco mas abajo en este archivo.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTheme(domTheme);
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
     if (theme === "dark") {
       document.documentElement.setAttribute("data-theme", "dark");
     } else {
       document.documentElement.removeAttribute("data-theme");
     }
     window.localStorage.setItem("pc-theme", theme);
-  }, [theme]);
+  }, [hydrated, theme]);
 
   function toggleTheme() {
     setTheme((current) => (current === "dark" ? "light" : "dark"));
@@ -6845,67 +7077,6 @@ function SectionStepper({
   );
 }
 
-function MiniStat({
-  description,
-  featured = false,
-  href,
-  label,
-  onSelect,
-  value
-}: {
-  description: string;
-  featured?: boolean;
-  href?: Route;
-  label: string;
-  onSelect?: () => void;
-  value: string;
-}) {
-  const className = featured ? "metric-card featured" : "metric-card";
-  const content = (
-    <>
-      {/*
-        La card "featured" fuerza sus propios colores por CSS con reglas
-        !important mas viejas que esto (`.metric-card.featured p:first-child`
-        y `main .uppercase`), asi que no hace falta pisarlas aca. La clase
-        `uppercase` se deja puesta a proposito, aunque `.text-label` ya la
-        aplique por CSS: esa clase es justamente lo que la regla vieja usa
-        para reconocer el texto y ponerlo legible sobre el fondo oscuro. Sacarla
-        dejaba la etiqueta en blanco sobre blanco (bug real que aparecio al
-        probar este cambio).
-      */}
-      <p className="text-value text-moss-950">{value}</p>
-      <p className="mt-1 text-label uppercase">{label}</p>
-    </>
-  );
-
-  if (href) {
-    return (
-      <Link className={className} href={href} title={description} aria-label={`${label}: ${value}. ${description}`}>
-        {content}
-      </Link>
-    );
-  }
-
-  if (onSelect) {
-    return (
-      <button
-        aria-label={`${label}: ${value}. ${description}`}
-        className={className}
-        onClick={onSelect}
-        title={description}
-        type="button"
-      >
-        {content}
-      </button>
-    );
-  }
-
-  return (
-    <div className={className} title={description} aria-label={`${label}: ${value}. ${description}`}>
-      {content}
-    </div>
-  );
-}
 
 function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (

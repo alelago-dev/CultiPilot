@@ -85,12 +85,16 @@
 }
 
 /* -----------------------------------------------------------------------
- * Modo oscuro opcional ("Invernadero nocturno") — el usuario lo activa a
- * mano desde el header; no sigue prefers-color-scheme del sistema. Cubre
- * la misma capa tokenizada que el resto de este bloque (header, hero,
- * cards, nav, calendario, formularios). Los paneles mas viejos del CSS
- * historico que usan colores propios sueltos (comparaciones, inventario,
- * dialogos por lote) no estan cubiertos todavia por esta pasada.
+ * Modo oscuro ("Invernadero nocturno") — ahora es el tema por defecto (ver
+ * components/theme-script.tsx): Ale lo pidió después de comparar con apps de
+ * cultivo de referencia. El usuario lo puede pasar a claro a mano desde el
+ * header; no sigue prefers-color-scheme del sistema. El verde de acento se
+ * afinó de un lima neón a un verde más natural (#3fcf6c), más parecido a las
+ * apps que tomamos como referencia. Cubre la misma capa tokenizada que el
+ * resto de este bloque (header, hero, cards, nav, calendario, formularios).
+ * Los paneles mas viejos del CSS historico que usan colores propios sueltos
+ * (comparaciones, inventario, dialogos por lote) no estan cubiertos todavia
+ * por esta pasada.
  * ----------------------------------------------------------------------- */
 :root[data-theme="dark"] {
   --pc-background: #0f1712;
@@ -100,16 +104,16 @@
   --pc-muted: #93a08f;
   --pc-border: #263129;
   --pc-border-strong: #34412f;
-  --pc-primary: #b6ff3c;
-  --pc-primary-hover: #9fe62b;
-  --pc-primary-soft: #20301f;
-  --pc-primary-soft-border: rgba(182, 255, 60, 0.22);
+  --pc-primary: #3fcf6c;
+  --pc-primary-hover: #33b85c;
+  --pc-primary-soft: #1c3324;
+  --pc-primary-soft-border: rgba(63, 207, 108, 0.22);
   --pc-legal: #5fd9c9;
   --pc-legal-soft: #132422;
   --pc-warn: #e8b64a;
   --pc-warn-soft: #2b2013;
-  --pc-ring: rgba(182, 255, 60, 0.4);
-  --pc-on-primary: #111a0c;
+  --pc-ring: rgba(63, 207, 108, 0.4);
+  --pc-on-primary: #0c1f14;
   --pc-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.32);
   --pc-shadow-lg: 0 16px 44px rgba(0, 0, 0, 0.4);
 }
@@ -8051,3 +8055,323 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
 .space-reassign-picker .form-control {
   min-height: 2.25rem;
 }
+
+/* ---------------------------------------------------------------------------
+ * Retema "Vivero nocturno" — parte 1 (pantalla de Hoy).
+ *
+ * Después de comparar con apps de cultivo de referencia (Growlog, Grow with
+ * Jane, Tom Brady VR), Ale pidió acercar la app a ese lenguaje visual: oscuro
+ * por defecto, un solo verde de acento, navegación inferior con íconos reales
+ * en círculo, y una tira de calendario semanal arriba de Hoy. Escrito con
+ * var(--pc-*) para no necesitar un parche aparte de modo claro/oscuro, mismo
+ * criterio que .trichome-analyzer y .space-create-control.
+ *
+ * Este primer parche cubre navegación + la tira semanal de Hoy. El resto del
+ * lenguaje visual del mockup (fotos de macetas, nube de "necesita tu
+ * atención") queda para una segunda parte: esas piezas necesitan datos reales
+ * (fotos declaradas, alertas activas agrupadas) para no mostrar algo vacío o
+ * inventado.
+ * ------------------------------------------------------------------------ */
+
+.nav-icon {
+  height: 34px !important;
+  width: 34px !important;
+  border-radius: 999px !important;
+  background: var(--pc-surface-subtle) !important;
+  color: var(--pc-muted);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.mobile-tab {
+  color: var(--pc-muted) !important;
+}
+
+.mobile-tab.active {
+  background: transparent !important;
+  color: var(--pc-foreground) !important;
+}
+
+.mobile-tab.active .nav-icon {
+  background: var(--pc-primary) !important;
+  color: var(--pc-on-primary);
+}
+
+.mobile-tab-bar {
+  background: var(--pc-surface) !important;
+  border: 1px solid var(--pc-border) !important;
+  box-shadow: var(--pc-shadow-lg) !important;
+}
+
+.week-strip {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.3rem;
+  margin: 0 0 1.1rem;
+  padding: 0.1rem 0.05rem 0;
+}
+
+.week-strip-day {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.week-strip-dow {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--pc-muted);
+}
+
+.week-strip-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.05rem;
+  height: 2.05rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--pc-foreground);
+}
+
+.week-strip-day.is-today .week-strip-num {
+  background: var(--pc-primary);
+  color: var(--pc-on-primary);
+  font-weight: 800;
+}
+
+.week-strip-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--pc-primary);
+}
+
+.week-strip-dot.is-empty {
+  background: transparent;
+}
+
+/* ---------------------------------------------------------------------------
+ * Modo oscuro: arreglos puntuales dentro de Hoy (.today-page).
+ *
+ * Varias piezas de Hoy usan utilidades de Tailwind con colores fijos
+ * (text-moss-950, text-stone-500/600/700, bg-paper/80, border-moss-950/10)
+ * que nunca se migraron al sistema de tokens --pc-* — ver el comentario en
+ * components/card.tsx, que ya señalaba .metric-card.featured como un caso
+ * pendiente. Mientras el oscuro era opt-in casi nadie lo notaba; al pasar a
+ * ser el tema por defecto quedaban tarjetas y texto claros sueltos sobre
+ * fondo oscuro. El arreglo se limita a .today-page (Hoy) a propósito: esas
+ * mismas clases de Tailwind se usan en otras secciones que todavía no
+ * pasamos por este chequeo, y un arreglo global sin probarlas de nuevo
+ * podría cambiar algo que hoy se ve bien por accidente.
+ * ------------------------------------------------------------------------ */
+:root[data-theme="dark"] .today-page .text-moss-950 {
+  color: var(--pc-foreground) !important;
+}
+
+:root[data-theme="dark"] .today-page .text-stone-500,
+:root[data-theme="dark"] .today-page .text-stone-600,
+:root[data-theme="dark"] .today-page .text-stone-700 {
+  color: var(--pc-muted) !important;
+}
+
+:root[data-theme="dark"] .today-page .bg-paper\/80 {
+  background-color: var(--pc-surface) !important;
+}
+
+:root[data-theme="dark"] .today-page .border-moss-950\/10 {
+  border-color: var(--pc-border) !important;
+}
+
+:root[data-theme="dark"] .today-page .metric-card.featured {
+  background: var(--pc-primary-soft) !important;
+  border-color: var(--pc-primary-soft-border) !important;
+}
+
+:root[data-theme="dark"] .today-page .grow-phase-step {
+  background: var(--pc-surface) !important;
+  border-color: var(--pc-border) !important;
+}
+
+:root[data-theme="dark"] .today-page .grow-phase-step strong {
+  color: var(--pc-foreground) !important;
+}
+
+:root[data-theme="dark"] .today-page .grow-phase-step small {
+  color: var(--pc-muted) !important;
+}
+
+:root[data-theme="dark"] .today-page .text-label {
+  color: var(--pc-muted) !important;
+}
+
+:root[data-theme="dark"] .today-page .today-stage-summary a {
+  background: var(--pc-surface-subtle) !important;
+  border-color: var(--pc-border) !important;
+}
+
+:root[data-theme="dark"] .today-page .environment-freshness-list a {
+  background: var(--pc-surface-subtle) !important;
+  border-color: var(--pc-border) !important;
+}
+
+:root[data-theme="dark"] .today-page .environment-freshness-list strong {
+  color: var(--pc-foreground) !important;
+}
+
+:root[data-theme="dark"] .today-page .environment-freshness-list span {
+  color: var(--pc-primary) !important;
+}
+
+:root[data-theme="dark"] .today-page .environment-freshness-list small {
+  color: var(--pc-muted) !important;
+}
+
+:root[data-theme="dark"] .today-page .today-environment-alert-empty {
+  background: var(--pc-primary-soft) !important;
+  color: var(--pc-foreground) !important;
+}
+
+:root[data-theme="dark"] .today-page .metric-tile {
+  background: var(--pc-surface-subtle) !important;
+  border-color: var(--pc-border) !important;
+}
+
+:root[data-theme="dark"] .today-page .coach-focus {
+  background: var(--pc-surface-subtle) !important;
+  border-color: var(--pc-border) !important;
+}
+
+:root[data-theme="dark"] .today-page .coach-check {
+  background: var(--pc-surface-subtle) !important;
+  border-color: var(--pc-border) !important;
+}
+
+:root[data-theme="dark"] .today-page .coach-check.active {
+  background: var(--pc-primary-soft) !important;
+  border-color: var(--pc-primary-soft-border) !important;
+}
+
+:root[data-theme="dark"] .today-page .coach-check span {
+  border-color: var(--pc-border-strong) !important;
+  color: var(--pc-foreground) !important;
+}
+
+:root[data-theme="dark"] .today-page .coach-check strong {
+  color: var(--pc-foreground) !important;
+}
+
+:root[data-theme="dark"] .today-page .coach-check small {
+  color: var(--pc-muted) !important;
+}
+
+:root[data-theme="dark"] .today-page .grow-command-card,
+:root[data-theme="dark"] .today-page .grow-command-card.accent {
+  background: var(--pc-surface) !important;
+  border-color: var(--pc-border) !important;
+}
+
+:root[data-theme="dark"] .today-page .coach-panel,
+:root[data-theme="dark"] .today-page .task-row,
+:root[data-theme="dark"] .today-page .weather-panel {
+  background: var(--pc-surface) !important;
+  border-color: var(--pc-border) !important;
+}
+
+.today-toolbox {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin: 0 0 1.2rem;
+  max-width: 20rem;
+}
+
+.today-toolbox-item {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--pc-muted);
+  text-decoration: none;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.today-toolbox-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  background: var(--pc-primary-soft);
+  color: var(--pc-primary);
+  transition: transform 0.12s ease;
+}
+
+.today-toolbox-item:hover .today-toolbox-icon {
+  transform: translateY(-1px);
+}
+
+/*
+ * Rediseño de Hoy parte 2: encabezado compacto, tarjeta "Necesita tu
+ * atención" y carrusel de macetas, siguiendo la maqueta hoy-mobile.html que
+ * Ale aprobó. Reemplaza al hero grande con párrafo y a los tres metric-card
+ * de arriba (esa sección queda sin usar y sus estilos previos, mas abajo en
+ * este archivo, ya no se aplican porque el JSX que los usaba se sacó).
+ */
+.today-header { margin-bottom: 1.1rem; }
+.today-header .eyebrow { margin: 0; }
+.today-header h1 { margin: 0.3rem 0 0; max-width: 22ch; font-size: 1.3rem; font-weight: 750; letter-spacing: -0.02em; line-height: 1.15; color: var(--pc-foreground); }
+.today-header-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin: 0.5rem 0 0; color: var(--pc-muted); font-family: var(--font-metrics); font-size: 0.76rem; font-weight: 600; }
+
+.attention-card { margin: 0 0 1.1rem; padding: 1rem 1.1rem; border-radius: 20px; background: var(--pc-surface); border: 1px solid var(--pc-border); box-shadow: var(--pc-shadow-sm); }
+.attention-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.6rem; }
+.attention-card-header .eyebrow { margin: 0; }
+.attention-card-header h2 { margin: 0.2rem 0 0; font-size: 0.98rem; font-weight: 750; color: var(--pc-foreground); }
+.attention-card-header .pill { flex: none; }
+.attention-chip-cloud { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.8rem; }
+.attention-chip { display: inline-flex; align-items: center; padding: 0.42rem 0.75rem; border-radius: 999px; background: var(--pc-warn-soft); border: 1px solid transparent; color: var(--pc-warn); font-size: 0.76rem; font-weight: 700; text-decoration: none; }
+.attention-empty-body { margin: 0.7rem 0 0; color: var(--pc-muted); font-size: 0.82rem; line-height: 1.5; }
+
+.plant-carousel-wrap { margin: 0 0 1.2rem; }
+.plant-carousel-eyebrow { margin: 0 0 0.6rem; font-size: 0.68rem; font-weight: 750; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pc-muted); }
+.plant-carousel { display: flex; gap: 0.75rem; margin: 0 -1rem; padding: 0.1rem 1rem 0.35rem; overflow-x: auto; scrollbar-width: none; }
+.plant-carousel::-webkit-scrollbar { display: none; }
+.plant-carousel-card { flex: none; width: 12.5rem; border-radius: 20px; overflow: hidden; background: var(--pc-surface); border: 1px solid var(--pc-border); text-decoration: none; color: inherit; box-shadow: var(--pc-shadow-sm); }
+.plant-carousel-art { position: relative; display: flex; align-items: center; justify-content: center; height: 6.5rem; background: linear-gradient(160deg, var(--pc-primary-soft), var(--pc-surface-subtle) 75%); }
+.plant-carousel-art .plant-state-icon { transform: scale(1.7); }
+.plant-carousel-stage { position: absolute; top: 0.6rem; left: 0.6rem; padding: 0.22rem 0.6rem; border-radius: 999px; background: rgba(12, 20, 15, 0.55); backdrop-filter: blur(4px); color: #fff; font-size: 0.64rem; font-weight: 700; }
+.plant-carousel-card strong { display: block; margin: 0.7rem 0.8rem 0; font-size: 0.86rem; font-weight: 750; color: var(--pc-foreground); }
+.plant-carousel-meta { display: block; margin: 0.3rem 0.8rem 0.8rem; color: var(--pc-muted); font-size: 0.68rem; font-weight: 600; }
+
+/*
+ * Bug preexistente encontrado al revisar la barra inferior en mobile con la
+ * nueva tapa de Hoy: la barra es un flex con overflow-x:auto y cada pestaña
+ * tiene flex: 1 0 4.35rem (flex-shrink 0), pensado para "scrollear" si no
+ * entran las 6 secciones (incluye Privacidad). A 420px de ancho eso deja la
+ * ultima pestaña cortada a la mitad sin ninguna pista visual de que hay que
+ * deslizar. Se permite que las 6 encojan parejo (flex-shrink 1, basis 0) y
+ * se trunca la etiqueta con puntos suspensivos en vez de desbordar.
+ */
+.mobile-tab { min-width: 0 !important; flex: 1 1 0% !important; padding-inline: 0.2rem !important; }
+.mobile-tab span:not(.nav-icon) { display: block; overflow: hidden; max-width: 100%; font-size: 0.62rem; white-space: nowrap; text-overflow: ellipsis; }
+
+/*
+ * Otro bug preexistente destapado por el mismo motivo: ".executive-home"
+ * (el contenedor de toda esta sección de Hoy) usa "display: grid" sin
+ * "grid-template-columns" declarado en un pase visual anterior. Sin esa
+ * propiedad, la única columna implícita se dimensiona a "auto" y crece
+ * para acomodar el contenido más ancho de sus hijos en vez de quedarse en
+ * el ancho real del contenedor. Con la nueva tira semanal (7 columnas
+ * flex) eso hacía que toda la página scrolleara horizontalmente en
+ * mobile. "minmax(0, 1fr)" fija la columna al ancho disponible para que
+ * los hijos puedan encogerse correctamente.
+ */
+.executive-home { grid-template-columns: minmax(0, 1fr) !important; }
