@@ -19,10 +19,11 @@
 import { useEffect, useState } from "react";
 
 import type { AccountStatus } from "@/components/app-shell";
+import type { Dictionary } from "@/lib/types";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getExistingPushSubscription, getPushSupportStatus, subscribeToPush, unsubscribeFromPush, type PushSupportStatus } from "@/lib/push-notifications";
 
-export function PushNotificationsPanel({ accountStatus }: { accountStatus: AccountStatus }) {
+export function PushNotificationsPanel({ accountStatus, dictionary }: { accountStatus: AccountStatus; dictionary: Dictionary }) {
   const [supportStatus, setSupportStatus] = useState<PushSupportStatus>("unsupported");
   const [isActive, setIsActive] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
@@ -54,9 +55,9 @@ export function PushNotificationsPanel({ accountStatus }: { accountStatus: Accou
   if (!accountStatus.isSignedIn) {
     return (
       <section aria-labelledby="push-notifications-title" className="push-notifications-panel">
-        <p className="plant-calculation-eyebrow">Avisos reales</p>
-        <h4 id="push-notifications-title">Notificaciones aunque la app esté cerrada</h4>
-        <p>Iniciá sesión arriba para poder activarlas: la suscripción queda asociada a tu cuenta, no a este navegador suelto.</p>
+        <p className="plant-calculation-eyebrow">{dictionary.push.eyebrow}</p>
+        <h4 id="push-notifications-title">{dictionary.push.title}</h4>
+        <p>{dictionary.push.signInPrompt}</p>
       </section>
     );
   }
@@ -64,9 +65,9 @@ export function PushNotificationsPanel({ accountStatus }: { accountStatus: Accou
   if (supportStatus === "unsupported") {
     return (
       <section aria-labelledby="push-notifications-title" className="push-notifications-panel">
-        <p className="plant-calculation-eyebrow">Avisos reales</p>
-        <h4 id="push-notifications-title">Notificaciones aunque la app esté cerrada</h4>
-        <p>Este navegador no soporta notificaciones push. En iPhone/iPad funciona si instalás PlantCare a la pantalla de inicio primero.</p>
+        <p className="plant-calculation-eyebrow">{dictionary.push.eyebrow}</p>
+        <h4 id="push-notifications-title">{dictionary.push.title}</h4>
+        <p>{dictionary.push.unsupported}</p>
       </section>
     );
   }
@@ -81,20 +82,20 @@ export function PushNotificationsPanel({ accountStatus }: { accountStatus: Accou
       if (isActive) {
         await unsubscribeFromPush(supabase);
         setIsActive(false);
-        setMessage("Avisos desactivados en este navegador.");
+        setMessage(dictionary.push.deactivatedMessage);
       } else {
         const result = await subscribeToPush(supabase, accountStatus.userId);
         if (result === "granted") {
           setIsActive(true);
-          setMessage("Avisos activados. Si tenés tareas vencidas o de hoy, llega un aviso una vez por día.");
+          setMessage(dictionary.push.activatedMessage);
         } else if (result === "denied") {
-          setMessage("El navegador bloqueó el permiso de notificaciones. Habilitalo en la configuración del sitio e intentá de nuevo.");
+          setMessage(dictionary.push.deniedMessage);
         } else {
-          setMessage("No se pudo activar el aviso en este navegador.");
+          setMessage(dictionary.push.failedMessage);
         }
       }
     } catch {
-      setMessage("No se pudo guardar la suscripción. Revisá tu conexión e intentá de nuevo.");
+      setMessage(dictionary.push.errorMessage);
     } finally {
       setIsBusy(false);
     }
@@ -103,15 +104,14 @@ export function PushNotificationsPanel({ accountStatus }: { accountStatus: Accou
   return (
     <section aria-labelledby="push-notifications-title" className="push-notifications-panel">
       <div>
-        <p className="plant-calculation-eyebrow">Avisos reales</p>
-        <h4 id="push-notifications-title">Notificaciones aunque la app esté cerrada</h4>
+        <p className="plant-calculation-eyebrow">{dictionary.push.eyebrow}</p>
+        <h4 id="push-notifications-title">{dictionary.push.title}</h4>
         <p>
-          Si tenés tareas abiertas vencidas o de hoy, PlantCare te manda un aviso una vez por día, aunque no tengas la
-          app abierta. Se activa por navegador: si usás el celular y la compu, activalo en cada uno.
+          {dictionary.push.description}
         </p>
       </div>
       <button className={isActive ? "secondary-button" : "primary-button"} disabled={isBusy} onClick={handleToggle} type="button">
-        {isBusy ? "Guardando..." : isActive ? "Desactivar avisos" : "Activar avisos"}
+        {isBusy ? dictionary.push.saving : isActive ? dictionary.push.deactivate : dictionary.push.activate}
       </button>
       {message ? <p className="push-notifications-status" role="status">{message}</p> : null}
     </section>

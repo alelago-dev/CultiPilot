@@ -37,6 +37,7 @@ import {
   type AppSection,
   type NavigationItem
 } from "@/lib/navigation";
+import { formatDictionaryString } from "@/lib/i18n";
 import { getGeneticsCatalogAlphabetically, type GeneticReferenceEntry } from "@/lib/genetics-catalog";
 import { requestReminderNotification } from "@/lib/notifications";
 import { assessPlantEnvironment, getConfiguredEnvironmentalAlerts, type EnvironmentalStatus } from "@/lib/environment-intelligence";
@@ -573,8 +574,8 @@ export function AppShell({
     isConfigured: isSupabaseConfigured(),
     isSignedIn: false,
     message: isSupabaseConfigured()
-      ? "Conecta una cuenta para guardar datos por usuario."
-      : "Demo local: falta configurar Supabase para sincronizar entre navegadores.",
+      ? dictionary.account.defaultInfoMessage
+      : dictionary.account.demoInfoMessage,
     tone: "info",
     userId: ""
   }));
@@ -1725,7 +1726,7 @@ export function AppShell({
               email: "",
               isConfigured: true,
               isSignedIn: false,
-              message: "Conecta una cuenta para guardar datos por usuario.",
+              message: dictionary.account.defaultInfoMessage,
               tone: "info",
               userId: ""
             }
@@ -1826,15 +1827,15 @@ export function AppShell({
     <main className="min-h-screen pb-28 text-moss-950 lg:pb-0">
       <header className="app-header sticky top-0 z-20 border-b border-moss-950/10 bg-paper/92 backdrop-blur-xl">
         <div className="app-header-inner mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <Link className="brand-lockup flex items-center gap-3" href={todayLinkHref as Route} aria-label="PlantCare Calendar, ir a Hoy">
+          <Link className="brand-lockup flex items-center gap-3" href={todayLinkHref as Route} aria-label={dictionary.header.brandAriaLabel}>
             <BrandLogo />
             <span>
               <span className="block text-xs font-black uppercase text-moss-700">PlantCare</span>
-              <span className="block text-lg font-black leading-none tracking-tight text-moss-950">Calendario</span>
+              <span className="block text-lg font-black leading-none tracking-tight text-moss-950">{dictionary.header.brandTagline}</span>
             </span>
           </Link>
 
-          <nav aria-label="Secciones principales" className="desktop-navigation hidden items-center gap-1 rounded-lg border border-moss-950/10 bg-white/82 p-1 shadow-sm lg:flex">
+          <nav aria-label={dictionary.header.navAriaLabel} className="desktop-navigation hidden items-center gap-1 rounded-lg border border-moss-950/10 bg-white/82 p-1 shadow-sm lg:flex">
             {navItems.map((item) => (
               <Link
                 className={currentSection === item.key ? "desktop-nav-item active" : "desktop-nav-item"}
@@ -1848,22 +1849,22 @@ export function AppShell({
 
           <div className="header-actions flex items-center gap-2">
             <Link
-              aria-label="Registrar temperatura y humedad para calcular VPD"
+              aria-label={dictionary.header.vpdAriaLabel}
               className="header-vpd-button"
               href={`${getInternalSectionHref(locale, "spaces")}#mediciones-ambientales` as Route}
             >
               <Thermometer aria-hidden="true" size={17} strokeWidth={2.5} />
-              <span className="sm:hidden">VPD</span>
-              <span className="hidden sm:inline">Medir VPD</span>
+              <span className="sm:hidden">{dictionary.header.vpdShort}</span>
+              <span className="hidden sm:inline">{dictionary.header.vpdLong}</span>
             </Link>
-            <InstallAppButton />
+            <InstallAppButton dictionary={dictionary} />
             <LocaleSwitcher currentSection={currentSection} locale={locale} />
-            <ThemeToggle />
+            <ThemeToggle dictionary={dictionary} />
             <div className="hidden items-center gap-2 rounded-lg border border-emerald-700/15 bg-white/88 px-3 py-2 text-sm font-bold text-moss-900 shadow-sm sm:flex">
               <span className="status-dot" aria-hidden="true" />
-              Demo seguro
+              {dictionary.header.demoBadge}
             </div>
-            <AccountAvatarButton accountStatus={accountStatus} onOpen={() => setShowAccountDialog(true)} />
+            <AccountAvatarButton accountStatus={accountStatus} dictionary={dictionary} onOpen={() => setShowAccountDialog(true)} />
           </div>
         </div>
       </header>
@@ -1871,6 +1872,7 @@ export function AppShell({
       {showAccountDialog ? (
         <AccountDialog
           accountStatus={accountStatus}
+          dictionary={dictionary}
           onClose={() => setShowAccountDialog(false)}
           onCreateShareCode={handleCreateShareCode}
           onOpenSharedView={handleOpenSharedView}
@@ -1889,19 +1891,19 @@ export function AppShell({
         <div className={`shared-view-banner ${sharedNoticeCollapsed ? "is-collapsed" : ""}`} role="status">
           <span className="shared-view-banner-text">
             <strong>{viewingShare.ownerLabel}</strong>
-            <span>{sharedNoticeCollapsed ? "Solo lectura" : "Estas viendo sus cultivos en solo lectura. Los cambios no se guardan."}</span>
+            <span>{sharedNoticeCollapsed ? dictionary.sharedView.readOnly : dictionary.sharedView.viewingMessage}</span>
           </span>
           {sharedNoticeCollapsed ? (
             <button className="shared-view-banner-ghost" onClick={() => setSharedNoticeCollapsed(false)} type="button">
-              Ver
+              {dictionary.sharedView.show}
             </button>
           ) : (
             <button className="shared-view-banner-ghost" onClick={() => setSharedNoticeCollapsed(true)} type="button">
-              Ocultar
+              {dictionary.sharedView.hide}
             </button>
           )}
           <button className="shared-view-banner-button" onClick={handleCloseSharedView} type="button">
-            Mis cultivos
+            {dictionary.sharedView.myGrows}
           </button>
         </div>
       ) : null}
@@ -2023,6 +2025,7 @@ export function AppShell({
 
       {showOnboarding && !shouldShowFirstCultivation ? (
         <OnboardingFlow
+          dictionary={dictionary}
           onClose={() => {
             window.localStorage.setItem(storageKeys.onboarding, "true");
             setShowOnboarding(false);
@@ -2033,13 +2036,14 @@ export function AppShell({
 
       {!shouldShowFirstCultivation ? (
         <SectionStepper
+          dictionary={dictionary}
           locale={locale}
           nextItem={nextNavItem}
           previousItem={previousNavItem}
         />
       ) : null}
 
-      <nav className="mobile-tab-bar" aria-label="Navegación principal móvil">
+      <nav className="mobile-tab-bar" aria-label={dictionary.header.mobileNavAriaLabel}>
         {navItems.map((item) => (
           <Link className={currentSection === item.key ? "mobile-tab active" : "mobile-tab"} href={getInternalSectionHref(locale, item.key) as Route} key={item.key}>
             <span className="nav-icon" aria-hidden="true">
@@ -2286,7 +2290,7 @@ function TodaySection({
   weather: WeatherReadiness;
   weatherStatus: string;
 }) {
-  const racheDescription = "Dias seguidos marcando al menos una tarea como hecha.";
+  const racheDescription = dictionary.today.statsStreakDescription;
   const [showRachaHint, setShowRachaHint] = useState(false);
 
   return (
@@ -2294,29 +2298,29 @@ function TodaySection({
       <section className="executive-home mx-auto max-w-7xl px-4 pb-5 pt-4 sm:px-6 lg:px-8 lg:pt-6">
         <div className="executive-hero">
           <div className="executive-hero-copy min-w-0">
-            <div className="today-context-line"><p className="eyebrow">Panel operativo</p><time dateTime={getTodayIso()}>{formatDisplayDate(getTodayIso())}</time></div>
-            <h1>Todo tu cultivo, claro y al día</h1>
+            <div className="today-context-line"><p className="eyebrow">{dictionary.today.panelEyebrow}</p><time dateTime={getTodayIso()}>{formatDisplayDate(getTodayIso())}</time></div>
+            <h1>{dictionary.today.heroTitle}</h1>
             <p>{dictionary.hero.body}</p>
           </div>
           <div className="executive-metrics">
             <MiniStat
-              description="Plantas activas que tenes registradas en Espacios."
+              description={dictionary.today.statsGrowsDescription}
               href={getInternalSectionHref(locale, "spaces") as Route}
-              label="Cultivos"
+              label={dictionary.today.statsGrowsLabel}
               value={plants.length.toString()}
             />
             <MiniStat
-              description="Tareas de hoy que todavia no marcaste como hechas. Las ves en la lista de abajo."
+              description={dictionary.today.statsPendingDescription}
               featured
               href={"#tareas-hoy" as Route}
-              label="Pendientes"
+              label={dictionary.today.statsPendingLabel}
               value={openTasks.toString()}
             />
             <MiniStat
               description={racheDescription}
-              label="Racha"
+              label={dictionary.today.statsStreakLabel}
               onSelect={() => setShowRachaHint((current) => !current)}
-              value={`${streakCount} dias`}
+              value={formatDictionaryString(dictionary.today.statsStreakValue, { n: streakCount })}
             />
           </div>
           {showRachaHint ? (
@@ -2327,29 +2331,31 @@ function TodaySection({
         </div>
 
         <div className="executive-overview today-command-grid">
-          <GrowCommandPanel calendarEvents={calendarEvents} plants={plants} />
+          <GrowCommandPanel calendarEvents={calendarEvents} dictionary={dictionary} plants={plants} />
           <HomeAccountPanel
             accountStatus={accountStatus}
+            dictionary={dictionary}
             onSaveRemoteSnapshot={onSaveRemoteSnapshot}
             onSendMagicLink={onSendMagicLink}
             onSignOut={onSignOut}
           />
-          <PushNotificationsPanel accountStatus={accountStatus} />
+          <PushNotificationsPanel accountStatus={accountStatus} dictionary={dictionary} />
         </div>
-        <EnvironmentalQuickAccess locale={locale} measurements={measurements} plants={plants} />
-        <TodayStageSummary locale={locale} plants={plants} transitions={stageTransitions} />
-        <TodayEnvironmentalAlerts acknowledgedAlerts={acknowledgedEnvironmentalAlerts} environmentalAlerts={environmentalAlerts} locale={locale} measurements={measurements} onAcknowledge={onAcknowledgeEnvironmentalAlert} plants={plants} />
-        <TodayInspectionFollowUps inspections={inspections} locale={locale} plants={plants} />
-        <TodayInventoryAlerts inventoryItems={inventoryItems} onSaveInventoryItem={onSaveInventoryItem} />
+        <EnvironmentalQuickAccess dictionary={dictionary} locale={locale} measurements={measurements} plants={plants} />
+        <TodayStageSummary dictionary={dictionary} locale={locale} plants={plants} transitions={stageTransitions} />
+        <TodayEnvironmentalAlerts acknowledgedAlerts={acknowledgedEnvironmentalAlerts} dictionary={dictionary} environmentalAlerts={environmentalAlerts} locale={locale} measurements={measurements} onAcknowledge={onAcknowledgeEnvironmentalAlert} plants={plants} />
+        <TodayInspectionFollowUps dictionary={dictionary} inspections={inspections} locale={locale} plants={plants} />
+        <TodayInventoryAlerts dictionary={dictionary} inventoryItems={inventoryItems} onSaveInventoryItem={onSaveInventoryItem} />
       </section>
 
       <section className="mx-auto grid max-w-7xl gap-5 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
         <Card as="section" aria-labelledby="today-title" className="p-4 sm:p-5" id="tareas-hoy" variant="elevated">
-          <SectionHeader eyebrow="Panel principal" title="Tareas de hoy" />
+          <SectionHeader eyebrow={dictionary.today.tasksEyebrow} title={dictionary.today.tasksTitle} />
           <div className="mt-5 grid gap-3">
             {agendaItems.length > 0 ? (
               agendaItems.map((task, index) => (
                 <TaskCard
+                  dictionary={dictionary}
                   isPrimary={index === 0 && task.status !== "done"}
                   key={`${task.source}-${task.id}`}
                   onToggle={() => onToggleTask(task)}
@@ -2359,8 +2365,8 @@ function TodaySection({
               ))
             ) : (
               <EmptyState
-                body="Cuando crees recordatorios o tareas, este panel va a mostrar primero lo urgente."
-                title="No hay tareas para hoy"
+                body={dictionary.today.tasksEmptyBody}
+                title={dictionary.today.tasksEmptyTitle}
               />
             )}
           </div>
@@ -2368,9 +2374,9 @@ function TodaySection({
 
         <Card as="section" aria-labelledby="weather-title" className="p-4 sm:p-5" variant="subtle">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <SectionHeader eyebrow="Clima" title="Condiciones del espacio" />
+            <SectionHeader eyebrow={dictionary.today.weatherEyebrow} title={dictionary.today.weatherTitle} />
             <span className={weather.isLive ? "pill pill-green" : "pill pill-blue"}>
-              {weather.isLive ? "Tiempo real" : "Ubicacion pendiente"}
+              {weather.isLive ? dictionary.today.weatherLive : dictionary.today.weatherPending}
             </span>
           </div>
           <div className="mt-5 grid gap-4 md:grid-cols-[0.85fr_1.15fr]">
@@ -2382,7 +2388,7 @@ function TodaySection({
               <p className="mt-3 text-sm leading-6 text-stone-700">{weather.message}</p>
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <button className="primary-button" onClick={onUseDeviceWeather} type="button">
-                  {weather.isLive ? "Actualizar clima" : "Usar ubicacion del dispositivo"}
+                  {weather.isLive ? dictionary.today.weatherRefresh : dictionary.today.weatherUseDevice}
                 </button>
                 {weatherStatus ? <span className="text-xs font-black text-stone-600">{weatherStatus}</span> : null}
               </div>
@@ -2401,36 +2407,36 @@ function TodaySection({
 
       <section className="mx-auto mt-5 max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-          <PlantCareCoach agendaItems={agendaItems} plants={plants} />
-          <SeasonInsights calendarEvents={calendarEvents} careScore={careScore} plants={plants} tasks={tasks} />
+          <PlantCareCoach agendaItems={agendaItems} dictionary={dictionary} plants={plants} />
+          <SeasonInsights calendarEvents={calendarEvents} careScore={careScore} dictionary={dictionary} plants={plants} tasks={tasks} />
         </div>
       </section>
     </>
   );
 }
 
-function TodayStageSummary({ locale, plants, transitions }: { locale: Locale; plants: Plant[]; transitions: PlantStageTransition[] }) {
+function TodayStageSummary({ dictionary, locale, plants, transitions }: { dictionary: Dictionary; locale: Locale; plants: Plant[]; transitions: PlantStageTransition[] }) {
   if (plants.length === 0) return null;
   const today = parseIsoDate(getTodayIso()).getTime();
-  return <Card as="section" className="today-stage-summary mt-3 p-4 sm:p-5"><SectionHeader eyebrow="Etapas declaradas" title="Tiempo en la etapa actual" /><div>{plants.map((plant) => { const latest = transitions.filter((item) => item.plantId === plant.id).sort((first, second) => second.changedAt.localeCompare(first.changedAt))[0]; const days = latest ? Math.max(0, Math.floor((today - parseIsoDate(latest.changedAt.slice(0, 10)).getTime()) / 86_400_000)) : undefined; return <a href={`${getInternalSectionHref(locale, "spaces")}#${plant.id}`} key={plant.id}><div><strong>{plant.name}</strong><span>{plant.stage}</span></div><p>{latest ? `${days} día${days === 1 ? "" : "s"} desde el cambio declarado el ${formatDisplayDate(latest.changedAt.slice(0, 10))}` : "Sin una fecha de cambio de etapa registrada."}</p></a>; })}</div><p>Este resumen cuenta días calendario desde fechas declaradas. No estima cuándo debería cambiar la etapa.</p></Card>;
+  return <Card as="section" className="today-stage-summary mt-3 p-4 sm:p-5"><SectionHeader eyebrow={dictionary.today.stageSummaryEyebrow} title={dictionary.today.stageSummaryTitle} /><div>{plants.map((plant) => { const latest = transitions.filter((item) => item.plantId === plant.id).sort((first, second) => second.changedAt.localeCompare(first.changedAt))[0]; const days = latest ? Math.max(0, Math.floor((today - parseIsoDate(latest.changedAt.slice(0, 10)).getTime()) / 86_400_000)) : undefined; return <a href={`${getInternalSectionHref(locale, "spaces")}#${plant.id}`} key={plant.id}><div><strong>{plant.name}</strong><span>{plant.stage}</span></div><p>{latest ? formatDictionaryString(dictionary.today.stageSummaryDaysSince, { days: `${days} ${locale === "en" ? (days === 1 ? "day" : "days") : `día${days === 1 ? "" : "s"}`}`, date: formatDisplayDate(latest.changedAt.slice(0, 10)) }) : dictionary.today.stageSummaryNoDate}</p></a>; })}</div><p>{dictionary.today.stageSummaryFooter}</p></Card>;
 }
 
-function TodayInventoryAlerts({ inventoryItems, onSaveInventoryItem }: { inventoryItems: InventoryItem[]; onSaveInventoryItem: (item: InventoryItem, context?: InventoryMovementContext) => void }) {
+function TodayInventoryAlerts({ dictionary, inventoryItems, onSaveInventoryItem }: { dictionary: Dictionary; inventoryItems: InventoryItem[]; onSaveInventoryItem: (item: InventoryItem, context?: InventoryMovementContext) => void }) {
   const lowStock = inventoryItems.filter((item) => item.minimumQuantity !== undefined && item.quantity <= item.minimumQuantity);
   const today = getTodayIso(); const expiryWindow = offsetDate(today, 30); const expiring = inventoryItems.filter((item) => item.expiresAt && item.expiresAt <= expiryWindow);
   const visibleItems = inventoryItems.filter((item) => lowStock.includes(item) || expiring.includes(item));
   if (visibleItems.length === 0) return null;
-  return <Card as="section" className="inventory-alerts mt-3 p-4 sm:p-5"><SectionHeader eyebrow="Datos declarados" title="Inventario para revisar" /><div>{visibleItems.map((item) => { const isLow = lowStock.includes(item); const expiryLabel = item.expiresAt ? item.expiresAt < today ? `Vencimiento declarado: ${formatDisplayDate(item.expiresAt)} (fecha pasada)` : `Vence el ${formatDisplayDate(item.expiresAt)}` : ""; return <article key={item.id}><div><strong>{item.name}</strong><p>{isLow ? `${item.quantity} ${item.unit} disponibles · mínimo configurado: ${item.minimumQuantity} ${item.unit}` : ""}{isLow && expiryLabel ? " · " : ""}{expiryLabel}</p></div>{isLow ? <button className="text-button" onClick={() => onSaveInventoryItem({ ...item, minimumQuantity: undefined })} type="button">Quitar mínimo</button> : null}</article>; })}</div><p>Los avisos usan solamente el mínimo y el vencimiento cargados por el usuario. La ventana de vencimiento es de 30 días y no estima estabilidad del producto.</p></Card>;
+  return <Card as="section" className="inventory-alerts mt-3 p-4 sm:p-5"><SectionHeader eyebrow={dictionary.today.inventoryAlertsEyebrow} title={dictionary.today.inventoryAlertsTitle} /><div>{visibleItems.map((item) => { const isLow = lowStock.includes(item); const expiryLabel = item.expiresAt ? (item.expiresAt < today ? formatDictionaryString(dictionary.today.inventoryAlertsExpiredOn, { date: formatDisplayDate(item.expiresAt) }) : formatDictionaryString(dictionary.today.inventoryAlertsExpiresOn, { date: formatDisplayDate(item.expiresAt) })) : ""; return <article key={item.id}><div><strong>{item.name}</strong><p>{isLow ? formatDictionaryString(dictionary.today.inventoryAlertsQuantity, { quantity: item.quantity, unit: item.unit, minimum: item.minimumQuantity ?? "" }) : ""}{isLow && expiryLabel ? " · " : ""}{expiryLabel}</p></div>{isLow ? <button className="text-button" onClick={() => onSaveInventoryItem({ ...item, minimumQuantity: undefined })} type="button">{dictionary.today.inventoryAlertsRemoveMinimum}</button> : null}</article>; })}</div><p>{dictionary.today.inventoryAlertsFooter}</p></Card>;
 }
 
-function TodayInspectionFollowUps({ inspections, locale, plants }: { inspections: PlantInspection[]; locale: Locale; plants: Plant[] }) {
+function TodayInspectionFollowUps({ dictionary, inspections, locale, plants }: { dictionary: Dictionary; inspections: PlantInspection[]; locale: Locale; plants: Plant[] }) {
   const today = getTodayIso();
   const open = inspections.filter((inspection) => inspection.status === "open" && inspection.followUpDate).sort((first, second) => first.followUpDate!.localeCompare(second.followUpDate!));
   if (open.length === 0) return null;
-  return <Card as="section" className="inspection-followups mt-3 p-4 sm:p-5"><SectionHeader eyebrow="Seguimiento declarado" title="Próximas inspecciones" /><div>{open.slice(0, 6).map((inspection) => { const plant = plants.find((item) => item.id === inspection.plantId); return <article key={inspection.id}><div><strong>{plant?.name ?? "Maceta"} · {inspection.area}</strong><p>{inspection.observation}</p><small>{inspection.followUpDate! <= today ? "Revisión pendiente" : "Próxima revisión"}: {formatDisplayDate(inspection.followUpDate!)}</small></div><Link className="text-button" href={`${getInternalSectionHref(locale, "spaces")}#${inspection.plantId}` as Route}>Ver maceta</Link></article>; })}</div></Card>;
+  return <Card as="section" className="inspection-followups mt-3 p-4 sm:p-5"><SectionHeader eyebrow={dictionary.today.inspectionsEyebrow} title={dictionary.today.inspectionsTitle} /><div>{open.slice(0, 6).map((inspection) => { const plant = plants.find((item) => item.id === inspection.plantId); return <article key={inspection.id}><div><strong>{plant?.name ?? dictionary.today.inspectionsPotFallback} · {inspection.area}</strong><p>{inspection.observation}</p><small>{inspection.followUpDate! <= today ? dictionary.today.inspectionsPendingReview : dictionary.today.inspectionsNextReview}: {formatDisplayDate(inspection.followUpDate!)}</small></div><Link className="text-button" href={`${getInternalSectionHref(locale, "spaces")}#${inspection.plantId}` as Route}>{dictionary.today.inspectionsViewPlant}</Link></article>; })}</div></Card>;
 }
 
-function TodayEnvironmentalAlerts({ acknowledgedAlerts, environmentalAlerts, locale, measurements, onAcknowledge, plants }: { acknowledgedAlerts: string[]; environmentalAlerts: PlantEnvironmentalAlertSettings[]; locale: Locale; measurements: PlantMeasurement[]; onAcknowledge: (alertKey: string) => void; plants: Plant[] }) {
+function TodayEnvironmentalAlerts({ acknowledgedAlerts, dictionary, environmentalAlerts, locale, measurements, onAcknowledge, plants }: { acknowledgedAlerts: string[]; dictionary: Dictionary; environmentalAlerts: PlantEnvironmentalAlertSettings[]; locale: Locale; measurements: PlantMeasurement[]; onAcknowledge: (alertKey: string) => void; plants: Plant[] }) {
   const configuredPlantIds = new Set(environmentalAlerts.map((settings) => settings.plantId));
   const activeAlerts = plants.flatMap((plant) => {
     const latestMeasurement = measurements.filter((measurement) => measurement.plantId === plant.id).sort((first, second) => second.measuredAt.localeCompare(first.measuredAt))[0];
@@ -2443,27 +2449,27 @@ function TodayEnvironmentalAlerts({ acknowledgedAlerts, environmentalAlerts, loc
   return (
     <Card as="section" className="today-environment-alerts mt-3 p-4 sm:p-5" aria-labelledby="today-environment-alerts-title">
       <header>
-        <div><p className="eyebrow">Límites personalizados</p><h2 id="today-environment-alerts-title">Alertas ambientales</h2><p>Compara la última lectura de cada maceta con los límites que configuraste.</p></div>
-        <span className={activeAlerts.length > 0 ? "pill pill-amber" : "pill pill-green"}>{activeAlerts.length > 0 ? `${activeAlerts.length} activa${activeAlerts.length === 1 ? "" : "s"}` : "Sin alertas activas"}</span>
+        <div><p className="eyebrow">{dictionary.today.environmentAlertsEyebrow}</p><h2 id="today-environment-alerts-title">{dictionary.today.environmentAlertsTitle}</h2><p>{dictionary.today.environmentAlertsBody}</p></div>
+        <span className={activeAlerts.length > 0 ? "pill pill-amber" : "pill pill-green"}>{activeAlerts.length > 0 ? formatDictionaryString(dictionary.today.environmentAlertsActive, { n: activeAlerts.length, plural: activeAlerts.length === 1 ? "" : "s" }) : dictionary.today.environmentAlertsNoneActive}</span>
       </header>
       {activeAlerts.length > 0 ? (
         <div className="today-environment-alert-list" role="alert">
           {activeAlerts.slice(0, 8).map(({ alert, alertKey, measurement, plant }) => (
             <article key={`${plant.id}-${alert.label}-${alert.direction}`}>
-              <div><strong>{plant.name} · {alert.label}</strong><p>{alert.value}{alert.unit}, {alert.direction === "below" ? "por debajo del mínimo" : "por encima del máximo"} {alert.limit}{alert.unit}.</p><small>Última lectura: {formatMeasurementDate(measurement.measuredAt)} · {formatMeasurementSource(measurement.source)}</small></div>
-              <div className="today-environment-alert-actions"><button className="text-button" onClick={() => onAcknowledge(alertKey)} type="button">Marcar revisada</button><Link className="text-button" href={`${getInternalSectionHref(locale, "spaces")}#${plant.id}` as Route}>Ver maceta</Link></div>
+              <div><strong>{plant.name} · {alert.label}</strong><p>{alert.value}{alert.unit}, {alert.direction === "below" ? dictionary.today.environmentAlertsBelowMin : dictionary.today.environmentAlertsAboveMax} {alert.limit}{alert.unit}.</p><small>{formatDictionaryString(dictionary.today.environmentAlertsLastReading, { date: formatMeasurementDate(measurement.measuredAt), source: formatMeasurementSource(measurement.source) })}</small></div>
+              <div className="today-environment-alert-actions"><button className="text-button" onClick={() => onAcknowledge(alertKey)} type="button">{dictionary.today.environmentAlertsAcknowledge}</button><Link className="text-button" href={`${getInternalSectionHref(locale, "spaces")}#${plant.id}` as Route}>{dictionary.today.environmentAlertsViewPlant}</Link></div>
             </article>
           ))}
         </div>
       ) : (
-        <p className="today-environment-alert-empty">{configuredPlantIds.size > 0 ? `Ninguna última lectura supera los límites configurados en ${configuredPlantIds.size} maceta${configuredPlantIds.size === 1 ? "" : "s"}.` : "Todavía no configuraste límites personalizados. Podés hacerlo desde la ficha de cada maceta."}</p>
+        <p className="today-environment-alert-empty">{configuredPlantIds.size > 0 ? formatDictionaryString(dictionary.today.environmentAlertsEmptyConfigured, { n: configuredPlantIds.size, plural: configuredPlantIds.size === 1 ? "" : "s" }) : dictionary.today.environmentAlertsEmptyUnconfigured}</p>
       )}
-      <p className="today-environment-alert-note">Son avisos explicables basados en la última medición guardada; no representan un diagnóstico ni modifican equipos automáticamente.</p>
+      <p className="today-environment-alert-note">{dictionary.today.environmentAlertsFooter}</p>
     </Card>
   );
 }
 
-function EnvironmentalQuickAccess({ locale, measurements, plants }: { locale: Locale; measurements: PlantMeasurement[]; plants: Plant[] }) {
+function EnvironmentalQuickAccess({ dictionary, locale, measurements, plants }: { dictionary: Dictionary; locale: Locale; measurements: PlantMeasurement[]; plants: Plant[] }) {
   const measuredPlantIds = new Set(measurements.map((measurement) => measurement.plantId));
   const pendingCount = plants.filter((plant) => !measuredPlantIds.has(plant.id)).length;
   const latestByPlant = plants.map((plant) => ({ latest: measurements.filter((measurement) => measurement.plantId === plant.id).sort((first, second) => second.measuredAt.localeCompare(first.measuredAt))[0], plant }));
@@ -2471,18 +2477,18 @@ function EnvironmentalQuickAccess({ locale, measurements, plants }: { locale: Lo
   return (
     <Card as="section" className="environment-quick-access mt-5 p-4 sm:p-5">
       <div>
-        <p className="eyebrow">Carga rápida</p>
-        <h2>Mediciones ambientales</h2>
-        <p>Registrá temperatura y humedad por maceta para calcular VPD. La temperatura foliar y los demás datos son opcionales.</p>
+        <p className="eyebrow">{dictionary.today.quickAccessEyebrow}</p>
+        <h2>{dictionary.today.quickAccessTitle}</h2>
+        <p>{dictionary.today.quickAccessBody}</p>
       </div>
       <div className="environment-quick-access-action">
-        <span>{pendingCount > 0 ? `${pendingCount} maceta${pendingCount === 1 ? "" : "s"} sin mediciones` : "Todas las macetas tienen historial"}</span>
+        <span>{pendingCount > 0 ? formatDictionaryString(dictionary.today.quickAccessPending, { n: pendingCount, plural: pendingCount === 1 ? "" : "s" }) : dictionary.today.quickAccessAllUpToDate}</span>
         <Link className="primary-button" href={`${getInternalSectionHref(locale, "spaces")}#mediciones-ambientales` as Route}>
-          Registrar medición
+          {dictionary.today.quickAccessRegister}
         </Link>
       </div>
       <div className="environment-freshness-list">
-        {latestByPlant.map(({ latest, plant }) => <Link href={`${getInternalSectionHref(locale, "spaces")}#${plant.id}` as Route} key={plant.id}><strong>{plant.name}</strong><span>{latest ? `Última medición: ${formatMeasurementAge(latest.measuredAt)}` : "Sin mediciones"}</span>{latest ? <small>{formatMeasurementDate(latest.measuredAt)} · {formatMeasurementSource(latest.source)}</small> : null}</Link>)}
+        {latestByPlant.map(({ latest, plant }) => <Link href={`${getInternalSectionHref(locale, "spaces")}#${plant.id}` as Route} key={plant.id}><strong>{plant.name}</strong><span>{latest ? formatDictionaryString(dictionary.today.quickAccessLastMeasurement, { age: formatMeasurementAge(latest.measuredAt) }) : dictionary.today.quickAccessNoMeasurements}</span>{latest ? <small>{formatMeasurementDate(latest.measuredAt)} · {formatMeasurementSource(latest.source)}</small> : null}</Link>)}
       </div>
     </Card>
   );
@@ -2490,9 +2496,11 @@ function EnvironmentalQuickAccess({ locale, measurements, plants }: { locale: Lo
 
 function GrowCommandPanel({
   calendarEvents,
+  dictionary,
   plants
 }: {
   calendarEvents: CalendarEvent[];
+  dictionary: Dictionary;
   plants: Plant[];
 }) {
   const todayIso = getTodayIso();
@@ -2501,21 +2509,21 @@ function GrowCommandPanel({
     .sort((first, second) => first.startDate.localeCompare(second.startDate))
     .slice(0, 3);
   const stages = [
-    { id: "sprout", label: "Semilla" },
-    { id: "leaf", label: "Vegetativo" },
-    { id: "flower", label: "Floracion" },
-    { id: "harvest", label: "Cosecha" }
+    { id: "sprout", label: dictionary.today.growCommandStageSeed },
+    { id: "leaf", label: dictionary.today.growCommandStageVeg },
+    { id: "flower", label: dictionary.today.growCommandStageFlower },
+    { id: "harvest", label: dictionary.today.growCommandStageHarvest }
   ];
 
   return (
     <section className="grow-command" aria-labelledby="grow-command-title">
       <div className="grow-command-copy">
-        <p className="eyebrow text-mint-50/80">Centro operativo</p>
-        <h2 id="grow-command-title">Estado activo</h2>
-        <p>Resumen de plantas, etapas declaradas y proximos eventos manuales.</p>
+        <p className="eyebrow text-mint-50/80">{dictionary.today.growCommandEyebrow}</p>
+        <h2 id="grow-command-title">{dictionary.today.growCommandTitle}</h2>
+        <p>{dictionary.today.growCommandBody}</p>
       </div>
       <div className="grow-command-board">
-        <div className="grow-phase-rail" aria-label="Etapas declaradas">
+        <div className="grow-phase-rail" aria-label={dictionary.today.growCommandStagesAriaLabel}>
           {stages.map((stage) => {
             const stageCount = plants.filter((plant) => getPlantStage(plant.stage) === stage.id).length;
 
@@ -2530,7 +2538,7 @@ function GrowCommandPanel({
         </div>
         <div className="grow-command-grid">
           <div className="grow-command-card accent">
-            <p className="text-[11px] font-black uppercase text-mint-50/75">Plantas activas</p>
+            <p className="text-[11px] font-black uppercase text-mint-50/75">{dictionary.today.growCommandActivePlants}</p>
             <div className="mt-3 grid gap-2">
               {plants.slice(0, 3).map((plant) => (
                 <div className="grow-mini-plant" key={plant.id}>
@@ -2541,11 +2549,11 @@ function GrowCommandPanel({
                   </span>
                 </div>
               ))}
-              {plants.length === 0 ? <p className="text-sm font-bold text-mint-50/80">Todavia no hay cultivos cargados.</p> : null}
+              {plants.length === 0 ? <p className="text-sm font-bold text-mint-50/80">{dictionary.today.growCommandNoPlants}</p> : null}
             </div>
           </div>
           <div className="grow-command-card">
-            <p className="text-label">Proximos eventos</p>
+            <p className="text-label">{dictionary.today.growCommandUpcomingEvents}</p>
             <div className="mt-3 grid gap-2">
               {upcomingEvents.map((event) => (
                 <div className="grow-event-row" key={event.id}>
@@ -2556,7 +2564,7 @@ function GrowCommandPanel({
                   </span>
                 </div>
               ))}
-              {upcomingEvents.length === 0 ? <p className="text-sm font-bold text-stone-600">Sin eventos manuales proximos.</p> : null}
+              {upcomingEvents.length === 0 ? <p className="text-sm font-bold text-stone-600">{dictionary.today.growCommandNoEvents}</p> : null}
             </div>
           </div>
         </div>
@@ -2605,11 +2613,13 @@ function AccountFeedback({ status }: { status: AccountStatus }) {
 
 function HomeAccountPanel({
   accountStatus,
+  dictionary,
   onSaveRemoteSnapshot,
   onSendMagicLink,
   onSignOut
 }: {
   accountStatus: AccountStatus;
+  dictionary: Dictionary;
   onSaveRemoteSnapshot: () => void;
   onSendMagicLink: (email: string) => void;
   onSignOut: () => void;
@@ -2631,15 +2641,12 @@ function HomeAccountPanel({
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <span className={accountStatus.isSignedIn ? "pill pill-green" : "pill pill-amber"}>
-            {accountStatus.isSignedIn ? "Cuenta conectada" : accountStatus.isConfigured ? "Iniciar sesion" : "Demo local"}
+            {accountStatus.isSignedIn ? dictionary.account.connectedPill : accountStatus.isConfigured ? dictionary.account.signInPill : dictionary.account.localDemoPill}
           </span>
-          <span className="pill pill-soft">Guardado por usuario</span>
+          <span className="pill pill-soft">{dictionary.account.savedByUserPillHome}</span>
         </div>
-        <h2 id="home-account-title">Tus cultivos en cualquier navegador</h2>
-        <p>
-          Entra con email para que la informacion no dependa del celular o la compu. Cada usuario conserva sus espacios,
-          macetas, calendario y bitacora.
-        </p>
+        <h2 id="home-account-title">{dictionary.account.homeTitle}</h2>
+        <p>{dictionary.account.homeIntro}</p>
       </div>
 
       {accountStatus.isSignedIn ? (
@@ -2651,25 +2658,25 @@ function HomeAccountPanel({
             onClick={onSaveRemoteSnapshot}
             type="button"
           >
-            {isBusy ? "Guardando..." : "Guardar ahora"}
+            {isBusy ? dictionary.common.saving : dictionary.account.saveNow}
           </button>
           <button className="secondary-button" onClick={onSignOut} type="button">
-            Cerrar sesion
+            {dictionary.account.signOut}
           </button>
           <AccountFeedback status={accountStatus} />
         </div>
       ) : (
         <form className="home-account-form" onSubmit={handleSubmit}>
           <input
-            aria-label="Email para iniciar sesion"
+            aria-label={dictionary.account.emailAriaLabel}
             className="form-control"
             onChange={(event) => setEmail(event.target.value)}
-            placeholder="tu@email.com"
+            placeholder={dictionary.account.emailPlaceholder}
             type="email"
             value={email}
           />
           <button className="primary-button" disabled={!accountStatus.isConfigured || isBusy} type="submit">
-            {isBusy ? "Enviando..." : "Iniciar sesion"}
+            {isBusy ? dictionary.common.sending : dictionary.account.signInPill}
           </button>
           <AccountFeedback status={accountStatus} />
         </form>
@@ -2678,16 +2685,16 @@ function HomeAccountPanel({
   );
 }
 
-function PlantCareCoach({ agendaItems, plants }: { agendaItems: AgendaItem[]; plants: Plant[] }) {
+function PlantCareCoach({ agendaItems, dictionary, plants }: { agendaItems: AgendaItem[]; dictionary: Dictionary; plants: Plant[] }) {
   const [checkedSignals, setCheckedSignals] = useStoredState<string[]>(storageKeys.quickChecks, []);
   const topPlant = plants[0];
   const openItems = agendaItems.filter((item) => item.status === "open");
   const signals = [
-    { id: "leaves", label: "Hojas", hint: "color, manchas o puntas" },
-    { id: "substrate", label: "Sustrato", hint: "humedad al tacto" },
-    { id: "pests", label: "Plagas", hint: "revisión visual" },
-    { id: "light", label: "Luz", hint: "ubicación declarada" },
-    { id: "photo", label: "Foto", hint: "comparar evolución" }
+    { id: "leaves", label: dictionary.today.coachSignalLeavesLabel, hint: dictionary.today.coachSignalLeavesHint },
+    { id: "substrate", label: dictionary.today.coachSignalSubstrateLabel, hint: dictionary.today.coachSignalSubstrateHint },
+    { id: "pests", label: dictionary.today.coachSignalPestsLabel, hint: dictionary.today.coachSignalPestsHint },
+    { id: "light", label: dictionary.today.coachSignalLightLabel, hint: dictionary.today.coachSignalLightHint },
+    { id: "photo", label: dictionary.today.coachSignalPhotoLabel, hint: dictionary.today.coachSignalPhotoHint }
   ];
 
   function toggleSignal(signalId: string) {
@@ -2703,20 +2710,19 @@ function PlantCareCoach({ agendaItems, plants }: { agendaItems: AgendaItem[]; pl
   return (
     <section className="coach-panel p-4 sm:p-5" aria-labelledby="coach-title">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <SectionHeader eyebrow="Chequeo rapido" title="Estado de tus plantas" />
-        <span className="pill pill-blue">Manual</span>
+        <SectionHeader eyebrow={dictionary.today.coachEyebrow} title={dictionary.today.coachTitle} />
+        <span className="pill pill-blue">{dictionary.today.coachManualPill}</span>
       </div>
       <p className="mt-3 text-sm leading-6 text-stone-700">
-        Inspirado en las mejores apps de plantas: una rutina corta para observar, registrar y decidir vos. No diagnostica
-        ni calcula automaticamente.
+        {dictionary.today.coachIntro}
       </p>
       <div className="coach-focus mt-4">
         <div className="flex items-center gap-3">
           {topPlant ? <PlantAvatar plant={topPlant} /> : <span className="plant-avatar" aria-hidden="true" />}
           <div>
-            <p className="text-xs font-black uppercase text-stone-500">Foco sugerido</p>
-            <p className="font-black text-moss-950">{openItems[0]?.title ?? "Registrar observacion"}</p>
-            <p className="text-sm text-stone-600">{topPlant?.name ?? "Crear una planta para comenzar"}</p>
+            <p className="text-xs font-black uppercase text-stone-500">{dictionary.today.coachFocusLabel}</p>
+            <p className="font-black text-moss-950">{openItems[0]?.title ?? dictionary.today.coachFocusFallback}</p>
+            <p className="text-sm text-stone-600">{topPlant?.name ?? dictionary.today.coachPlantFallback}</p>
           </div>
         </div>
       </div>
@@ -2728,7 +2734,7 @@ function PlantCareCoach({ agendaItems, plants }: { agendaItems: AgendaItem[]; pl
             onClick={() => toggleSignal(signal.id)}
             type="button"
           >
-            <span>{checkedSignals.includes(signal.id) ? "OK" : ""}</span>
+            <span>{checkedSignals.includes(signal.id) ? dictionary.today.coachCheckedMark : ""}</span>
             <strong>{signal.label}</strong>
             <small>{signal.hint}</small>
           </button>
@@ -2741,11 +2747,13 @@ function PlantCareCoach({ agendaItems, plants }: { agendaItems: AgendaItem[]; pl
 function SeasonInsights({
   calendarEvents,
   careScore,
+  dictionary,
   plants,
   tasks
 }: {
   calendarEvents: CalendarEvent[];
   careScore: number;
+  dictionary: Dictionary;
   plants: Plant[];
   tasks: Task[];
 }) {
@@ -2760,8 +2768,8 @@ function SeasonInsights({
   return (
     <Card as="section" aria-labelledby="season-title" className="p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <SectionHeader eyebrow="Mi temporada" title="Resumen activo" />
-        <span className="pill pill-green">{completionRate}% tareas hechas</span>
+        <SectionHeader eyebrow={dictionary.today.seasonEyebrow} title={dictionary.today.seasonTitle} />
+        <span className="pill pill-green">{formatDictionaryString(dictionary.today.seasonTasksDonePercent, { percent: completionRate })}</span>
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         {plants.slice(0, 3).map((plant) => (
@@ -2771,38 +2779,29 @@ function SeasonInsights({
               <p className="font-black text-moss-950">{plant.name}</p>
             </div>
             <p className="mt-3 text-2xl font-black text-moss-950">{getElapsedDays(plant.startedAt, todayIso)}</p>
-            <p className="text-xs font-black uppercase text-stone-500">dias desde fecha cargada</p>
+            <p className="text-xs font-black uppercase text-stone-500">{dictionary.today.seasonDaysSinceStart}</p>
           </div>
         ))}
       </div>
       <div className="mt-4 rounded-lg border border-moss-950/10 bg-paper/80 p-3">
-        <p className="text-xs font-black uppercase text-stone-500">Proximo hito declarado</p>
+        <p className="text-xs font-black uppercase text-stone-500">{dictionary.today.seasonNextMilestoneLabel}</p>
         <p className="mt-1 font-black text-moss-950">
           {nextMilestone
-            ? `${nextMilestone.title} - ${nextMilestonePlant?.name ?? "planta"} - ${nextMilestone.startDate}`
-            : "Sin hitos manuales proximos"}
+            ? formatDictionaryString(dictionary.today.seasonNextMilestoneValue, {
+                title: nextMilestone.title,
+                plant: nextMilestonePlant?.name ?? dictionary.today.seasonPlantFallback,
+                date: nextMilestone.startDate
+              })
+            : dictionary.today.seasonNextMilestoneEmpty}
         </p>
       </div>
     </Card>
   );
 }
 
-function OnboardingFlow({ onClose, todayHref }: { onClose: () => void; todayHref: string }) {
+function OnboardingFlow({ dictionary, onClose, todayHref }: { dictionary: Dictionary; onClose: () => void; todayHref: string }) {
   const [step, setStep] = useState(0);
-  const steps = [
-    {
-      body: "Elegir si vas a registrar cannabis legal o cultivos horticolas no regulados. Cada flujo mantiene sus limites.",
-      title: "Que vas a cultivar?"
-    },
-    {
-      body: "Interior, exterior o invernadero. Esto solo configura el contexto visual inicial.",
-      title: "Donde?"
-    },
-    {
-      body: "Listo. Tu panel queda preparado con tareas, calendario, diario y privacidad.",
-      title: "Asi se ve tu panel"
-    }
-  ];
+  const steps = dictionary.onboarding.steps;
   const currentStep = steps[step];
 
   function finish() {
@@ -2815,13 +2814,13 @@ function OnboardingFlow({ onClose, todayHref }: { onClose: () => void; todayHref
       <section className="onboarding-panel">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="eyebrow text-emerald-800">Primer uso</p>
+            <p className="eyebrow text-emerald-800">{dictionary.onboarding.eyebrow}</p>
             <h2 className="mt-1 text-2xl font-black text-moss-950" id="onboarding-title">
               {currentStep.title}
             </h2>
           </div>
           <button className="secondary-button" onClick={onClose} type="button">
-            Saltar por ahora
+            {dictionary.onboarding.skip}
           </button>
         </div>
         <div className="onboarding-illustration" aria-hidden="true">
@@ -2831,16 +2830,16 @@ function OnboardingFlow({ onClose, todayHref }: { onClose: () => void; todayHref
         <div className="mt-5 flex flex-wrap gap-2">
           {step > 0 ? (
             <button className="secondary-button" onClick={() => setStep((value) => value - 1)} type="button">
-              Atras
+              {dictionary.onboarding.back}
             </button>
           ) : null}
           {step < steps.length - 1 ? (
             <button className="primary-button" onClick={() => setStep((value) => value + 1)} type="button">
-              Continuar
+              {dictionary.onboarding.continueLabel}
             </button>
           ) : (
             <button className="primary-button" onClick={finish} type="button">
-              Ir a Hoy
+              {dictionary.onboarding.goToToday}
             </button>
           )}
         </div>
@@ -6254,11 +6253,13 @@ function UserDataPanel({
 }
 
 function TaskCard({
+  dictionary,
   isPrimary,
   onToggle,
   plant,
   task
 }: {
+  dictionary: Dictionary;
   isPrimary: boolean;
   onToggle: () => void;
   plant?: Plant;
@@ -6267,15 +6268,15 @@ function TaskCard({
   return (
     <article className={`${isPrimary ? "task-row task-priority" : "task-row"} ${getTaskAccentClass(task.category)}`} key={task.id}>
       <button className={task.status === "done" ? "task-check done" : "task-check"} onClick={onToggle} type="button">
-        {task.status === "done" ? "OK" : ""}
+        {task.status === "done" ? dictionary.today.coachCheckedMark : ""}
       </button>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="font-black text-moss-950">{displayEventTitle(task.title)}</h3>
           <span className={task.status === "done" ? "pill pill-green" : "pill pill-amber"}>
-            {task.status === "done" ? "Hecha" : "Pendiente"}
+            {task.status === "done" ? dictionary.today.taskDone : dictionary.today.taskPending}
           </span>
-          {isPrimary ? <span className="pill pill-blue">Prioritaria</span> : null}
+          {isPrimary ? <span className="pill pill-blue">{dictionary.today.taskPriority}</span> : null}
         </div>
         <p className="mt-1 text-sm leading-6 text-stone-700">{task.description}</p>
         {plant ? <p className="mt-1 text-xs font-black text-stone-500">{plant.name}</p> : null}
@@ -6381,16 +6382,18 @@ function QuickPlantForm({
 // vez de mandar a otra pantalla y hacer bajar hasta el formulario.
 function AccountAvatarButton({
   accountStatus,
+  dictionary,
   onOpen
 }: {
   accountStatus: AccountStatus;
+  dictionary: Dictionary;
   onOpen: () => void;
 }) {
   const trimmedEmail = accountStatus.email.trim();
   const initial = accountStatus.isSignedIn && trimmedEmail ? trimmedEmail.charAt(0).toUpperCase() : "";
   const label = accountStatus.isSignedIn
-    ? `Cuenta conectada como ${trimmedEmail}. Abrir opciones de tu cuenta.`
-    : "Iniciar sesion para ver tus cultivos en otros dispositivos";
+    ? formatDictionaryString(dictionary.account.avatarSignedInLabel, { email: trimmedEmail })
+    : dictionary.account.avatarSignedOutLabel;
 
   return (
     <button
@@ -6424,6 +6427,7 @@ function AccountAvatarButton({
 // que bajar hasta encontrar el formulario; ahora el login queda a un toque.
 function AccountDialog({
   accountStatus,
+  dictionary,
   onClose,
   onCreateShareCode,
   onOpenSharedView,
@@ -6437,6 +6441,7 @@ function AccountDialog({
   sharedViews
 }: {
   accountStatus: AccountStatus;
+  dictionary: Dictionary;
   onClose: () => void;
   onCreateShareCode: () => void;
   onOpenSharedView: (share: SharedView) => void;
@@ -6493,48 +6498,48 @@ function AccountDialog({
       }}
     >
       <div aria-labelledby="account-dialog-title" aria-modal="true" className="account-dialog" role="dialog">
-        <button aria-label="Cerrar" className="account-dialog-close" onClick={onClose} type="button">
+        <button aria-label={dictionary.account.closeAriaLabel} className="account-dialog-close" onClick={onClose} type="button">
           <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
             <path d="M6.5 6.5l11 11m0-11l-11 11" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
           </svg>
         </button>
 
-        <p className="account-dialog-eyebrow">Tu cuenta</p>
+        <p className="account-dialog-eyebrow">{dictionary.account.dialogEyebrow}</p>
         <h2 className="account-dialog-title" id="account-dialog-title">
-          {accountStatus.isSignedIn ? "Sesion iniciada" : "Iniciar sesion"}
+          {accountStatus.isSignedIn ? dictionary.account.dialogTitleSignedIn : dictionary.account.dialogTitleSignedOut}
         </h2>
 
         {accountStatus.isSignedIn ? (
           <>
             <p className="account-dialog-text">
-              Tus cultivos se guardan en tu cuenta, asi los ves igual en el celular y en la computadora.
+              {dictionary.account.signedInIntro}
             </p>
             <p className="account-dialog-email">{accountStatus.email}</p>
             <AccountFeedback status={accountStatus} />
             <div className="account-dialog-actions">
               <button className="primary-button" disabled={isBusy} onClick={onSaveRemoteSnapshot} type="button">
-                {isBusy ? "Guardando..." : "Guardar ahora"}
+                {isBusy ? dictionary.common.saving : dictionary.account.saveNow}
               </button>
               <button className="secondary-button" onClick={onSignOut} type="button">
-                Cerrar sesion
+                {dictionary.account.signOut}
               </button>
             </div>
 
             <div className="account-share">
-              <p className="account-share-title">Compartir tus cultivos</p>
+              <p className="account-share-title">{dictionary.account.shareTitle}</p>
               <p className="account-share-hint">
-                Genera un codigo y pasaselo a quien quieras. Va a poder mirar tus cultivos, no modificarlos.
+                {dictionary.account.shareHint}
               </p>
 
               {shareCode ? (
                 <p className="account-share-code">{shareCode}</p>
               ) : (
                 <button className="secondary-button account-share-button" onClick={onCreateShareCode} type="button">
-                  Generar codigo
+                  {dictionary.account.generateCode}
                 </button>
               )}
 
-              <p className="account-share-title account-share-title-second">Ver los de otra persona</p>
+              <p className="account-share-title account-share-title-second">{dictionary.account.viewOthersTitle}</p>
               <form
                 className="account-share-form"
                 onSubmit={(event) => {
@@ -6545,15 +6550,15 @@ function AccountDialog({
                 }}
               >
                 <input
-                  aria-label="Codigo que te compartieron"
+                  aria-label={dictionary.account.codeInputAriaLabel}
                   className="form-control"
                   onChange={(event) => setCodeInput(event.target.value)}
-                  placeholder="Pega el codigo aca"
+                  placeholder={dictionary.account.codePlaceholder}
                   type="text"
                   value={codeInput}
                 />
                 <button className="secondary-button" disabled={!codeInput.trim()} type="submit">
-                  Usar codigo
+                  {dictionary.account.useCode}
                 </button>
               </form>
 
@@ -6562,7 +6567,7 @@ function AccountDialog({
                   {sharedViews.map((view) => (
                     <li key={view.ownerId}>
                       <button className="account-share-open" onClick={() => onOpenSharedView(view)} type="button">
-                        Ver los cultivos de {view.ownerLabel}
+                        {formatDictionaryString(dictionary.account.viewGrowsOf, { name: view.ownerLabel })}
                       </button>
                     </li>
                   ))}
@@ -6579,12 +6584,12 @@ function AccountDialog({
         ) : (
           <>
             <p className="account-dialog-text">
-              Entra con tu email y te mandamos un enlace de acceso. No hace falta recordar ninguna contrasena.
+              {dictionary.account.signedOutIntro}
             </p>
             <AccountFeedback status={accountStatus} />
             <form className="account-dialog-form" onSubmit={handleSubmit}>
               <label className="account-dialog-label" htmlFor="account-dialog-email">
-                Email
+                {dictionary.account.emailLabel}
               </label>
               <input
                 autoComplete="email"
@@ -6592,20 +6597,20 @@ function AccountDialog({
                 id="account-dialog-email"
                 inputMode="email"
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="tu@email.com"
+                placeholder={dictionary.account.emailPlaceholder}
                 ref={emailFieldRef}
                 type="email"
                 value={email}
               />
               <button className="primary-button" disabled={!accountStatus.isConfigured || isBusy} type="submit">
-                {isBusy ? "Enviando..." : "Enviarme el enlace"}
+                {isBusy ? dictionary.common.sending : dictionary.account.sendLink}
               </button>
             </form>
           </>
         )}
 
         <Link className="account-dialog-link" href={privacyHref} onClick={onClose}>
-          Ver privacidad y datos
+          {dictionary.account.privacyLink}
         </Link>
       </div>
     </div>
@@ -6617,7 +6622,7 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 };
 
-function InstallAppButton() {
+function InstallAppButton({ dictionary }: { dictionary: Dictionary }) {
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [status, setStatus] = useState("");
 
@@ -6635,21 +6640,21 @@ function InstallAppButton() {
 
   async function handleInstall() {
     if (!installEvent) {
-      setStatus("En el celu: menu del navegador > Agregar a pantalla de inicio.");
+      setStatus(dictionary.header.installHintMobile);
       return;
     }
 
     await installEvent.prompt();
     const choice = await installEvent.userChoice;
 
-    setStatus(choice.outcome === "accepted" ? "Acceso directo creado." : "Instalacion cancelada.");
+    setStatus(choice.outcome === "accepted" ? dictionary.header.installAccepted : dictionary.header.installDismissed);
     setInstallEvent(null);
   }
 
   return (
     <span className="install-app-wrapper">
       <button className="secondary-button install-app-button" onClick={handleInstall} type="button">
-        Instalar app
+        {dictionary.header.installButton}
       </button>
       {status ? <span className="install-app-status">{status}</span> : null}
     </span>
@@ -6661,7 +6666,7 @@ function getInitialTheme(): "light" | "dark" {
   return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
 }
 
-function ThemeToggle() {
+function ThemeToggle({ dictionary }: { dictionary: Dictionary }) {
   // El atributo data-theme ya lo aplica ThemeScript antes de hidratar (ver
   // components/theme-script.tsx), asi que alcanza con leerlo del DOM en el
   // inicializador perezoso de useState en vez de sincronizarlo en un
@@ -6693,7 +6698,7 @@ function ThemeToggle() {
 
   return (
     <button
-      aria-label={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+      aria-label={theme === "dark" ? dictionary.header.themeToLight : dictionary.header.themeToDark}
       aria-pressed={theme === "dark"}
       className="header-theme-button"
       onClick={toggleTheme}
@@ -6766,21 +6771,23 @@ function LeafCluster({ variant }: { variant: "hero" | "soft" }) {
 }
 
 function SectionStepper({
+  dictionary,
   locale,
   nextItem,
   previousItem
 }: {
+  dictionary: Dictionary;
   locale: Locale;
   nextItem: NavigationItem | null;
   previousItem: NavigationItem | null;
 }) {
   return (
-    <nav className="section-stepper" aria-label="Avanzar entre secciones">
+    <nav className="section-stepper" aria-label={dictionary.stepper.ariaLabel}>
       {previousItem ? (
         <Link className="stepper-button secondary" href={getInternalSectionHref(locale, previousItem.key) as Route}>
           <span aria-hidden="true">←</span>
           <span>
-            <small>Anterior</small>
+            <small>{dictionary.stepper.previous}</small>
             {previousItem.label}
           </span>
         </Link>
@@ -6788,8 +6795,8 @@ function SectionStepper({
         <span className="stepper-button disabled" aria-disabled="true">
           <span aria-hidden="true">←</span>
           <span>
-            <small>Anterior</small>
-            Inicio
+            <small>{dictionary.stepper.previous}</small>
+            {dictionary.stepper.start}
           </span>
         </span>
       )}
@@ -6797,7 +6804,7 @@ function SectionStepper({
       {nextItem ? (
         <Link className="stepper-button primary" href={getInternalSectionHref(locale, nextItem.key) as Route}>
           <span>
-            <small>Siguiente</small>
+            <small>{dictionary.stepper.next}</small>
             {nextItem.label}
           </span>
           <span aria-hidden="true">→</span>
@@ -6805,8 +6812,8 @@ function SectionStepper({
       ) : (
         <Link className="stepper-button primary" href={getInternalSectionHref(locale, "today") as Route}>
           <span>
-            <small>Volver</small>
-            Hoy
+            <small>{dictionary.stepper.backToToday}</small>
+            {dictionary.stepper.today}
           </span>
           <span aria-hidden="true">→</span>
         </Link>
