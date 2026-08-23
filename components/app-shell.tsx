@@ -1843,8 +1843,8 @@ export function AppShell({
           <Link className="brand-lockup flex items-center gap-3" href={todayLinkHref as Route} aria-label={dictionary.header.brandAriaLabel}>
             <BrandLogo />
             <span>
-              <span className="block text-xs font-black uppercase text-moss-700">CultiPilot</span>
-              <span className="block text-lg font-black leading-none tracking-tight text-moss-950">{dictionary.header.brandTagline}</span>
+              <span className="block text-xs font-black uppercase text-moss-700">{dictionary.header.brandTagline}</span>
+              <span className="block text-lg font-black leading-none tracking-tight text-moss-950">CultiPilot</span>
             </span>
           </Link>
 

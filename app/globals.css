@@ -824,11 +824,19 @@ label:has(> .form-control) {
 
 html {
   scroll-behavior: smooth;
+  /* Evita que un elemento levemente mas ancho que la pantalla (o un pellizco
+     para hacer zoom en un webview como el de Instagram/WhatsApp) deje toda
+     la app corrida hacia un costado, con la pantalla "desacomodada" como
+     reporto Ale. Solo en el eje horizontal: el scroll vertical normal de la
+     pagina sigue funcionando igual. */
+  overflow-x: hidden;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
+  max-width: 100vw;
   background:
     radial-gradient(circle at 7% 10%, rgba(226, 180, 87, 0.34), transparent 23%),
     radial-gradient(circle at 92% 8%, rgba(36, 118, 111, 0.32), transparent 22%),
@@ -8375,3 +8383,46 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
  * los hijos puedan encogerse correctamente.
  */
 .executive-home { grid-template-columns: minmax(0, 1fr) !important; }
+
+/*
+ * El asistente "Primer cultivo" (.first-cultivation-shell, lo primero que
+ * ve alguien sin plantas cargadas) quedaba como un parche pegado al pasar
+ * a oscuro por defecto: el degrade verde de arriba nunca cambio con el
+ * tema (eso esta bien, es intencional), pero el h1 de esa franja tenia el
+ * color oscuro fijo del pase de "main h1/h2/h3/h4" (linea ~5476), pensado
+ * para texto sobre fondo claro -- sobre el verde se leia con muy poco
+ * contraste en cualquier tema, no solo en oscuro. Y mas abajo,
+ * .first-cultivation-card (la tarjeta blanca con los pasos numerados) y
+ * .wizard-step nunca se pensaron para tema oscuro: quedaban blancos fijos
+ * mientras el resto de la pagina ya paso a oscuro alrededor.
+ */
+.first-cultivation-intro h1 {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .first-cultivation-card {
+  background: linear-gradient(135deg, var(--pc-surface), var(--pc-surface-subtle)) !important;
+}
+
+[data-theme="dark"] .wizard-step {
+  border-color: var(--pc-border) !important;
+  background: var(--pc-surface) !important;
+  color: var(--pc-foreground) !important;
+}
+
+[data-theme="dark"] .wizard-step span {
+  background: var(--pc-surface-subtle) !important;
+  color: var(--pc-foreground) !important;
+}
+
+[data-theme="dark"] .wizard-step.active {
+  border-color: rgba(36, 118, 111, 0.4) !important;
+  background: linear-gradient(135deg, var(--pc-primary-soft), var(--pc-surface)) !important;
+  color: var(--pc-foreground) !important;
+  box-shadow: inset 4px 0 0 #2f8f5f !important;
+}
+
+[data-theme="dark"] .wizard-step.active span {
+  background: #2f8f5f !important;
+  color: #ffffff !important;
+}
