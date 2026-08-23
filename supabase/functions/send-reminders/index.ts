@@ -35,7 +35,7 @@ Deno.serve(async (request) => {
   const cronSecret = Deno.env.get("CRON_SECRET");
   const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
   const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
-  const vapidSubject = Deno.env.get("VAPID_SUBJECT") ?? "https://alelago-dev.github.io/plantcare-calendar/";
+  const vapidSubject = Deno.env.get("VAPID_SUBJECT") ?? "https://alelago-dev.github.io/cultipilot/";
 
   if (!supabaseUrl || !serviceRoleKey || !cronSecret || !vapidPublicKey || !vapidPrivateKey) {
     return json({ error: "Funcion sin configurar (faltan secrets)" }, 500);
@@ -86,8 +86,8 @@ Deno.serve(async (request) => {
     const overdueCount = dueTasks.filter((task) => task.dueDate! < today).length;
     const body =
       dueTasks.length === 1
-        ? "Tenes 1 tarea pendiente en PlantCare."
-        : `Tenes ${dueTasks.length} tareas pendientes en PlantCare${overdueCount > 0 ? ` (${overdueCount} vencida${overdueCount === 1 ? "" : "s"})` : ""}.`;
+        ? "Tenes 1 tarea pendiente en CultiPilot."
+        : `Tenes ${dueTasks.length} tareas pendientes en CultiPilot${overdueCount > 0 ? ` (${overdueCount} vencida${overdueCount === 1 ? "" : "s"})` : ""}.`;
 
     for (const subscription of subscriptions) {
       if (subscription.last_notified_date === today) continue;
@@ -100,8 +100,8 @@ Deno.serve(async (request) => {
           },
           JSON.stringify({
             body,
-            tag: "plantcare-push-reminder",
-            title: "PlantCare Calendar",
+            tag: "cultipilot-push-reminder",
+            title: "CultiPilot",
             // Ruta relativa al scope del service worker (sin barra inicial),
             // para que resuelva bien tanto en localhost como bajo el
             // basePath de GitHub Pages. El service worker la resuelve con

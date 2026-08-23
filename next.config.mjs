@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const repoName = "plantcare-calendar";
+const repoName = "cultipilot";
 const isGithubPages = process.env.GITHUB_PAGES === "true";
 const basePath = isGithubPages ? `/${repoName}` : "";
 

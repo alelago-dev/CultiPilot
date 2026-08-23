@@ -21,8 +21,8 @@ const dictionaries: Record<Locale, Dictionary> = {
       skipForNow: "Saltar por ahora"
     },
     header: {
-      brandTagline: "Calendario",
-      brandAriaLabel: "PlantCare Calendar, ir a Hoy",
+      brandTagline: "Cultivation intelligence",
+      brandAriaLabel: "CultiPilot, ir a Hoy",
       navAriaLabel: "Secciones principales",
       mobileNavAriaLabel: "Navegación principal móvil",
       vpdAriaLabel: "Registrar temperatura y humedad para calcular VPD",
@@ -111,9 +111,9 @@ const dictionaries: Record<Locale, Dictionary> = {
       eyebrow: "Avisos reales",
       title: "Notificaciones aunque la app esté cerrada",
       signInPrompt: "Iniciá sesión arriba para poder activarlas: la suscripción queda asociada a tu cuenta, no a este navegador suelto.",
-      unsupported: "Este navegador no soporta notificaciones push. En iPhone/iPad funciona si instalás PlantCare a la pantalla de inicio primero.",
+      unsupported: "Este navegador no soporta notificaciones push. En iPhone/iPad funciona si instalás CultiPilot a la pantalla de inicio primero.",
       description:
-        "Si tenés tareas abiertas vencidas o de hoy, PlantCare te manda un aviso una vez por día, aunque no tengas la app abierta. Se activa por navegador: si usás el celular y la compu, activalo en cada uno.",
+        "Si tenés tareas abiertas vencidas o de hoy, CultiPilot te manda un aviso una vez por día, aunque no tengas la app abierta. Se activa por navegador: si usás el celular y la compu, activalo en cada uno.",
       activate: "Activar avisos",
       deactivate: "Desactivar avisos",
       saving: "Guardando...",
@@ -831,8 +831,8 @@ const dictionaries: Record<Locale, Dictionary> = {
       skipForNow: "Skip for now"
     },
     header: {
-      brandTagline: "Calendar",
-      brandAriaLabel: "PlantCare Calendar, go to Today",
+      brandTagline: "Cultivation intelligence",
+      brandAriaLabel: "CultiPilot, go to Today",
       navAriaLabel: "Main sections",
       mobileNavAriaLabel: "Main mobile navigation",
       vpdAriaLabel: "Log temperature and humidity to calculate VPD",
@@ -921,9 +921,9 @@ const dictionaries: Record<Locale, Dictionary> = {
       eyebrow: "Real alerts",
       title: "Notifications even when the app is closed",
       signInPrompt: "Sign in above to turn these on: the subscription is tied to your account, not just this browser.",
-      unsupported: "This browser doesn't support push notifications. On iPhone/iPad it works if you install PlantCare to your home screen first.",
+      unsupported: "This browser doesn't support push notifications. On iPhone/iPad it works if you install CultiPilot to your home screen first.",
       description:
-        "If you have open tasks that are overdue or due today, PlantCare sends you an alert once a day, even without the app open. It's per browser: if you use your phone and your computer, turn it on in each.",
+        "If you have open tasks that are overdue or due today, CultiPilot sends you an alert once a day, even without the app open. It's per browser: if you use your phone and your computer, turn it on in each.",
       activate: "Turn on alerts",
       deactivate: "Turn off alerts",
       saving: "Saving...",

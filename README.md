@@ -1,6 +1,6 @@
-# PlantCare Calendar
+# CultiPilot
 
-PlantCare Calendar es una PWA mobile-first para seguimiento y gestion de cultivos legalmente permitidos. El proyecto utiliza Next.js App Router, TypeScript, Tailwind CSS y Supabase, e incluye calendario, tareas, bitacora, seguimiento por planta, datos meteorologicos y herramientas de calculo y asistencia basadas en los datos registrados por el usuario.
+CultiPilot es una PWA mobile-first para seguimiento y gestion de cultivos legalmente permitidos. El proyecto utiliza Next.js App Router, TypeScript, Tailwind CSS y Supabase, e incluye calendario, tareas, bitacora, seguimiento por planta, datos meteorologicos y herramientas de calculo y asistencia basadas en los datos registrados por el usuario.
 
 La interfaz utiliza un sistema visual propio inspirado en patrones shadcn y en la jerarquia tipografica de Geist: tokens unificados para superficies, bordes, radios, sombras, foco, tipografia y metricas. La navegacion movil mantiene todas las secciones accesibles mediante una barra inferior desplazable, el encabezado prioriza VPD y cuenta, y Hoy funciona como panel operativo con contexto de fecha, metricas y superficies diferenciadas. Estos cambios son visuales y de accesibilidad; no modifican calculos, datos ni reglas de cultivo.
 
@@ -23,11 +23,11 @@ La interfaz utiliza un sistema visual propio inspirado en patrones shadcn y en l
 - Consentimiento de privacidad y uso legal.
 - Base para exportacion y eliminacion completa de datos del usuario.
 
-La app evita recomendaciones destinadas a evadir controles legales. El usuario es responsable de utilizar PlantCare Calendar conforme a la legislacion aplicable en su jurisdiccion. La demo no debe guardar numeros de registro, domicilios exactos ni datos medicos.
+La app evita recomendaciones destinadas a evadir controles legales. El usuario es responsable de utilizar CultiPilot conforme a la legislacion aplicable en su jurisdiccion. La demo no debe guardar numeros de registro, domicilios exactos ni datos medicos.
 
 ## Motor de calculos y sugerencias
 
-PlantCare Calendar puede realizar calculos automaticos, estimaciones orientativas y sugerencias basadas en datos ingresados por el usuario, datos de catalogo, mediciones reales o valores calculados.
+CultiPilot puede realizar calculos automaticos, estimaciones orientativas y sugerencias basadas en datos ingresados por el usuario, datos de catalogo, mediciones reales o valores calculados.
 
 El motor puede utilizar, entre otros datos:
 
@@ -69,7 +69,7 @@ Cada valor debe poder distinguir su origen:
 - `suggestion`: sugerencia generada a partir de datos existentes;
 - `missing`: dato faltante que impide estimar con confianza.
 
-PlantCare puede registrar y procesar datos de cultivos sujetos a regulacion cuando el usuario declara que su actividad se encuentra legalmente permitida. La aplicacion no verifica permisos, registros, recetas, autorizaciones ni documentacion legal.
+CultiPilot puede registrar y procesar datos de cultivos sujetos a regulacion cuando el usuario declara que su actividad se encuentra legalmente permitida. La aplicacion no verifica permisos, registros, recetas, autorizaciones ni documentacion legal.
 
 La app no debe inventar valores cuando faltan datos. En ese caso debe listar los datos faltantes y mantener la accion como pendiente o manual.
 
@@ -83,7 +83,7 @@ Los datos del catalogo pueden utilizarse como entrada del motor de calculos y su
 
 ## Mediciones e historial
 
-PlantCare puede incorporar mediciones periodicas asociadas a una planta o espacio de cultivo:
+CultiPilot puede incorporar mediciones periodicas asociadas a una planta o espacio de cultivo:
 
 - temperatura;
 - humedad ambiental;
@@ -99,7 +99,7 @@ Las mediciones conservan fecha, hora y origen (`manual`, `device` o `sensor`) pa
 
 Las lecturas manuales o cargadas desde un dispositivo pueden editarse conservando su identificador y reemplazando el registro dentro del snapshot; las lecturas originadas por sensores permanecen de solo lectura para preservar su procedencia.
 
-El riego por lote permite seleccionar varias macetas y registrar fecha, agua, pH, EC, ppm y observacion comunes. La interfaz crea una medicion independiente por maceta para que luego pueda editarse, compararse o exportarse sin mezclar historiales. El usuario puede guardar esos valores como receta propia y reutilizarlos; PlantCare no incluye dosis predeterminadas ni completa valores faltantes.
+El riego por lote permite seleccionar varias macetas y registrar fecha, agua, pH, EC, ppm y observacion comunes. La interfaz crea una medicion independiente por maceta para que luego pueda editarse, compararse o exportarse sin mezclar historiales. El usuario puede guardar esos valores como receta propia y reutilizarlos; CultiPilot no incluye dosis predeterminadas ni completa valores faltantes.
 
 Espacios incluye un inventario manual de insumos con nombre, categoria, cantidad, unidad y minimo opcional definidos por el usuario. Un riego por lote puede vincular un insumo y una cantidad por maceta: antes de guardar muestra el total, evita consumos superiores al stock y, tras la confirmacion, descuenta una sola vez mientras conserva un registro de riego independiente por maceta. Hoy avisa solamente cuando una cantidad alcanza el minimo configurado; no inventa umbrales ni recomienda productos. El inventario y las referencias guardadas en recetas forman parte del mismo snapshot privado sincronizado por usuario, sin una tabla compartida adicional.
 
@@ -245,7 +245,7 @@ Tambien puede incorporarse una capa IoT:
 ```text
 Sensores / ESP32 / Raspberry Pi
 -> Supabase
--> PlantCare
+-> CultiPilot
 -> Historico y analisis
 ```
 

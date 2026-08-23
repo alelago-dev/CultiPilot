@@ -1,6 +1,6 @@
 {
-  "name": "PlantCare Calendar",
-  "short_name": "PlantCare",
+  "name": "CultiPilot",
+  "short_name": "CultiPilot",
   "description": "Calendario para seguimiento de cultivos horticolas legalmente permitidos.",
   "start_url": "./es/hoy/",
   "display": "standalone",

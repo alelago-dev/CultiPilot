@@ -31,7 +31,7 @@ export default async function DuplicateBasePathRedirectPage({
       <h1 className="text-2xl font-black">Redirigiendo...</h1>
       <p className="text-sm text-muted-foreground">Esta ruta anterior tenia el prefijo duplicado.</p>
       <a className="primary-button" href={targetHref}>
-        Abrir PlantCare Calendar
+        Abrir CultiPilot
       </a>
       <script
         dangerouslySetInnerHTML={{

@@ -244,7 +244,7 @@ export function TrichomeAnalyzer({ onAddJournalEntry, plant }: { onAddJournalEnt
             Como referencia general y no como regla fija: muchos cultivadores esperan a que la mayoría de los
             tricomas pasen de transparentes a lechosos antes de cosechar, y usan la proporción de ámbar (tricomas ya
             oxidados) como una señal de que la ventana está más avanzada. La proporción exacta que conviene depende
-            de la genética y de la preferencia de cada quien — esto no es una recomendación de PlantCare, es lo que
+            de la genética y de la preferencia de cada quien — esto no es una recomendación de CultiPilot, es lo que
             reportan cultivadores en general.
           </p>
 

@@ -23,7 +23,7 @@ export async function requestReminderNotification({ body, title, url }: Reminder
     data: {
       url
     },
-    tag: "plantcare-reminder"
+    tag: "cultipilot-reminder"
   });
 
   return permission;

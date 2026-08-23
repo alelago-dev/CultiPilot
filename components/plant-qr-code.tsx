@@ -42,7 +42,7 @@ export function PlantQrPanel({ locale, plant }: { locale: Locale; plant: Plant }
     if (!dataUrl) return;
     const link = document.createElement("a");
     link.href = dataUrl;
-    link.download = `plantcare-qr-${sanitizeFilename(plant.name)}.png`;
+    link.download = `cultipilot-qr-${sanitizeFilename(plant.name)}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -58,13 +58,13 @@ export function PlantQrPanel({ locale, plant }: { locale: Locale; plant: Plant }
       </header>
       <div className="plant-qr-panel-body">
         {dataUrl ? (
-          <img alt={`Código QR que enlaza a ${plant.name} en PlantCare`} className="plant-qr-image" height={160} src={dataUrl} width={160} />
+          <img alt={`Código QR que enlaza a ${plant.name} en CultiPilot`} className="plant-qr-image" height={160} src={dataUrl} width={160} />
         ) : (
           <div aria-hidden="true" className="plant-qr-placeholder" />
         )}
         <div className="plant-qr-panel-copy">
           <p>
-            Escaneado con la cámara del celular, este código abre esta maceta directamente en PlantCare. Se puede
+            Escaneado con la cámara del celular, este código abre esta maceta directamente en CultiPilot. Se puede
             imprimir y pegar en el tiesto o en un cartel junto a la planta.
           </p>
           <button className="secondary-button" disabled={!dataUrl} onClick={downloadQr} type="button">

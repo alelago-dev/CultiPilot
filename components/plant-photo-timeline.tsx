@@ -65,7 +65,7 @@ export function PlantPhotoTimeline({
         </div>
         <span className="pill pill-blue">{items.length} foto{items.length === 1 ? "" : "s"}</span>
       </header>
-      <p>Fotos de mediciones, bitácora e inspecciones de esta maceta, juntas y ordenadas por fecha. Comparación visual; PlantCare no infiere diagnósticos a partir de las fotos.</p>
+      <p>Fotos de mediciones, bitácora e inspecciones de esta maceta, juntas y ordenadas por fecha. Comparación visual; CultiPilot no infiere diagnósticos a partir de las fotos.</p>
       <div className="plant-photo-timeline-strip">
         {items.map((item, index) => (
           <button className="plant-photo-timeline-thumb" key={item.id} onClick={() => setOpenIndex(index)} type="button">

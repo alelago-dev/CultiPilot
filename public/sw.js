@@ -1,4 +1,4 @@
-const CACHE_NAME = "plantcare-calendar-v59";
+const CACHE_NAME = "cultipilot-v60";
 const ROUTES = [
   "/",
   "/es/",
@@ -95,7 +95,7 @@ self.addEventListener("fetch", (event) => {
 });
 
 self.addEventListener("message", (event) => {
-  if (event.data?.type === "PLANTCARE_CLEAR_CACHE") {
+  if (event.data?.type === "CULTIPILOT_CLEAR_CACHE") {
     event.waitUntil(
       caches.keys().then((cacheNames) => {
         return Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
@@ -117,14 +117,14 @@ self.addEventListener("push", (event) => {
     data = {};
   }
 
-  const title = data.title || "PlantCare Calendar";
+  const title = data.title || "CultiPilot";
   const resolvedUrl = data.url ? new URL(data.url, self.registration.scope).href : self.registration.scope;
 
   event.waitUntil(
     self.registration.showNotification(title, {
       body: data.body || "",
       data: { url: resolvedUrl },
-      tag: data.tag || "plantcare-push-reminder"
+      tag: data.tag || "cultipilot-push-reminder"
     })
   );
 });

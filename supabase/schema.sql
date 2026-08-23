@@ -487,9 +487,10 @@ create extension if not exists pg_cron with schema extensions;
 create extension if not exists pg_net with schema extensions;
 
 select cron.unschedule(jobid) from cron.job where jobname = 'plantcare-send-reminders';
+select cron.unschedule(jobid) from cron.job where jobname = 'cultipilot-send-reminders';
 
 select cron.schedule(
-  'plantcare-send-reminders',
+  'cultipilot-send-reminders',
   '0 12 * * *',
   $$
   select net.http_post(

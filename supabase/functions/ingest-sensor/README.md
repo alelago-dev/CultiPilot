@@ -5,7 +5,7 @@ Esta Edge Function recibe mediciones de un ESP32, Raspberry Pi u otro gateway si
 ## Activacion
 
 1. Ejecutar `supabase/schema.sql` en el SQL Editor del proyecto.
-2. Iniciar sesion en PlantCare, abrir Espacios, expandir una maceta y usar `Conectar sensor`.
+2. Iniciar sesion en CultiPilot, abrir Espacios, expandir una maceta y usar `Conectar sensor`.
 3. Desplegar con `supabase functions deploy ingest-sensor --no-verify-jwt`.
 4. Guardar el token devuelto por `create_sensor_device` en el dispositivo. Supabase solo conserva su hash y el token no puede recuperarse despues.
 

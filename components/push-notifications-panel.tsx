@@ -1,7 +1,7 @@
 /**
  * push-notifications-panel.tsx
  *
- * Activa/desactiva avisos push reales (llegan aunque PlantCare este
+ * Activa/desactiva avisos push reales (llegan aunque CultiPilot este
  * cerrado) para la cuenta conectada. Requiere sesion iniciada -- sin eso
  * no hay a quien asociarle la suscripcion del lado del servidor -- y un
  * navegador con soporte de Push API (la mayoria de los de escritorio y

@@ -1,4 +1,4 @@
-name: Deploy PlantCare Calendar
+name: Deploy CultiPilot
 
 on:
   push:

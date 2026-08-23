@@ -52,7 +52,7 @@
 }
 
 /* --------------------------------------------------------------------------
- * PlantCare Pro UI — capa final del sistema visual.
+ * CultiPilot Pro UI — capa final del sistema visual.
  * Tokens inspirados en interfaces shadcn/Geist: una sola densidad, superficies
  * sobrias, jerarquía tipográfica y estados de foco visibles. Esta capa queda al
  * final para reemplazar de forma controlada los pases visuales históricos.
@@ -7433,7 +7433,7 @@ textarea {
   }
 }
 
-/* Cierre de cascada del sistema PlantCare Pro. */
+/* Cierre de cascada del sistema CultiPilot Pro. */
 body { background: var(--pc-background) !important; color: var(--pc-foreground); font-family: var(--font-interface); }
 h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
 .card { border: 1px solid var(--pc-border) !important; border-radius: var(--pc-radius) !important; background: var(--pc-surface) !important; box-shadow: var(--pc-shadow-sm) !important; }

@@ -25,9 +25,9 @@ const instrumentSans = Instrument_Sans({
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export const metadata: Metadata = {
-  title: "PlantCare Calendar",
+  title: "CultiPilot",
   description: "Calendario PWA para seguimiento de cultivos horticolas legales.",
-  applicationName: "PlantCare Calendar",
+  applicationName: "CultiPilot",
   icons: {
     apple: `${basePath}/favicon.png`,
     icon: [
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   manifest: `${basePath}/manifest.webmanifest`,
   appleWebApp: {
     capable: true,
-    title: "PlantCare"
+    title: "CultiPilot"
   }
 };
 
