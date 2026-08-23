@@ -7594,29 +7594,6 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
 }
 
 /*
- * .calendar-day-panel y .calendar-journal-card (Calendario) son el mismo
- * patron: cards claras fijas que no cambian en oscuro. Sus titulos usan
- * .text-moss-950/.text-stone-600 -- clases genericas que SI cambian en
- * oscuro (pensadas para texto que vive sobre el fondo oscuro de la
- * pagina, como los titulos de Espacios/Semillas). Sobre estas dos cards,
- * que siguen siendo claras, ese cambio deja el texto invisible ("22 de
- * agosto de 2026", "Anotar lo que hiciste"). Se revierte al tono oscuro
- * fijo que la card ya usa en claro.
- */
-[data-theme="dark"] .calendar-day-panel .text-moss-950,
-[data-theme="dark"] .calendar-day-panel .text-moss-900,
-[data-theme="dark"] .calendar-journal-card .text-moss-950,
-[data-theme="dark"] .calendar-journal-card .text-moss-900 {
-  color: #1a2b21 !important;
-}
-[data-theme="dark"] .calendar-day-panel .text-stone-500,
-[data-theme="dark"] .calendar-day-panel .text-stone-600,
-[data-theme="dark"] .calendar-journal-card .text-stone-500,
-[data-theme="dark"] .calendar-journal-card .text-stone-600 {
-  color: #6b6458 !important;
-}
-
-/*
  * .calendar-header (el bloque "Calendario / [rango de fechas]" arriba
  * del todo) nunca tuvo fondo propio mas alla del viejo rgba(255,255,255,
  * .92) fijo -- mientras que .calendar-toolbar, anidado adentro, SI usa
@@ -7675,23 +7652,6 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
   }
 }
 
-/*
- * .seed-result (resumen "Total de..." en Semillas: buscador, Motor de
- * cultivo, Mezcla de nutrientes) es una card clara fija (rgba(255,255,255,.82/.92),
- * linea 1377) que no cambia en oscuro -- correcto. Su titulo usa
- * .text-moss-950, que SI cambia en oscuro (pensada para texto sobre el
- * fondo oscuro de la pagina), dejando el titulo invisible sobre esta
- * card que sigue siendo clara. Mismo patron que .calendar-day-panel
- * arriba: se revierte al tono oscuro fijo que la card ya usa en claro.
- */
-[data-theme="dark"] .seed-result .text-moss-950,
-[data-theme="dark"] .seed-result .text-moss-900 {
-  color: #1a2b21 !important;
-}
-[data-theme="dark"] .seed-result .text-stone-500,
-[data-theme="dark"] .seed-result .text-stone-600 {
-  color: #6b6458 !important;
-}
 
 /*
  * .plant-qr-panel (codigo QR por maceta, en Espacios). Escrito directo con
@@ -8189,30 +8149,80 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
 }
 
 /* ---------------------------------------------------------------------------
- * Modo oscuro: arreglos puntuales dentro de Hoy (.today-page).
+ * Modo oscuro: arreglos en toda la app (no solo Hoy).
  *
- * Varias piezas de Hoy usan utilidades de Tailwind con colores fijos
- * (text-moss-950, text-stone-500/600/700, bg-paper/80, border-moss-950/10)
- * que nunca se migraron al sistema de tokens --pc-* — ver el comentario en
- * components/card.tsx, que ya señalaba .metric-card.featured como un caso
- * pendiente. Mientras el oscuro era opt-in casi nadie lo notaba; al pasar a
- * ser el tema por defecto quedaban tarjetas y texto claros sueltos sobre
- * fondo oscuro. El arreglo se limita a .today-page (Hoy) a propósito: esas
- * mismas clases de Tailwind se usan en otras secciones que todavía no
- * pasamos por este chequeo, y un arreglo global sin probarlas de nuevo
- * podría cambiar algo que hoy se ve bien por accidente.
+ * Varias piezas usan utilidades de Tailwind con colores fijos (text-moss-950,
+ * text-stone-500/600/700) o nombres de clase propios del proyecto con fondo
+ * fijo (#ffffff / rgba blanco) que nunca se migraron al sistema de tokens
+ * --pc-* -- ver el comentario en components/card.tsx, que ya señalaba
+ * .metric-card.featured como un caso pendiente. El rediseno de modo oscuro
+ * original solo cubrio Hoy (.today-page); mientras el oscuro era opt-in casi
+ * nadie lo notaba, pero al pasar a ser el tema por defecto quedaron tarjetas
+ * y texto claros sueltos por Semillas, Espacios, Calendario, Diario y Setup
+ * (por ejemplo el selector de solapas y la card "Buscador guiado" de
+ * Semillas, que Ale encontro en blanco).
+ *
+ * .bg-paper\/80 y .border-moss-950\/10 siguen limitadas a .today-page: son
+ * clases de utilidad muy genericas (podrian usarse en cualquier lado) y no
+ * se confirmo que su uso fuera de Hoy sea seguro de tocar. Todo lo demas en
+ * este bloque aplica a la app entera.
+ *
+ * Se dejan afuera a proposito (son cards claras fijas en cualquier tema, por
+ * diseno -- ver comentarios mas arriba en este archivo): .seed-result,
+ * .calendar-day-panel/.calendar-journal-card/.calendar-detail-card,
+ * .genetics-reference-panel y familia (.manual-form-group,
+ * .genetic-entry-card, .manual-reference-card, .plant-genetic-summary,
+ * .genetic-popup-panel + sus hijos .genetic-popup-fact/.genetic-popup-text/
+ * .genetic-raw-fields), .plant-qr-image/.plant-qr-placeholder, y los
+ * elementos .shared-view-banner-ghost / .space-banner-meta span (blanco
+ * translucido sobre un banner de color fijo, no una card).
  * ------------------------------------------------------------------------ */
-:root[data-theme="dark"] .today-page .text-moss-950 {
+:root[data-theme="dark"] .text-moss-950 {
   color: var(--pc-foreground) !important;
 }
 
-:root[data-theme="dark"] .today-page .text-stone-500,
-:root[data-theme="dark"] .today-page .text-stone-600,
-:root[data-theme="dark"] .today-page .text-stone-700 {
+:root[data-theme="dark"] .text-stone-500,
+:root[data-theme="dark"] .text-stone-600,
+:root[data-theme="dark"] .text-stone-700 {
   color: var(--pc-muted) !important;
 }
 
-:root[data-theme="dark"] .today-page .bg-paper\/80 {
+/*
+ * Excepciones a las dos reglas de arriba: dentro de las cards claras fijas
+ * (.calendar-day-panel, .calendar-journal-card, .calendar-detail-card,
+ * .seed-result) .text-moss-950/.text-stone-500/600/700 deben quedarse en
+ * el tono oscuro fijo que la card ya usa en claro, no pasar a texto claro
+ * (quedaria invisible sobre una card que sigue siendo blanca). Van DESPUES
+ * de la regla general a proposito: misma especificidad + !important en
+ * ambas, así que el orden en el archivo es lo que decide, y esta excepcion
+ * necesita ganar.
+ */
+[data-theme="dark"] .calendar-day-panel .text-moss-950,
+[data-theme="dark"] .calendar-day-panel .text-moss-900,
+[data-theme="dark"] .calendar-journal-card .text-moss-950,
+[data-theme="dark"] .calendar-journal-card .text-moss-900,
+[data-theme="dark"] .calendar-detail-card .text-moss-950,
+[data-theme="dark"] .calendar-detail-card .text-moss-900,
+[data-theme="dark"] .seed-result .text-moss-950,
+[data-theme="dark"] .seed-result .text-moss-900 {
+  color: #1a2b21 !important;
+}
+[data-theme="dark"] .calendar-day-panel .text-stone-500,
+[data-theme="dark"] .calendar-day-panel .text-stone-600,
+[data-theme="dark"] .calendar-day-panel .text-stone-700,
+[data-theme="dark"] .calendar-journal-card .text-stone-500,
+[data-theme="dark"] .calendar-journal-card .text-stone-600,
+[data-theme="dark"] .calendar-journal-card .text-stone-700,
+[data-theme="dark"] .calendar-detail-card .text-stone-500,
+[data-theme="dark"] .calendar-detail-card .text-stone-600,
+[data-theme="dark"] .calendar-detail-card .text-stone-700,
+[data-theme="dark"] .seed-result .text-stone-500,
+[data-theme="dark"] .seed-result .text-stone-600,
+[data-theme="dark"] .seed-result .text-stone-700 {
+  color: #6b6458 !important;
+}
+
+:root[data-theme="dark"] .bg-paper\/80 {
   background-color: var(--pc-surface) !important;
 }
 
@@ -8220,99 +8230,297 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
   border-color: var(--pc-border) !important;
 }
 
-:root[data-theme="dark"] .today-page .metric-card.featured {
+/*
+ * bg-white/NN (Tailwind, muchas opacidades distintas: /70, /76, /80, /82,
+ * /88...) es la clase blanca-translucida mas reusada de la app fuera de las
+ * cards con nombre propio de arriba -- banner legal de Semillas, nav de
+ * escritorio, catalogo de geneticas, formularios. Selector por substring
+ * para cubrir todas las opacidades de una. Excepcion: dentro de las cards
+ * intencionalmente claras (.calendar-day-panel, .calendar-journal-card,
+ * .manual-form-group) esta misma clase se usa a proposito y se revierte.
+ */
+:root[data-theme="dark"] [class*="bg-white/"] {
+  background-color: var(--pc-surface) !important;
+}
+
+:root[data-theme="dark"] .calendar-day-panel [class*="bg-white/"],
+:root[data-theme="dark"] .calendar-journal-card [class*="bg-white/"],
+:root[data-theme="dark"] .manual-form-group[class*="bg-white/"] {
+  background-color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .metric-card.featured {
   background: var(--pc-primary-soft) !important;
   border-color: var(--pc-primary-soft-border) !important;
 }
 
-:root[data-theme="dark"] .today-page .grow-phase-step {
+:root[data-theme="dark"] .grow-phase-step {
   background: var(--pc-surface) !important;
   border-color: var(--pc-border) !important;
 }
 
-:root[data-theme="dark"] .today-page .grow-phase-step strong {
+:root[data-theme="dark"] .grow-phase-step strong {
   color: var(--pc-foreground) !important;
 }
 
-:root[data-theme="dark"] .today-page .grow-phase-step small {
+:root[data-theme="dark"] .grow-phase-step small {
   color: var(--pc-muted) !important;
 }
 
-:root[data-theme="dark"] .today-page .text-label {
+:root[data-theme="dark"] .text-label {
   color: var(--pc-muted) !important;
 }
 
-:root[data-theme="dark"] .today-page .today-stage-summary a {
+:root[data-theme="dark"] .today-stage-summary a {
   background: var(--pc-surface-subtle) !important;
   border-color: var(--pc-border) !important;
 }
 
-:root[data-theme="dark"] .today-page .environment-freshness-list a {
+:root[data-theme="dark"] .environment-freshness-list a {
   background: var(--pc-surface-subtle) !important;
   border-color: var(--pc-border) !important;
 }
 
-:root[data-theme="dark"] .today-page .environment-freshness-list strong {
+:root[data-theme="dark"] .environment-freshness-list strong {
   color: var(--pc-foreground) !important;
 }
 
-:root[data-theme="dark"] .today-page .environment-freshness-list span {
+:root[data-theme="dark"] .environment-freshness-list span {
   color: var(--pc-primary) !important;
 }
 
-:root[data-theme="dark"] .today-page .environment-freshness-list small {
+:root[data-theme="dark"] .environment-freshness-list small {
   color: var(--pc-muted) !important;
 }
 
-:root[data-theme="dark"] .today-page .today-environment-alert-empty {
+:root[data-theme="dark"] .today-environment-alert-empty {
   background: var(--pc-primary-soft) !important;
   color: var(--pc-foreground) !important;
 }
 
-:root[data-theme="dark"] .today-page .metric-tile {
+:root[data-theme="dark"] .metric-tile {
   background: var(--pc-surface-subtle) !important;
   border-color: var(--pc-border) !important;
 }
 
-:root[data-theme="dark"] .today-page .coach-focus {
+:root[data-theme="dark"] .coach-focus {
   background: var(--pc-surface-subtle) !important;
   border-color: var(--pc-border) !important;
 }
 
-:root[data-theme="dark"] .today-page .coach-check {
+:root[data-theme="dark"] .coach-check {
   background: var(--pc-surface-subtle) !important;
   border-color: var(--pc-border) !important;
 }
 
-:root[data-theme="dark"] .today-page .coach-check.active {
+:root[data-theme="dark"] .coach-check.active {
   background: var(--pc-primary-soft) !important;
   border-color: var(--pc-primary-soft-border) !important;
 }
 
-:root[data-theme="dark"] .today-page .coach-check span {
+:root[data-theme="dark"] .coach-check span {
   border-color: var(--pc-border-strong) !important;
   color: var(--pc-foreground) !important;
 }
 
-:root[data-theme="dark"] .today-page .coach-check strong {
+:root[data-theme="dark"] .coach-check strong {
   color: var(--pc-foreground) !important;
 }
 
-:root[data-theme="dark"] .today-page .coach-check small {
+:root[data-theme="dark"] .coach-check small {
   color: var(--pc-muted) !important;
 }
 
-:root[data-theme="dark"] .today-page .grow-command-card,
-:root[data-theme="dark"] .today-page .grow-command-card.accent {
+:root[data-theme="dark"] .grow-command-card,
+:root[data-theme="dark"] .grow-command-card.accent {
   background: var(--pc-surface) !important;
   border-color: var(--pc-border) !important;
 }
 
-:root[data-theme="dark"] .today-page .coach-panel,
-:root[data-theme="dark"] .today-page .task-row,
-:root[data-theme="dark"] .today-page .weather-panel {
+:root[data-theme="dark"] .coach-panel,
+:root[data-theme="dark"] .task-row,
+:root[data-theme="dark"] .weather-panel {
   background: var(--pc-surface) !important;
   border-color: var(--pc-border) !important;
+}
+
+/*
+ * Cards principales reusadas en Semillas/Espacios/Calendario/Diario/Setup
+ * (no solo Hoy). Mismo patron que las de arriba: fondo/borde fijos ->
+ * tokens. Cubre tambien sus variantes de color (.setup-card.amber/.blue/...,
+ * .plant-utility-card.featured, .genetic-finder.compact) porque !important
+ * le gana a esas reglas mas especificas pero no-!important.
+ */
+:root[data-theme="dark"] .info-card,
+:root[data-theme="dark"] .account-sync-card,
+:root[data-theme="dark"] .metric-card,
+:root[data-theme="dark"] .plant-utility-card,
+:root[data-theme="dark"] .setup-card,
+:root[data-theme="dark"] .finder-result-card,
+:root[data-theme="dark"] .journal-photo-card,
+:root[data-theme="dark"] .plant-timeline-card,
+:root[data-theme="dark"] .account-sync-panel,
+:root[data-theme="dark"] .setup-builder,
+:root[data-theme="dark"] .setup-cheatsheet,
+:root[data-theme="dark"] .manual-task-template,
+:root[data-theme="dark"] .finder-results,
+:root[data-theme="dark"] .seed-tabs,
+:root[data-theme="dark"] .reference-details,
+:root[data-theme="dark"] .genetic-finder,
+:root[data-theme="dark"] .finder-option,
+:root[data-theme="dark"] .finder-flavor,
+:root[data-theme="dark"] .reference-value,
+:root[data-theme="dark"] .calendar-layout,
+:root[data-theme="dark"] .calendar-main,
+:root[data-theme="dark"] .calendar-plant-picker,
+:root[data-theme="dark"] .calendar-status-pill,
+:root[data-theme="dark"] .calendar-weekdays,
+:root[data-theme="dark"] .day-cell,
+:root[data-theme="dark"] .calendar-create-button,
+:root[data-theme="dark"] .calendar-history-controls .today-control,
+:root[data-theme="dark"] .calendar-history-controls button,
+:root[data-theme="dark"] .calendar-month-picker,
+:root[data-theme="dark"] .calendar-journal-entry,
+:root[data-theme="dark"] .view-toggle,
+:root[data-theme="dark"] .brand-logo,
+:root[data-theme="dark"] .install-app-status,
+:root[data-theme="dark"] .copy-value-button,
+:root[data-theme="dark"] .account-share-open,
+:root[data-theme="dark"] .onboarding-panel,
+:root[data-theme="dark"] .onboarding-illustration,
+:root[data-theme="dark"] .app-header nav,
+:root[data-theme="dark"] header.sticky nav {
+  background: var(--pc-surface) !important;
+  border-color: var(--pc-border) !important;
+}
+
+:root[data-theme="dark"] .calendar-create-button,
+:root[data-theme="dark"] .calendar-history-controls .today-control,
+:root[data-theme="dark"] .day-cell {
+  color: var(--pc-foreground) !important;
+}
+
+:root[data-theme="dark"] .calendar-history-controls button,
+:root[data-theme="dark"] .calendar-month-picker,
+:root[data-theme="dark"] .calendar-status-pill,
+:root[data-theme="dark"] .calendar-weekdays,
+:root[data-theme="dark"] .install-app-status {
+  color: var(--pc-muted) !important;
+}
+
+:root[data-theme="dark"] .copy-value-button,
+:root[data-theme="dark"] .account-share-open {
+  color: var(--pc-primary) !important;
+}
+
+/*
+ * Cards secundarias/mas chicas (articulos dentro de grids de comparacion,
+ * historial, inventario, etc.) -- mismo problema, tratamiento un poco mas
+ * sutil (var(--pc-surface-subtle), como .metric-tile/.coach-focus arriba).
+ */
+:root[data-theme="dark"] .archived-cycle-comparison > article,
+:root[data-theme="dark"] .calculation-result-grid article,
+:root[data-theme="dark"] .environment-history-chart,
+:root[data-theme="dark"] .inspection-list article,
+:root[data-theme="dark"] .inventory-list article,
+:root[data-theme="dark"] .inventory-alerts article,
+:root[data-theme="dark"] .measurement-photo-gallery,
+:root[data-theme="dark"] .period-comparison-grid article,
+:root[data-theme="dark"] .plant-environment-metric,
+:root[data-theme="dark"] .plant-suggestion,
+:root[data-theme="dark"] .product-comparison article,
+:root[data-theme="dark"] .configured-alerts-panel,
+:root[data-theme="dark"] .plant-calculation-missing li,
+:root[data-theme="dark"] .empty-state,
+:root[data-theme="dark"] .timeline-empty,
+:root[data-theme="dark"] .finder-education-grid article,
+:root[data-theme="dark"] .timeline-row-body,
+:root[data-theme="dark"] .task-check,
+:root[data-theme="dark"] .finder-empty,
+:root[data-theme="dark"] .stepper-button.disabled,
+:root[data-theme="dark"] .stepper-button.secondary,
+:root[data-theme="dark"] .timeline-filter,
+:root[data-theme="dark"] .plant-row-details:target,
+:root[data-theme="dark"] .plant-sensor-devices article,
+:root[data-theme="dark"] .plant-sensor-token {
+  background: var(--pc-surface-subtle) !important;
+  border-color: var(--pc-border) !important;
+}
+
+:root[data-theme="dark"] .finder-empty,
+:root[data-theme="dark"] .timeline-filter {
+  color: var(--pc-muted) !important;
+}
+
+/*
+ * .finder-education (el desplegable "Como leer la informacion del
+ * catalogo" en Semillas/Buscador guiado) es otra card clara fija que el
+ * bloque de arriba no cubre -- ni ella ni su contenido interno.
+ */
+:root[data-theme="dark"] .finder-education {
+  background: var(--pc-surface-subtle) !important;
+  border-color: var(--pc-border) !important;
+}
+
+:root[data-theme="dark"] .finder-education summary {
+  color: var(--pc-primary) !important;
+}
+
+:root[data-theme="dark"] .finder-education-grid h4 {
+  color: var(--pc-foreground) !important;
+}
+
+:root[data-theme="dark"] .finder-education-grid p {
+  color: var(--pc-muted) !important;
+}
+
+/*
+ * .finder-header h3 (titulo "Encuentra una genetica de referencia") tiene
+ * un verde casi negro fijo con !important (mismo bug que los h1-h4 de main,
+ * ver comentario mas arriba) -- ilegible sobre la card ahora oscura de
+ * .genetic-finder. .finder-header p (la descripcion debajo) tambien tiene
+ * un color fijo, sin !important pero igual de ilegible.
+ */
+:root[data-theme="dark"] .finder-header h3 {
+  color: var(--pc-foreground) !important;
+}
+
+:root[data-theme="dark"] .finder-header p {
+  color: var(--pc-muted) !important;
+}
+
+:root[data-theme="dark"] .stepper-button.secondary {
+  color: var(--pc-foreground) !important;
+}
+
+/*
+ * .secondary-button y .form-control son la base de TODOS los botones
+ * secundarios e inputs de la app -- el fix de mayor alcance de este bloque.
+ * Excepcion: dentro de las cards "menta" intencionalmente claras
+ * (.manual-form-group, .genetic-entry-card, .genetics-reference-panel) sus
+ * inputs deben seguir claros como el resto de la card, asi que se revierten
+ * a proposito.
+ */
+:root[data-theme="dark"] .secondary-button,
+:root[data-theme="dark"] .form-control {
+  background: var(--pc-surface) !important;
+  border-color: var(--pc-border) !important;
+  color: var(--pc-foreground) !important;
+}
+
+:root[data-theme="dark"] .manual-form-group .form-control,
+:root[data-theme="dark"] .genetic-entry-card .form-control,
+:root[data-theme="dark"] .genetics-reference-panel .form-control {
+  background: #ffffff !important;
+  border-color: rgba(47, 143, 95, 0.2) !important;
+  color: #16281d !important;
+}
+
+:root[data-theme="dark"] .genetics-reference-panel .secondary-button,
+:root[data-theme="dark"] .plant-genetic-summary .secondary-button {
+  background: #ffffff !important;
+  border-color: rgba(30, 51, 39, 0.14) !important;
+  color: #1e3327 !important;
 }
 
 .today-toolbox {

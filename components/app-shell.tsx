@@ -6927,13 +6927,27 @@ function ThemeToggle({ dictionary }: { dictionary: Dictionary }) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const domTheme = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
-    // Sincroniza el estado de React con lo que ThemeScript ya aplico al DOM
-    // antes de hidratar (una fuente externa real, no un valor derivable en
-    // el render); el mismo patron que arriba, sin la regla de lint, usa
-    // useStoredState un poco mas abajo en este archivo.
+    // OJO: leer el atributo data-theme del DOM aca (en vez de localStorage
+    // directamente) parece natural -- es lo que ThemeScript ya aplico antes
+    // de hidratar -- pero es un bug real: <html> lo renderiza RootLayout
+    // (un Server Component), asi que React lo gestiona como parte del
+    // arbol; al hidratar, React limpia data-theme (un atributo que el
+    // vdom del servidor no conoce) ANTES de que este efecto llegue a
+    // leerlo. El resultado: domTheme daba "light" en cada carga fresca
+    // -aunque ThemeScript hubiera puesto "dark" un instante antes- y este
+    // efecto lo persistia en localStorage, dejando la app en claro para
+    // siempre. localStorage("pc-theme"), que ThemeScript tambien usa como
+    // fuente de verdad, no pasa por React y no tiene ese problema.
+    const stored = window.localStorage.getItem("pc-theme");
+    const resolvedTheme = stored === "light" ? "light" : "dark";
+    // Re-aplica el atributo por si React lo limpio como se describe arriba.
+    if (resolvedTheme === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTheme(domTheme);
+    setTheme(resolvedTheme);
     setHydrated(true);
   }, []);
 
