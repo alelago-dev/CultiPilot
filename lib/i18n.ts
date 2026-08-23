@@ -252,7 +252,200 @@ const dictionaries: Record<Locale, Dictionary> = {
       stepperPrevious: "Solapa anterior",
       stepperStart: "Inicio",
       stepperNext: "Siguiente solapa",
-      stepperEnd: "Fin"
+      stepperEnd: "Fin",
+      modeAutomatic: "Automatico",
+      modeManual: "Manual",
+      copyFieldPrefix: "Campo: {field}",
+      targetFloweringWeeks: "Semanas de floracion",
+      targetDaysToFlower: "Dias a flora",
+      targetPotLiters: "Maceta en litros",
+      targetLightType: "Tipo de luz",
+      targetDeclaredType: "Tipo declarado",
+      targetGeneticNote: "Nota de genetica",
+      targetReferenceNote: "Nota de referencia",
+      targetSourceNote: "Nota de fuente",
+      targetManualWateringNote: "Nota de riego manual",
+      targetManualNote: "Nota manual",
+      notDeclared: "No declarado",
+      weeksUnit: "semanas",
+      geneticTypeAutoflowering: "Automatica",
+      geneticTypeFasterFlowering: "Faster flowering",
+      geneticTypeRegular: "Regular",
+      geneticTypeFeminized: "Feminizada",
+      setups: {
+        eyebrow: "Sugerencias",
+        title: "Setups de carpa y macetas",
+        introText:
+          "Configura el contexto de cultivo legal para decidir con mejores datos. La app muestra referencias de espacio y genetica; las estimaciones solo se activan cuando existen datos suficientes y siempre quedan marcadas como tales.",
+        sectorLabel: "Sector de cultivo",
+        spaceTypes: [
+          { id: "interior", label: "Interior" },
+          { id: "exterior", label: "Exterior" },
+          { id: "greenhouse", label: "Invernaculo" }
+        ],
+        tentSizeLabel: "Tamano de carpa / indoor",
+        greenhouseTypeLabel: "Tipo de invernaculo",
+        outdoorPlaceLabel: "Lugar exterior",
+        outdoorPlaces: ["Terraza", "Balcon", "Patio", "Jardin", "Region aproximada"],
+        greenhousePlaces: ["Mini invernaculo", "Invernaculo chico", "Invernaculo mediano", "Tunel", "Otro espacio declarado"],
+        referenceGeneticLabel: "Genetica de referencia",
+        noGeneticSelected: "Sin genetica seleccionada",
+        selectedSetupLabel: "Setup seleccionado",
+        outdoorBestFor: "Espacio declarado por el usuario para organizar calendario y bitacora.",
+        presets: [
+          {
+            id: "40x40",
+            label: "40 x 40 cm",
+            comfortable: "1 maceta de 7-10 L",
+            compact: "2 macetas de 3-5 L",
+            airflow: "Dejar margen libre para riego, poda sanitaria o revision visual.",
+            lightFit: "LED compacto de bajo calor; evitar sodio por temperatura y poca altura.",
+            plantHeight: "20-45 cm de altura util declarada",
+            bestFor: "Plantin, aromatica, planta compacta o prueba de genetica declarada."
+          },
+          {
+            id: "60x60",
+            label: "60 x 60 cm",
+            comfortable: "1 maceta de 15-20 L o 2 macetas de 7-10 L",
+            compact: "4 macetas de 3-5 L si se prioriza variedad y registro individual",
+            airflow: "Conviene no llenar toda la base: dejar pasillo visual y espacio para bandeja.",
+            lightFit: "LED de panel compacto; sodio solo si el usuario declara extraccion y temperatura controlada.",
+            plantHeight: "35-65 cm de altura util declarada",
+            bestFor: "Espacio chico con seguimiento simple."
+          },
+          {
+            id: "80x80",
+            label: "80 x 80 cm",
+            comfortable: "2 macetas de 15-20 L o 4 macetas de 7-11 L",
+            compact: "6 macetas de 5-7 L si el usuario declara plantas chicas",
+            airflow: "Configuracion equilibrada: 4 macetas deja buena lectura de hojas y acceso al sustrato.",
+            lightFit: "LED full spectrum mediano o mixta; sodio solo con control termico declarado.",
+            plantHeight: "50-90 cm de altura util declarada",
+            bestFor: "Setup mediano: buen balance entre orden, fotos y mantenimiento."
+          },
+          {
+            id: "100x100",
+            label: "100 x 100 cm",
+            comfortable: "4 macetas de 15-20 L",
+            compact: "6 macetas de 10-11 L",
+            airflow: "Usar grilla 2x2 para manejo comodo o 3x2 si se acepta menos espacio de acceso.",
+            lightFit: "LED mediano/grande; sodio compatible solo con buena extraccion y distancia fisica.",
+            plantHeight: "70-110 cm de altura util declarada",
+            bestFor: "Varias plantas con bitacora separada."
+          },
+          {
+            id: "120x120",
+            label: "120 x 120 cm",
+            comfortable: "4 macetas de 20-25 L o 6 macetas de 15 L",
+            compact: "9 macetas de 10-11 L",
+            airflow: "Priorizar circulacion y acceso frontal; no bloquear esquinas de revision.",
+            lightFit: "LED modular, mixta o sodio si el usuario declara control termico suficiente.",
+            plantHeight: "80-130 cm de altura util declarada",
+            bestFor: "Espacio amplio con calendario por planta."
+          }
+        ],
+        comfortableLabel: "Comodo",
+        comfortableNote: "Menos plantas, mas acceso para revisar y registrar.",
+        outdoorComfortableValue: "Definir cantidad de plantas segun acceso, normativa y registro declarado",
+        compactLabel: "Compacto",
+        compactNote: "Mas macetas, requiere mejor orden y etiquetas claras.",
+        outdoorCompactValue: "Mantener separacion suficiente para inspeccion visual y fotos",
+        airflowLabel: "Circulacion",
+        airflowNote: "Pensado para mantenimiento, fotos y lectura visual.",
+        outdoorAirflowValue: "Dejar margen para caminar, revisar hojas, mover macetas y proteger del clima",
+        lightFitLabel: "Luz compatible",
+        lightFitNote: "Referencia por calor y espacio; el usuario declara el equipo real.",
+        outdoorLightValue: "Luz natural declarada; registrar sombra, viento y exposicion aproximada",
+        heightLabel: "Altura util",
+        heightNote: "Margen fisico para no perder acceso ni tocar luminaria o techo.",
+        outdoorHeightValue: "Altura declarada por el usuario segun privacidad, viento y soporte",
+        selectedGeneticLabel: "Genetica seleccionada",
+        noGeneticLabel: "Sin genetica",
+        geneticTypeLabel: "Tipo",
+        floweringPublishedLabel: "Floracion publicada",
+        thcPublishedLabel: "THC publicado",
+        sourceLabel: "Fuente",
+        pickGeneticHint: "Elegi una genetica para ver datos publicados como referencia y copiarlos si queres cargarlos a mano.",
+        checklistLabel: "Checklist manual para calendario",
+        tasks: [
+          {
+            title: "Revision de humedad",
+            cadence: "Manual o recurrente",
+            detail: "Registrar tacto, peso de maceta o sensor antes de decidir si corresponde regar."
+          },
+          {
+            title: "Registro fotografico",
+            cadence: "Manual semanal",
+            detail: "Tomar fotos comparables por planta para ver evolucion y dejar evidencia de seguimiento."
+          },
+          {
+            title: "Limpieza y mantenimiento",
+            cadence: "Manual",
+            detail: "Anotar limpieza, filtros, ventilacion, orden de cables o estado general del espacio."
+          },
+          {
+            title: "Trabajo de estructura / poda",
+            cadence: "Fecha definida por usuario",
+            detail: "Usar solo como recordatorio de una tarea decidida previamente por el cultivador."
+          },
+          {
+            title: "Nutricion / fertilizacion",
+            cadence: "Fecha definida por usuario",
+            detail: "Registrar producto, dosis declarada por el usuario y observaciones posteriores."
+          },
+          {
+            title: "Prevencion de plagas",
+            cadence: "Revision visual",
+            detail: "Agendar inspeccion de hojas, sustrato y entorno sin guardar domicilios exactos."
+          },
+          {
+            title: "Cambio de etapa declarado",
+            cadence: "Fecha definida por usuario",
+            detail: "Marcar hitos cargados manualmente para que el calendario los recuerde."
+          },
+          {
+            title: "Cierre de riego / fertilizacion",
+            cadence: "Fecha definida por usuario",
+            detail: "Recordar una decision ya tomada por el usuario, sin calcularla desde la genetica."
+          }
+        ],
+        manualTaskFieldLabel: "tarea manual del calendario",
+        quickRuleLabel: "Regla rapida de lectura",
+        potSmallLabel: "Maceta chica",
+        potSmallValue: "3-7 L: plantines, aromaticas o pruebas",
+        potMediumLabel: "Maceta media",
+        potMediumValue: "7-15 L: balance entre espacio y manejo",
+        potLargeLabel: "Maceta grande",
+        potLargeValue: "15-25 L: menos unidades y mas margen de sustrato"
+      },
+      reference: {
+        readOnly: "Solo lectura",
+        title: "Referencia",
+        geneticsLoadedCount: "{n} geneticas cargadas",
+        regulatedTypesLabel: "Tipos regulados disponibles",
+        fieldType: "Tipo",
+        fieldVariant: "Variante",
+        fieldNote: "Nota",
+        chooseGeneticLabel: "Elegir genetica",
+        noGeneticSelected: "Sin genetica seleccionada",
+        alphabeticalListHint: "Lista completa ordenada alfabeticamente.",
+        searchGeneticLabel: "Buscar genetica",
+        byTypeSummary: "Referencia por tipo",
+        geneticsSheetSummary: "Ficha de genetica",
+        chooseGeneticHint: "Elegi una genetica del buscador para ver la ficha publicada.",
+        fieldSource: "Fuente",
+        fieldCross: "Cruza",
+        floweringPublished: "Floracion publicada",
+        thcPublished: "THC publicado",
+        fieldFlavor: "Sabor",
+        fieldEffect: "Efecto",
+        rawFieldsSummary: "Campos originales del Excel",
+        fieldDaysToFlower: "Dias a flora",
+        fieldFlowering: "Floracion",
+        fieldPot: "Maceta",
+        fieldLight: "Luz",
+        fieldWatering: "Riego"
+      }
     }
   },
   en: {
@@ -504,7 +697,200 @@ const dictionaries: Record<Locale, Dictionary> = {
       stepperPrevious: "Previous tab",
       stepperStart: "Start",
       stepperNext: "Next tab",
-      stepperEnd: "End"
+      stepperEnd: "End",
+      modeAutomatic: "Automatic",
+      modeManual: "Manual",
+      copyFieldPrefix: "Field: {field}",
+      targetFloweringWeeks: "Weeks of flowering",
+      targetDaysToFlower: "Days to flowering",
+      targetPotLiters: "Pot in liters",
+      targetLightType: "Light type",
+      targetDeclaredType: "Declared type",
+      targetGeneticNote: "Genetics note",
+      targetReferenceNote: "Reference note",
+      targetSourceNote: "Source note",
+      targetManualWateringNote: "Manual watering note",
+      targetManualNote: "Manual note",
+      notDeclared: "Not declared",
+      weeksUnit: "weeks",
+      geneticTypeAutoflowering: "Autoflowering",
+      geneticTypeFasterFlowering: "Faster flowering",
+      geneticTypeRegular: "Regular",
+      geneticTypeFeminized: "Feminized",
+      setups: {
+        eyebrow: "Suggestions",
+        title: "Tent and pot setups",
+        introText:
+          "Set up your legal grow context to decide with better data. The app shows space and genetics references; estimates only kick in when there's enough data, and they're always labeled as such.",
+        sectorLabel: "Grow sector",
+        spaceTypes: [
+          { id: "interior", label: "Indoor" },
+          { id: "exterior", label: "Outdoor" },
+          { id: "greenhouse", label: "Greenhouse" }
+        ],
+        tentSizeLabel: "Tent / indoor size",
+        greenhouseTypeLabel: "Greenhouse type",
+        outdoorPlaceLabel: "Outdoor location",
+        outdoorPlaces: ["Terrace", "Balcony", "Patio", "Garden", "Approximate region"],
+        greenhousePlaces: ["Mini greenhouse", "Small greenhouse", "Medium greenhouse", "Tunnel", "Other declared space"],
+        referenceGeneticLabel: "Reference genetics",
+        noGeneticSelected: "No genetics selected",
+        selectedSetupLabel: "Selected setup",
+        outdoorBestFor: "Space declared by the user to organize the calendar and journal.",
+        presets: [
+          {
+            id: "40x40",
+            label: "40 x 40 cm",
+            comfortable: "1 pot of 7-10 L",
+            compact: "2 pots of 3-5 L",
+            airflow: "Leave free margin for watering, sanitary pruning, or visual checks.",
+            lightFit: "Compact low-heat LED; avoid HPS due to temperature and limited height.",
+            plantHeight: "20-45 cm declared usable height",
+            bestFor: "Seedling, herb, compact plant, or testing a declared genetic."
+          },
+          {
+            id: "60x60",
+            label: "60 x 60 cm",
+            comfortable: "1 pot of 15-20 L or 2 pots of 7-10 L",
+            compact: "4 pots of 3-5 L if prioritizing variety and individual tracking",
+            airflow: "Better not to fill the whole base: leave a visual walkway and room for a tray.",
+            lightFit: "Compact panel LED; HPS only if the user declares extraction and controlled temperature.",
+            plantHeight: "35-65 cm declared usable height",
+            bestFor: "Small space with simple tracking."
+          },
+          {
+            id: "80x80",
+            label: "80 x 80 cm",
+            comfortable: "2 pots of 15-20 L or 4 pots of 7-11 L",
+            compact: "6 pots of 5-7 L if the user declares small plants",
+            airflow: "Balanced setup: 4 pots gives good leaf visibility and substrate access.",
+            lightFit: "Medium full-spectrum LED or mixed; HPS only with declared thermal control.",
+            plantHeight: "50-90 cm declared usable height",
+            bestFor: "Medium setup: good balance of order, photos, and upkeep."
+          },
+          {
+            id: "100x100",
+            label: "100 x 100 cm",
+            comfortable: "4 pots of 15-20 L",
+            compact: "6 pots of 10-11 L",
+            airflow: "Use a 2x2 grid for comfortable handling, or 3x2 if less access room is acceptable.",
+            lightFit: "Medium/large LED; HPS compatible only with good extraction and physical distance.",
+            plantHeight: "70-110 cm declared usable height",
+            bestFor: "Several plants with separate journals."
+          },
+          {
+            id: "120x120",
+            label: "120 x 120 cm",
+            comfortable: "4 pots of 20-25 L or 6 pots of 15 L",
+            compact: "9 pots of 10-11 L",
+            airflow: "Prioritize circulation and front access; don't block corners needed for checks.",
+            lightFit: "Modular or mixed LED, or HPS if the user declares sufficient thermal control.",
+            plantHeight: "80-130 cm declared usable height",
+            bestFor: "Large space with a calendar per plant."
+          }
+        ],
+        comfortableLabel: "Comfortable",
+        comfortableNote: "Fewer plants, more access for checking and logging.",
+        outdoorComfortableValue: "Set plant count based on access, regulations, and declared record",
+        compactLabel: "Compact",
+        compactNote: "More pots, needs better order and clear labels.",
+        outdoorCompactValue: "Keep enough spacing for visual inspection and photos",
+        airflowLabel: "Airflow",
+        airflowNote: "Built for upkeep, photos, and visual reading.",
+        outdoorAirflowValue: "Leave room to walk, check leaves, move pots, and protect from weather",
+        lightFitLabel: "Light fit",
+        lightFitNote: "Reference by heat and space; the user declares the actual equipment.",
+        outdoorLightValue: "Declared natural light; log shade, wind, and approximate exposure",
+        heightLabel: "Usable height",
+        heightNote: "Physical margin so you don't lose access or hit the light fixture or ceiling.",
+        outdoorHeightValue: "Height declared by the user based on privacy, wind, and support",
+        selectedGeneticLabel: "Selected genetics",
+        noGeneticLabel: "No genetics",
+        geneticTypeLabel: "Type",
+        floweringPublishedLabel: "Published flowering time",
+        thcPublishedLabel: "Published THC",
+        sourceLabel: "Source",
+        pickGeneticHint: "Pick a genetic to see published data as a reference, and copy it if you want to log it by hand.",
+        checklistLabel: "Manual checklist for the calendar",
+        tasks: [
+          {
+            title: "Moisture check",
+            cadence: "Manual or recurring",
+            detail: "Log touch, pot weight, or sensor reading before deciding whether to water."
+          },
+          {
+            title: "Photo log",
+            cadence: "Manual, weekly",
+            detail: "Take comparable photos per plant to see progress and leave tracking evidence."
+          },
+          {
+            title: "Cleaning and upkeep",
+            cadence: "Manual",
+            detail: "Note cleaning, filters, ventilation, cable management, or overall space condition."
+          },
+          {
+            title: "Structural work / pruning",
+            cadence: "User-defined date",
+            detail: "Use only as a reminder for a task the grower already decided on."
+          },
+          {
+            title: "Nutrition / fertilizing",
+            cadence: "User-defined date",
+            detail: "Log product, dose declared by the user, and follow-up observations."
+          },
+          {
+            title: "Pest prevention",
+            cadence: "Visual check",
+            detail: "Schedule an inspection of leaves, substrate, and surroundings without saving exact addresses."
+          },
+          {
+            title: "Declared stage change",
+            cadence: "User-defined date",
+            detail: "Mark manually logged milestones so the calendar remembers them."
+          },
+          {
+            title: "Watering / fertilizing cutoff",
+            cadence: "User-defined date",
+            detail: "Remind yourself of a decision already made by the user, without calculating it from the genetics."
+          }
+        ],
+        manualTaskFieldLabel: "manual calendar task",
+        quickRuleLabel: "Quick reading rule",
+        potSmallLabel: "Small pot",
+        potSmallValue: "3-7 L: seedlings, herbs, or tests",
+        potMediumLabel: "Medium pot",
+        potMediumValue: "7-15 L: balance between space and handling",
+        potLargeLabel: "Large pot",
+        potLargeValue: "15-25 L: fewer units and more substrate margin"
+      },
+      reference: {
+        readOnly: "Read only",
+        title: "Reference",
+        geneticsLoadedCount: "{n} genetics loaded",
+        regulatedTypesLabel: "Available regulated types",
+        fieldType: "Type",
+        fieldVariant: "Variant",
+        fieldNote: "Note",
+        chooseGeneticLabel: "Choose genetics",
+        noGeneticSelected: "No genetics selected",
+        alphabeticalListHint: "Full list sorted alphabetically.",
+        searchGeneticLabel: "Search genetics",
+        byTypeSummary: "Reference by type",
+        geneticsSheetSummary: "Genetics sheet",
+        chooseGeneticHint: "Pick a genetic from the search to see its published sheet.",
+        fieldSource: "Source",
+        fieldCross: "Cross",
+        floweringPublished: "Published flowering time",
+        thcPublished: "Published THC",
+        fieldFlavor: "Flavor",
+        fieldEffect: "Effect",
+        rawFieldsSummary: "Original spreadsheet fields",
+        fieldDaysToFlower: "Days to flowering",
+        fieldFlowering: "Flowering",
+        fieldPot: "Pot",
+        fieldLight: "Light",
+        fieldWatering: "Watering"
+      }
     }
   }
 };
