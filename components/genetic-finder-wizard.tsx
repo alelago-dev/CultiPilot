@@ -47,7 +47,7 @@ const geneticsCatalog = getGeneticsCatalogAlphabetically();
 const initialFinderState: FinderState = {
   effect: "any",
   flavors: [],
-  growPlace: "indoor",
+  growPlace: "any",
   seedType: "any"
 };
 
