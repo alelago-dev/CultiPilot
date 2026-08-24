@@ -73,6 +73,8 @@ CultiPilot registra y procesa cultivos sujetos a regulacion con las mismas herra
 
 ## Catalogo de geneticas
 
+El catálogo suma 69 variedades únicas del informe comparativo *Catálogos de semillas de cannabis, edición ampliada 2026*. Durante la importación se omitieron 18 nombres ya presentes (comparación normalizada, sin distinguir mayúsculas, acentos ni signos). Cada registro conserva banco, tipo, duración, THC, CBD, sabor/aroma y referencia publicados en `raw_fields`, sin completar datos ausentes ni presentarlos como mediciones.
+
 El catalogo `lib/genetics-catalog.ts` puede incluir referencias tabulares importadas desde fuentes estructuradas, incluyendo archivos Excel u otros datasets compatibles.
 
 Las columnas originales pueden conservarse en `raw_fields` para mantener trazabilidad de los datos importados.

@@ -1,3 +1,5 @@
+import { PDF_CATALOG_2026_GENETICS } from "@/lib/genetics-catalog-pdf-2026";
+
 /**
  * genetics-catalog.ts
  *
@@ -35,6 +37,7 @@ export interface GeneticReferenceEntry {
 }
 
 export const GENETICS_CATALOG: GeneticReferenceEntry[] = [
+  ...PDF_CATALOG_2026_GENETICS,
   // ---- FEMINIZED ----
   {
     id: "pineapple-larry-og-fem",
