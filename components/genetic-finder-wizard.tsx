@@ -13,7 +13,7 @@ import type { Dictionary } from "@/lib/types";
 
 type FinderGrowPlace = "any" | "indoor" | "outdoor";
 type FinderSeedType = "any" | "autoflowering" | "feminized" | "regular";
-type FinderEffect = "any" | "relax" | "energy" | "balanced";
+type FinderPotency = "any" | "low" | "medium" | "high";
 type FinderFlavor =
   | "acid"
   | "citrus"
@@ -27,13 +27,13 @@ type FinderFlavor =
   | "wood";
 
 type FinderState = {
-  effect: FinderEffect;
+  potency: FinderPotency;
   flavors: FinderFlavor[];
   growPlace: FinderGrowPlace;
   seedType: FinderSeedType;
 };
 
-type FinderStep = "place" | "type" | "effect" | "flavors";
+type FinderStep = "place" | "type" | "potency" | "flavors";
 
 type GeneticFinderWizardProps = {
   compact?: boolean;
@@ -41,11 +41,11 @@ type GeneticFinderWizardProps = {
   onSelectGenetic?: (genetic: GeneticReferenceEntry) => void;
 };
 
-const steps: FinderStep[] = ["place", "type", "effect", "flavors"];
+const steps: FinderStep[] = ["place", "type", "potency", "flavors"];
 const geneticsCatalog = getGeneticsCatalogAlphabetically();
 
 const initialFinderState: FinderState = {
-  effect: "any",
+  potency: "any",
   flavors: [],
   growPlace: "any",
   seedType: "any"
@@ -56,7 +56,7 @@ export function GeneticFinderWizard({ compact = false, dictionary, onSelectGenet
   const [finderState, setFinderState] = useState<FinderState>(initialFinderState);
   const [stepIndex, setStepIndex] = useState(0);
   const currentStep = steps[stepIndex];
-  const matches = useMemo(() => filterGenetics(finderState, compact ? 6 : 10), [compact, finderState]);
+  const matches = useMemo(() => filterGenetics(finderState), [finderState]);
   const progress = ((stepIndex + 1) / steps.length) * 100;
 
   function goNext() {
@@ -137,12 +137,12 @@ export function GeneticFinderWizard({ compact = false, dictionary, onSelectGenet
         />
       ) : null}
 
-      {currentStep === "effect" ? (
+      {currentStep === "potency" ? (
         <FinderOptionGrid
-          options={finder.effectOptions}
-          selectedValue={finderState.effect}
-          onSelect={(effect) => {
-            setFinderState((current) => ({ ...current, effect: effect as FinderEffect }));
+          options={finder.potencyOptions}
+          selectedValue={finderState.potency}
+          onSelect={(potency) => {
+            setFinderState((current) => ({ ...current, potency: potency as FinderPotency }));
             goNext();
           }}
         />
@@ -172,7 +172,13 @@ export function GeneticFinderWizard({ compact = false, dictionary, onSelectGenet
         </div>
       ) : null}
 
-      <FinderResults dictionary={dictionary} finderState={finderState} matches={matches} onSelectGenetic={onSelectGenetic} />
+      <FinderResults
+        dictionary={dictionary}
+        finderState={finderState}
+        key={JSON.stringify(finderState)}
+        matches={matches}
+        onSelectGenetic={onSelectGenetic}
+      />
 
       <div className="finder-actions">
         <button className="secondary-button" disabled={stepIndex === 0} onClick={goBack} type="button">
@@ -226,8 +232,8 @@ function FinderOptionGrid({
   );
 }
 
-const initialVisibleResultCount = 2;
-const additionalResultsPerPage = 3;
+const initialVisibleResultCount = 10;
+const additionalResultsPerPage = 20;
 
 function FinderResults({
   dictionary,
@@ -299,12 +305,11 @@ function FinderResults({
   );
 }
 
-function filterGenetics(finderState: FinderState, limit: number) {
+function filterGenetics(finderState: FinderState) {
   return geneticsCatalog
     .map((genetic) => ({ genetic, score: scoreGenetic(genetic, finderState) }))
-    .filter(({ score }) => score > 0 || hasOnlyAnyFilters(finderState))
-    .sort((first, second) => second.score - first.score || first.genetic.name.localeCompare(second.genetic.name, "es"))
-    .slice(0, limit);
+    .filter(({ genetic }) => matchesRequiredFilters(genetic, finderState))
+    .sort((first, second) => second.score - first.score || first.genetic.name.localeCompare(second.genetic.name, "es"));
 }
 
 function scoreGenetic(genetic: GeneticReferenceEntry, finderState: FinderState) {
@@ -312,19 +317,15 @@ function scoreGenetic(genetic: GeneticReferenceEntry, finderState: FinderState) 
   const searchableText = buildSearchableText(genetic);
 
   if (finderState.seedType !== "any") {
-    score += geneticMatchesType(genetic.type, finderState.seedType) ? 7 : -4;
+    score += 7;
   }
 
-  if (finderState.growPlace === "indoor" && /\b(indoor|interior|inside)\b/.test(searchableText)) {
+  if (matchesGrowPlace(searchableText, finderState.growPlace) === true) {
     score += 3;
   }
 
-  if (finderState.growPlace === "outdoor" && /\b(outdoor|exterior|terraza|balcon|jardin|invernaculo)\b/.test(searchableText)) {
-    score += 3;
-  }
-
-  if (finderState.effect !== "any") {
-    score += getEffectKeywords(finderState.effect).some((keyword) => searchableText.includes(keyword)) ? 4 : -1;
+  if (finderState.potency !== "any") {
+    score += 4;
   }
 
   finderState.flavors.forEach((flavor) => {
@@ -341,19 +342,15 @@ function formatMatchSummary(genetic: GeneticReferenceEntry, finderState: FinderS
   const criteria: boolean[] = [];
 
   if (finderState.growPlace !== "any") {
-    criteria.push(
-      finderState.growPlace === "indoor"
-        ? /\b(indoor|interior|inside)\b/.test(searchableText)
-        : /\b(outdoor|exterior|terraza|balcon|jardin|invernaculo)\b/.test(searchableText)
-    );
+    criteria.push(matchesGrowPlace(searchableText, finderState.growPlace) === true);
   }
 
   if (finderState.seedType !== "any") {
     criteria.push(geneticMatchesType(genetic.type, finderState.seedType));
   }
 
-  if (finderState.effect !== "any") {
-    criteria.push(getEffectKeywords(finderState.effect).some((keyword) => searchableText.includes(keyword)));
+  if (finderState.potency !== "any") {
+    criteria.push(geneticMatchesPotency(genetic, finderState.potency));
   }
 
   if (finderState.flavors.length > 0) {
@@ -381,11 +378,39 @@ function geneticMatchesType(geneticType: GeneticType, selectedType: FinderSeedTy
   return geneticType === selectedType;
 }
 
-function getEffectKeywords(effect: FinderEffect) {
-  if (effect === "relax") return ["relaj", "sedant", "calm", "body", "indica", "descanso", "somn"];
-  if (effect === "energy") return ["energia", "energi", "creativ", "activo", "uplift", "sativa", "cerebral", "eufor"];
-  if (effect === "balanced") return ["balance", "equilibr", "hybrid", "hibrid", "indica / sativa", "mild"];
-  return [];
+function matchesRequiredFilters(genetic: GeneticReferenceEntry, finderState: FinderState) {
+  const growPlaceMatch = matchesGrowPlace(buildSearchableText(genetic), finderState.growPlace);
+  if (growPlaceMatch === false) return false;
+  if (finderState.seedType !== "any" && !geneticMatchesType(genetic.type, finderState.seedType)) return false;
+  if (finderState.potency !== "any" && !geneticMatchesPotency(genetic, finderState.potency)) return false;
+
+  if (finderState.flavors.length > 0) {
+    const searchableText = buildSearchableText(genetic);
+    const matchesFlavor = finderState.flavors.some((flavor) =>
+      getFlavorKeywords(flavor).some((keyword) => searchableText.includes(keyword))
+    );
+    if (!matchesFlavor) return false;
+  }
+
+  return true;
+}
+
+function matchesGrowPlace(searchableText: string, growPlace: FinderGrowPlace): boolean | null {
+  if (growPlace === "any") return true;
+  const declaresIndoor = /\b(indoor|interior|inside)\b/.test(searchableText);
+  const declaresOutdoor = /\b(outdoor|exterior|terraza|balcon|jardin|invernaculo)\b/.test(searchableText);
+
+  if (!declaresIndoor && !declaresOutdoor) return null;
+  return growPlace === "indoor" ? declaresIndoor : declaresOutdoor;
+}
+
+function geneticMatchesPotency(genetic: GeneticReferenceEntry, potency: FinderPotency) {
+  if (potency === "any") return true;
+  const [, publishedMaximum] = genetic.thc_percent_range;
+  if (publishedMaximum <= 0) return false;
+  if (potency === "low") return publishedMaximum < 10;
+  if (potency === "medium") return publishedMaximum >= 10 && publishedMaximum <= 20;
+  return publishedMaximum > 20;
 }
 
 function getFlavorKeywords(flavor: FinderFlavor) {
@@ -422,10 +447,6 @@ function buildSearchableText(genetic: GeneticReferenceEntry) {
 function formatRawValue(value: GeneticRawFieldValue) {
   if (value === null) return "";
   return String(value);
-}
-
-function hasOnlyAnyFilters(finderState: FinderState) {
-  return finderState.growPlace === "any" && finderState.seedType === "any" && finderState.effect === "any" && finderState.flavors.length === 0;
 }
 
 function normalizeText(value: string) {

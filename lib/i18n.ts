@@ -465,7 +465,7 @@ const dictionaries: Record<Locale, Dictionary> = {
       finder: {
         eyebrow: "Buscador guiado",
         title: "Encuentra una genetica de referencia",
-        description: "Filtra por ambiente, tipo, efecto y sabores publicados. El buscador en si no completa el cultivo: al asignar una genetica a una planta y registrar el inicio de floracion en su historial de etapas, esos datos alimentan la ventana de cosecha estimada de esa maceta.",
+        description: "Filtra por ambiente, tipo, potencia THC y sabores publicados. El buscador compara todo el catalogo; los datos ausentes no se inventan ni se consideran coincidencias.",
         modeLabel: "Manual",
         educationSummary: "Como leer la informacion del catalogo",
         thcTitle: "THC publicado",
@@ -489,11 +489,11 @@ const dictionaries: Record<Locale, Dictionary> = {
           { id: "regular", icon: "RE", label: "Regular", description: "Regular declarada por el banco." },
           { id: "any", icon: "ALL", label: "Cualquiera", description: "No filtrar por tipo." }
         ],
-        effectOptions: [
-          { id: "relax", icon: "REL", label: "Relajacion", description: "Busca notas publicadas de calma o descanso." },
-          { id: "energy", icon: "ENE", label: "Energia", description: "Busca notas de energia, creatividad o perfil activo." },
-          { id: "balanced", icon: "BAL", label: "Equilibrado", description: "Busca perfiles publicados como hibridos o balanceados." },
-          { id: "any", icon: "ALL", label: "Cualquiera", description: "No filtrar por efecto." }
+        potencyOptions: [
+          { id: "low", icon: "BA", label: "Baja", description: "THC maximo publicado menor al 10%." },
+          { id: "medium", icon: "ME", label: "Media", description: "THC maximo publicado entre 10% y 20%." },
+          { id: "high", icon: "AL", label: "Alta", description: "THC maximo publicado mayor al 20%." },
+          { id: "any", icon: "ALL", label: "Cualquiera", description: "No filtrar por potencia publicada." }
         ],
         flavorOptions: [
           { id: "fruity", icon: "FR", label: "Afrutado", description: "Frutas, frutos rojos, tropical o banana." },
@@ -513,7 +513,7 @@ const dictionaries: Record<Locale, Dictionary> = {
         resultsHint: "Este es el catalogo completo filtrado por lo que elegiste. No se selecciona nada hasta que toques \"Agregar esta semilla\" en una tarjeta puntual.",
         matchSummaryNoFilters: "Mostrada sin filtros especificos",
         matchSummaryTemplate: "Coincide con {matching} de {total} filtros elegidos",
-        emptyResultsMessage: "No encontre coincidencias con esos filtros. Proba dejando tipo, efecto o sabores en cualquiera.",
+        emptyResultsMessage: "No encontre coincidencias con datos publicados para esos filtros. Proba dejando tipo, potencia o sabores en cualquiera.",
         addSeedButton: "Agregar esta semilla",
         showMoreButtonTemplate: "Ver {remaining} mas",
         backButton: "Atras",
@@ -1278,7 +1278,7 @@ const dictionaries: Record<Locale, Dictionary> = {
       finder: {
         eyebrow: "Guided finder",
         title: "Find a reference genetic",
-        description: "Filter by environment, type, effect and published flavors. The finder itself doesn't fill in your crop: once you assign a genetic to a plant and log its flowering start date in the stage history, that data powers that plant's estimated harvest window.",
+        description: "Filter by environment, type, published THC potency and flavors. The finder compares the full catalog; missing data is never invented or treated as a match.",
         modeLabel: "Manual",
         educationSummary: "How to read the catalog information",
         thcTitle: "Published THC",
@@ -1302,11 +1302,11 @@ const dictionaries: Record<Locale, Dictionary> = {
           { id: "regular", icon: "RE", label: "Regular", description: "Regular as declared by the seed bank." },
           { id: "any", icon: "ALL", label: "Any", description: "Don't filter by type." }
         ],
-        effectOptions: [
-          { id: "relax", icon: "REL", label: "Relaxation", description: "Looks for published notes of calm or rest." },
-          { id: "energy", icon: "ENE", label: "Energy", description: "Looks for notes of energy, creativity or an active profile." },
-          { id: "balanced", icon: "BAL", label: "Balanced", description: "Looks for profiles published as hybrid or balanced." },
-          { id: "any", icon: "ALL", label: "Any", description: "Don't filter by effect." }
+        potencyOptions: [
+          { id: "low", icon: "LO", label: "Low", description: "Published maximum THC below 10%." },
+          { id: "medium", icon: "ME", label: "Medium", description: "Published maximum THC from 10% to 20%." },
+          { id: "high", icon: "HI", label: "High", description: "Published maximum THC above 20%." },
+          { id: "any", icon: "ALL", label: "Any", description: "Don't filter by published potency." }
         ],
         flavorOptions: [
           { id: "fruity", icon: "FR", label: "Fruity", description: "Fruit, berries, tropical or banana." },
@@ -1326,7 +1326,7 @@ const dictionaries: Record<Locale, Dictionary> = {
         resultsHint: "This is the full catalog filtered by what you picked. Nothing is selected until you tap \"Add this seed\" on a specific card.",
         matchSummaryNoFilters: "Shown without specific filters",
         matchSummaryTemplate: "Matches {matching} of {total} chosen filters",
-        emptyResultsMessage: "No matches for those filters. Try leaving type, effect or flavors as any.",
+        emptyResultsMessage: "No matches have published data for those filters. Try leaving type, potency or flavors as any.",
         addSeedButton: "Add this seed",
         showMoreButtonTemplate: "Show {remaining} more",
         backButton: "Back",

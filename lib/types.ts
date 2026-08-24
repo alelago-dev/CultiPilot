@@ -368,7 +368,7 @@ export type Dictionary = {
       stepCountTemplate: string;
       placeOptions: Array<{ id: string; icon: string; label: string; description: string }>;
       seedTypeOptions: Array<{ id: string; icon: string; label: string; description: string }>;
-      effectOptions: Array<{ id: string; icon: string; label: string; description: string }>;
+      potencyOptions: Array<{ id: string; icon: string; label: string; description: string }>;
       flavorOptions: Array<{ id: string; icon: string; label: string; description: string }>;
       flavorsStepTitle: string;
       flavorsStepHint: string;
