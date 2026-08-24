@@ -38,7 +38,8 @@ const geneticsCatalogAlphabetically = getGeneticsCatalogAlphabetically();
 
 export function SeedsSection({ calendarHref, calendarLinkHref, dictionary, locale, onCreateManualEvents }: SeedsSectionProps) {
   const [activeTab, setActiveTab] = useState<SeedTab>("finder");
-  const [selectedGeneticName, setSelectedGeneticName] = useState("");
+  const [selectedGeneticId, setSelectedGeneticId] = useState("");
+  const selectedGenetic = geneticsCatalogAlphabetically.find((genetic) => genetic.id === selectedGeneticId);
   const shouldScrollToGeneticField = useRef(false);
   const tabs: Array<{ id: SeedTab; label: string }> = [
     { id: "finder", label: dictionary.seeds.tabFinder },
@@ -63,7 +64,7 @@ export function SeedsSection({ calendarHref, calendarLinkHref, dictionary, local
       geneticField?.scrollIntoView({ behavior: "smooth", block: "start" });
       geneticField?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
     });
-  }, [activeTab, selectedGeneticName]);
+  }, [activeTab, selectedGeneticId]);
 
   return (
     <section className="mx-auto mt-7 max-w-7xl px-4 sm:px-6 lg:px-8" id="seeds">
@@ -105,7 +106,7 @@ export function SeedsSection({ calendarHref, calendarLinkHref, dictionary, local
               dictionary={dictionary}
               onSelectGenetic={(genetic) => {
                 shouldScrollToGeneticField.current = true;
-                setSelectedGeneticName(genetic.name);
+                setSelectedGeneticId(genetic.id);
                 setActiveTab("manual");
               }}
             />
@@ -123,9 +124,10 @@ export function SeedsSection({ calendarHref, calendarLinkHref, dictionary, local
                 <ModeBadge dictionary={dictionary} mode="manual" />
               </div>
               <div className="mt-4">
-                {selectedGeneticName ? (
+                {selectedGenetic ? (
                   <div className="mb-3 rounded-lg border border-emerald-900/15 bg-mint-100/70 p-3 text-sm font-black text-moss-950">
-                    {formatDictionaryString(dictionary.seeds.selectedFromFinder, { name: selectedGeneticName })}
+                    {formatDictionaryString(dictionary.seeds.selectedFromFinder, { name: selectedGenetic.name })}
+                    <small className="mt-1 block font-bold text-stone-600">{selectedGenetic.source}</small>
                   </div>
                 ) : null}
                 <ManualCannabisForm
@@ -133,7 +135,7 @@ export function SeedsSection({ calendarHref, calendarLinkHref, dictionary, local
                   calendarLinkHref={calendarLinkHref}
                   dictionary={dictionary}
                   onCreateEvents={onCreateManualEvents}
-                  selectedGeneticName={selectedGeneticName}
+                  selectedGeneticId={selectedGeneticId}
                 />
               </div>
             </Card>

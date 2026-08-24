@@ -4625,7 +4625,7 @@ export function getGeneticsCatalogAlphabetically(): GeneticReferenceEntry[] {
 }
 
 export function searchGeneticsByName(query: string): GeneticReferenceEntry[] {
-  const q = query.trim().toLowerCase();
+  const q = normalizeGeneticSearchText(query);
 
   if (q.length < 2) {
     return [];
@@ -4633,9 +4633,13 @@ export function searchGeneticsByName(query: string): GeneticReferenceEntry[] {
 
   return getGeneticsCatalogAlphabetically().filter((g) => {
     const rawText = g.raw_fields ? Object.values(g.raw_fields).join(" ") : "";
-    const searchableText = [g.name, g.cross, g.type, g.source, rawText].join(" ").toLowerCase();
+    const searchableText = normalizeGeneticSearchText([g.name, g.cross, g.type, g.source, rawText].join(" "));
     return searchableText.includes(q);
   }).slice(0, 20);
+}
+
+function normalizeGeneticSearchText(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 }
 
 function compareGeneticNames(first: GeneticReferenceEntry, second: GeneticReferenceEntry) {

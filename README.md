@@ -81,6 +81,8 @@ Las columnas originales pueden conservarse en `raw_fields` para mantener trazabi
 
 Los datos del catalogo pueden utilizarse como entrada del motor de calculos y sugerencias cuando corresponda, siempre diferenciando su origen y sin ocultar que son datos de catalogo.
 
+La auditoría del catálogo valida identificadores y contenido exacto: no hay fichas idénticas ni IDs repetidos. Un mismo nombre puede mantenerse cuando corresponde a bancos, productos o fuentes diferentes; el Finder y el selector muestran la fuente y conservan el ID elegido para no sustituir silenciosamente una ficha por otra del mismo nombre. La búsqueda ignora mayúsculas y acentos. En `Mi cultivo` se retiraron `Banco o catálogo` y `Registro legal` porque eran controles decorativos que no se guardaban ni intervenían en cálculos.
+
 ## Mediciones e historial
 
 CultiPilot puede incorporar mediciones periodicas asociadas a una planta o espacio de cultivo:

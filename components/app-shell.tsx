@@ -1223,9 +1223,7 @@ export function AppShell({
       const plantNumber = index + 1;
 
       return {
-        bank: "No declarado",
         id: createEventId("plant-manual"),
-        legalRecordStatus: "No aplica",
         lighting: input.light,
         mode: input.mode,
         name: potCount > 1 ? `${plantName} #${plantNumber}` : plantName,
@@ -4414,7 +4412,7 @@ function ArchivedCycleCard({ entries, measurements, onClone, onReopen, plant }: 
 
 function CloneCycleForm({ onClone, plant }: { onClone: (plant: Plant) => void; plant: Plant }) {
   const [isOpen, setIsOpen] = useState(false); const [name, setName] = useState(`${plant.name} nuevo ciclo`); const [startDate, setStartDate] = useState(getTodayIso()); const [stage, setStage] = useState(plantStageOptions[0]); const [message, setMessage] = useState("");
-  function clone(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const cloned: Plant = { bank: plant.bank, cyclePlanNotes: plant.nextCyclePlan ?? plant.cyclePlanNotes, id: `plant-clone-${Date.now()}`, legalRecordStatus: plant.legalRecordStatus, lifecycle: "active", lighting: plant.lighting, mode: plant.mode, name: name.trim() || `${plant.name} nuevo ciclo`, photoperiodHours: plant.photoperiodHours, pot: plant.pot, setup: plant.setup, spaceId: plant.spaceId, stage, startedAt: startDate, substrate: plant.substrate, targetCycleDays: plant.targetCycleDays, targetDryWeightG: plant.targetDryWeightG, variety: plant.variety }; onClone(cloned); setMessage("Nueva maceta creada con la configuración y el próximo cambio como plan; no se copiaron historiales ni resultados."); setIsOpen(false); }
+  function clone(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const cloned: Plant = { cyclePlanNotes: plant.nextCyclePlan ?? plant.cyclePlanNotes, id: `plant-clone-${Date.now()}`, lifecycle: "active", lighting: plant.lighting, mode: plant.mode, name: name.trim() || `${plant.name} nuevo ciclo`, photoperiodHours: plant.photoperiodHours, pot: plant.pot, setup: plant.setup, spaceId: plant.spaceId, stage, startedAt: startDate, substrate: plant.substrate, targetCycleDays: plant.targetCycleDays, targetDryWeightG: plant.targetDryWeightG, variety: plant.variety }; onClone(cloned); setMessage("Nueva maceta creada con la configuración y el próximo cambio como plan; no se copiaron historiales ni resultados."); setIsOpen(false); }
   return <div className="clone-cycle-control"><button className="text-button" onClick={() => setIsOpen((current) => !current)} type="button">{isOpen ? "Cancelar clonación" : "Nuevo ciclo con esta configuración"}</button>{isOpen ? <form onSubmit={clone}><label>Nombre de la nueva maceta<input className="form-control" onChange={(event) => setName(event.target.value)} required value={name} /></label><label>Fecha de inicio<input className="form-control" onChange={(event) => setStartDate(event.target.value)} required type="date" value={startDate} /></label><label>Etapa inicial declarada<select className="form-control" onChange={(event) => setStage(event.target.value)} value={stage}>{plantStageOptions.map((option) => <option key={option}>{option}</option>)}</select></label><p>Se copian variedad, espacio, maceta, sustrato, luz y setup. No se copian tareas, mediciones, fotos, inspecciones ni resultados.</p><button className="secondary-button" type="submit">Crear ciclo independiente</button></form> : null}{message ? <p role="status">{message}</p> : null}</div>;
 }
 

@@ -390,10 +390,6 @@ export type Dictionary = {
       groupIdentification: string;
       groupCultivationData: string;
       groupDatesReminders: string;
-      bankLabel: string;
-      bankOptions: string[];
-      legalRegistrationLabel: string;
-      legalRegistrationOptions: string[];
       searchGeneticLabel: string;
       searchGeneticPlaceholder: string;
       searchGeneticAriaLabel: string;

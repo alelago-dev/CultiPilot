@@ -64,7 +64,7 @@ export function ManualCannabisForm({
   calendarLinkHref,
   dictionary,
   onCreateEvents,
-  selectedGeneticName
+  selectedGeneticId
 }: {
   /** Con prefijo del repo: se usa en window.location. */
   calendarHref: string;
@@ -72,7 +72,7 @@ export function ManualCannabisForm({
   calendarLinkHref: string;
   dictionary: Dictionary;
   onCreateEvents: (events: CalendarEvent[]) => void;
-  selectedGeneticName?: string;
+  selectedGeneticId?: string;
 }) {
   const manualForm = dictionary.seeds.manualForm;
   const seedTypeOptions = manualForm.seedTypeOptions;
@@ -80,16 +80,10 @@ export function ManualCannabisForm({
     ...preset,
     fields: reviewSuggestionPresetFields[index]
   }));
-  const geneticSelectOptions = [
-    { label: manualForm.pickGeneticPlaceholder, value: "No seleccionada" },
-    ...geneticsCatalogAlphabetically.map((genetic) => ({
-      label: genetic.name,
-      value: genetic.name
-    }))
-  ];
-
-  const [seedType, setSeedType] = useState<SeedType>("feminized");
-  const [geneticName, setGeneticName] = useState(selectedGeneticName || "No seleccionada");
+  const initialGenetic = geneticsCatalogAlphabetically.find((genetic) => genetic.id === selectedGeneticId);
+  const [seedType, setSeedType] = useState<SeedType>(() => initialGenetic ? mapGeneticTypeToSeedType(initialGenetic.type) : "feminized");
+  const [geneticId, setGeneticId] = useState(initialGenetic?.id ?? "");
+  const [geneticQuery, setGeneticQuery] = useState(initialGenetic?.name ?? "");
   const [daysToFlower, setDaysToFlower] = useState(manualForm.daysToFlowerOptions[0]);
   const [floweringWeeks, setFloweringWeeks] = useState(manualForm.floweringWeeksOptions[0]);
   const [spaceType, setSpaceType] = useState(manualForm.spaceTypeOptions[0]);
@@ -110,7 +104,8 @@ export function ManualCannabisForm({
   const [recurrenceEnd, setRecurrenceEnd] = useState("none");
   const [statusMessage, setStatusMessage] = useState("");
   const [showCalendarLink, setShowCalendarLink] = useState(false);
-  const selectedGenetic = geneticsCatalogAlphabetically.find((genetic) => genetic.name === geneticName);
+  const selectedGenetic = geneticsCatalogAlphabetically.find((genetic) => genetic.id === geneticId);
+  const geneticName = selectedGenetic?.name ?? (geneticQuery.trim() || manualForm.pickGeneticPlaceholder);
   const visualReferenceType = selectedGenetic ? mapGeneticTypeToSeedType(selectedGenetic.type) : seedType;
   const visualReference = getReferenceRow(visualReferenceType);
 
@@ -242,9 +237,7 @@ export function ManualCannabisForm({
   return (
     <div className="grid gap-4">
       <FormGroup title={manualForm.groupIdentification}>
-        <FormSelect dictionary={dictionary} label={manualForm.bankLabel} options={manualForm.bankOptions} recentKey="bank" />
-        <GeneticPredictiveSelect dictionary={dictionary} geneticSelectOptions={geneticSelectOptions} value={geneticName} onChange={setGeneticName} />
-        <FormSelect dictionary={dictionary} label={manualForm.legalRegistrationLabel} options={manualForm.legalRegistrationOptions} />
+        <GeneticPredictiveSelect dictionary={dictionary} onQueryChange={(query) => { setGeneticQuery(query); setGeneticId(""); }} onSelect={(genetic) => { setGeneticId(genetic.id); setGeneticQuery(genetic.name); setSeedType(mapGeneticTypeToSeedType(genetic.type)); }} query={geneticQuery} selectedGenetic={selectedGenetic} />
       </FormGroup>
 
       <FormGroup title={manualForm.groupCultivationData}>
@@ -548,24 +541,20 @@ function FormGroup({ children, title }: { children: ReactNode; title: string }) 
 
 function GeneticPredictiveSelect({
   dictionary,
-  geneticSelectOptions,
-  onChange,
-  value
+  onQueryChange,
+  onSelect,
+  query,
+  selectedGenetic
 }: {
   dictionary: Dictionary;
-  geneticSelectOptions: Array<{ label: string; value: string }>;
-  onChange: (value: string) => void;
-  value: string;
+  onQueryChange: (value: string) => void;
+  onSelect: (genetic: GeneticReferenceEntry) => void;
+  query: string;
+  selectedGenetic?: GeneticReferenceEntry;
 }) {
   const manualForm = dictionary.seeds.manualForm;
-  const query = value === "No seleccionada" ? "" : value;
   const results = useMemo(() => searchGeneticsByName(query), [query]);
-  const showResults = query.trim().length >= 2 && results.length > 0 && query !== value;
-  const selectedGenetic = geneticsCatalogAlphabetically.find((genetic) => genetic.name === value);
-
-  function chooseGenetic(genetic: GeneticReferenceEntry) {
-    onChange(genetic.name);
-  }
+  const showResults = query.trim().length >= 2 && results.length > 0 && selectedGenetic?.name !== query;
 
   return (
     <div className="genetic-entry-card scroll-mt-28 sm:col-span-2" id="manual-genetic-selection">
@@ -574,19 +563,10 @@ function GeneticPredictiveSelect({
         <input
           aria-label={manualForm.searchGeneticAriaLabel}
           className="form-control"
-          list="manual-genetic-options"
           placeholder={manualForm.searchGeneticPlaceholder}
           value={query}
-          onChange={(event) => {
-            const nextQuery = event.target.value;
-            onChange(nextQuery.trim() ? nextQuery : "No seleccionada");
-          }}
+          onChange={(event) => onQueryChange(event.target.value)}
         />
-        <datalist id="manual-genetic-options">
-          {geneticSelectOptions.slice(1).map((option) => (
-            <option key={option.value} value={option.value} />
-          ))}
-        </datalist>
       </label>
 
       {showResults ? (
@@ -595,11 +575,11 @@ function GeneticPredictiveSelect({
             <button
               className="genetic-suggestion-option"
               key={genetic.id}
-              onClick={() => chooseGenetic(genetic)}
+              onClick={() => onSelect(genetic)}
               type="button"
             >
               <strong>{genetic.name}</strong>
-              <span>{formatGeneticType(genetic.type, dictionary)} - {formatWeekRange(genetic.flowering_weeks_range, dictionary)}</span>
+              <span>{formatGeneticType(genetic.type, dictionary)} · {formatWeekRange(genetic.flowering_weeks_range, dictionary)} · {genetic.source}</span>
             </button>
           ))}
         </div>
