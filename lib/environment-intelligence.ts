@@ -29,6 +29,14 @@ export type ConfiguredEnvironmentalAlert = {
   value: number;
 };
 
+export type EnvironmentalTrendAlert = ConfiguredEnvironmentalAlert & {
+  consecutiveReadings: number;
+  durationMinutes: number;
+  firstMeasuredAt: string;
+  lastMeasuredAt: string;
+  trend: "rising" | "falling" | "stable";
+};
+
 const targets: Record<string, StageTarget> = {
   seed: { label: "Semilla / plantin", ppfdMin: 100, ppfdMax: 250, vpdMin: 0.4, vpdMax: 0.8 },
   vegetative: { label: "Vegetativo", ppfdMin: 250, ppfdMax: 600, vpdMin: 0.8, vpdMax: 1.2 },
@@ -152,6 +160,70 @@ export function getConfiguredEnvironmentalAlerts(settings: PlantEnvironmentalAle
   addConfiguredRangeAlerts(alerts, "VPD calculado", vpdKpa, settings.vpdMinKpa, settings.vpdMaxKpa, " kPa");
   addConfiguredRangeAlerts(alerts, "Humedad de sustrato", measurement.substrateMoisturePercent, settings.substrateMoistureMinPercent, settings.substrateMoistureMaxPercent, "%");
   return alerts;
+}
+
+export function getEnvironmentalTrendAlerts(
+  settings: PlantEnvironmentalAlertSettings | undefined,
+  plant: Plant,
+  measurements: PlantMeasurement[]
+): EnvironmentalTrendAlert[] {
+  if (!settings) return [];
+  const minimumReadings = Math.max(2, settings.minimumConsecutiveReadings ?? 3);
+  const minimumDuration = Math.max(0, settings.minimumDurationMinutes ?? 30);
+  const hysteresisPercent = Math.max(0, settings.hysteresisPercent ?? 3);
+  const ordered = measurements
+    .filter((measurement) => measurement.plantId === plant.id)
+    .sort((first, second) => first.measuredAt.localeCompare(second.measuredAt));
+  const definitions = [
+    { label: "Temperatura", min: settings.temperatureMinC, max: settings.temperatureMaxC, unit: "°C", value: (measurement: PlantMeasurement) => measurement.temperatureC },
+    { label: "Humedad ambiental", min: settings.humidityMinPercent, max: settings.humidityMaxPercent, unit: "%", value: (measurement: PlantMeasurement) => measurement.ambientHumidityPercent },
+    { label: "VPD calculado", min: settings.vpdMinKpa, max: settings.vpdMaxKpa, unit: " kPa", value: (measurement: PlantMeasurement) => assessPlantEnvironment(plant, measurement).vpdKpa },
+    { label: "Humedad de sustrato", min: settings.substrateMoistureMinPercent, max: settings.substrateMoistureMaxPercent, unit: "%", value: (measurement: PlantMeasurement) => measurement.substrateMoisturePercent }
+  ];
+
+  return definitions.flatMap((definition) => {
+    let active: { direction: "above" | "below"; firstMeasuredAt: string; firstValue: number; limit: number; readings: number } | undefined;
+    let latestValue: number | undefined;
+    let lastMeasuredAt = "";
+
+    ordered.forEach((measurement) => {
+      const value = definition.value(measurement);
+      if (value === undefined) return;
+      latestValue = value;
+      lastMeasuredAt = measurement.measuredAt;
+
+      if (!active) {
+        if (definition.min !== undefined && value < definition.min) active = { direction: "below", firstMeasuredAt: measurement.measuredAt, firstValue: value, limit: definition.min, readings: 1 };
+        else if (definition.max !== undefined && value > definition.max) active = { direction: "above", firstMeasuredAt: measurement.measuredAt, firstValue: value, limit: definition.max, readings: 1 };
+        return;
+      }
+
+      const margin = Math.abs(active.limit) * (hysteresisPercent / 100);
+      const recovered = active.direction === "above" ? value <= active.limit - margin : value >= active.limit + margin;
+      if (recovered) {
+        active = undefined;
+      } else {
+        active.readings += 1;
+      }
+    });
+
+    if (!active || latestValue === undefined || !lastMeasuredAt) return [];
+    const durationMinutes = Math.max(0, Math.round((new Date(lastMeasuredAt).getTime() - new Date(active.firstMeasuredAt).getTime()) / 60_000));
+    if (active.readings < minimumReadings || durationMinutes < minimumDuration) return [];
+    const delta = latestValue - active.firstValue;
+    return [{
+      consecutiveReadings: active.readings,
+      direction: active.direction,
+      durationMinutes,
+      firstMeasuredAt: active.firstMeasuredAt,
+      label: definition.label,
+      lastMeasuredAt,
+      limit: active.limit,
+      trend: Math.abs(delta) < Math.max(0.01, Math.abs(active.firstValue) * 0.01) ? "stable" : delta > 0 ? "rising" : "falling",
+      unit: definition.unit,
+      value: latestValue
+    }];
+  });
 }
 
 function addConfiguredRangeAlerts(alerts: ConfiguredEnvironmentalAlert[], label: string, value: number | undefined, minimum: number | undefined, maximum: number | undefined, unit: string) {

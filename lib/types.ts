@@ -691,6 +691,10 @@ export type Plant = {
   finalDryWeightG?: number;
   cycleOutcome?: "completed" | "partial" | "stopped";
   lessonsLearned?: string;
+  cyclePlanNotes?: string;
+  targetCycleDays?: number;
+  targetDryWeightG?: number;
+  nextCyclePlan?: string;
 };
 
 export type PlantStageTransition = {
@@ -745,6 +749,8 @@ export type PlantMeasurement = {
   lighting?: string;
   observations?: string;
   photoDataUrl?: string;
+  importBatchId?: string;
+  importSource?: string;
 };
 
 export type SensorDevice = {
@@ -766,6 +772,9 @@ export type PlantEnvironmentalAlertSettings = {
   vpdMaxKpa?: number;
   substrateMoistureMinPercent?: number;
   substrateMoistureMaxPercent?: number;
+  minimumConsecutiveReadings?: number;
+  minimumDurationMinutes?: number;
+  hysteresisPercent?: number;
 };
 
 export type IrrigationRecipe = {

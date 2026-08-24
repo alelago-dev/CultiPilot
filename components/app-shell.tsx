@@ -40,7 +40,7 @@ import {
 import { formatDictionaryString, getDictionary } from "@/lib/i18n";
 import { getGeneticsCatalogAlphabetically, type GeneticReferenceEntry } from "@/lib/genetics-catalog";
 import { requestReminderNotification } from "@/lib/notifications";
-import { assessPlantEnvironment, getConfiguredEnvironmentalAlerts, type EnvironmentalStatus } from "@/lib/environment-intelligence";
+import { assessPlantEnvironment, getConfiguredEnvironmentalAlerts, getEnvironmentalTrendAlerts, type EnvironmentalStatus } from "@/lib/environment-intelligence";
 import { buildCultivationSuggestions, type CultivationSuggestion } from "@/lib/cultivation-suggestions";
 import { calculateHorticulturePlan, seedCatalog, type HorticulturePlanInput } from "@/lib/seed-catalog";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -1365,13 +1365,14 @@ export function AppShell({
   }
 
   function handleAddMeasurement(measurement: PlantMeasurement) {
-    const exists = measurementState.some((item) => item.id === measurement.id);
-    const nextMeasurements = exists
-      ? measurementState.map((item) => item.id === measurement.id ? measurement : item)
-      : [measurement, ...measurementState];
-
-    setMeasurementState(nextMeasurements);
-    persistStoredState(storageKeys.measurements, nextMeasurements);
+    setMeasurementState((currentMeasurements) => {
+      const exists = currentMeasurements.some((item) => item.id === measurement.id);
+      const nextMeasurements = exists
+        ? currentMeasurements.map((item) => item.id === measurement.id ? measurement : item)
+        : [measurement, ...currentMeasurements];
+      persistStoredState(storageKeys.measurements, nextMeasurements);
+      return nextMeasurements;
+    });
   }
 
   function handleAcknowledgeEnvironmentalAlert(alertKey: string) {
@@ -2549,15 +2550,10 @@ function AttentionCard({
   const todayIso = getTodayIso();
 
   const environmentChips = plants.flatMap((plant) => {
-    const latestMeasurement = measurements
-      .filter((measurement) => measurement.plantId === plant.id)
-      .sort((first, second) => second.measuredAt.localeCompare(first.measuredAt))[0];
-    if (!latestMeasurement) return [];
     const settings = environmentalAlerts.find((item) => item.plantId === plant.id);
-    const assessment = assessPlantEnvironment(plant, latestMeasurement);
-    return getConfiguredEnvironmentalAlerts(settings, latestMeasurement, assessment.vpdKpa)
+    return getEnvironmentalTrendAlerts(settings, plant, measurements)
       .map((alert) => ({
-        alertKey: `${latestMeasurement.id}:${alert.label}:${alert.direction}:${alert.value}:${alert.limit}`,
+        alertKey: `${plant.id}:${alert.label}:${alert.direction}:${alert.lastMeasuredAt}:${alert.limit}`,
         label: `${plant.name} · ${alert.label}`
       }))
       .filter((item) => !acknowledgedEnvironmentalAlerts.includes(item.alertKey));
@@ -2676,11 +2672,8 @@ function TodayInspectionFollowUps({ dictionary, inspections, locale, plants }: {
 function TodayEnvironmentalAlerts({ acknowledgedAlerts, dictionary, environmentalAlerts, locale, measurements, onAcknowledge, plants }: { acknowledgedAlerts: string[]; dictionary: Dictionary; environmentalAlerts: PlantEnvironmentalAlertSettings[]; locale: Locale; measurements: PlantMeasurement[]; onAcknowledge: (alertKey: string) => void; plants: Plant[] }) {
   const configuredPlantIds = new Set(environmentalAlerts.map((settings) => settings.plantId));
   const activeAlerts = plants.flatMap((plant) => {
-    const latestMeasurement = measurements.filter((measurement) => measurement.plantId === plant.id).sort((first, second) => second.measuredAt.localeCompare(first.measuredAt))[0];
-    if (!latestMeasurement) return [];
     const settings = environmentalAlerts.find((item) => item.plantId === plant.id);
-    const assessment = assessPlantEnvironment(plant, latestMeasurement);
-    return getConfiguredEnvironmentalAlerts(settings, latestMeasurement, assessment.vpdKpa).map((alert) => ({ alert, alertKey: `${latestMeasurement.id}:${alert.label}:${alert.direction}:${alert.value}:${alert.limit}`, measurement: latestMeasurement, plant }));
+    return getEnvironmentalTrendAlerts(settings, plant, measurements).map((alert) => ({ alert, alertKey: `${plant.id}:${alert.label}:${alert.direction}:${alert.lastMeasuredAt}:${alert.limit}`, plant }));
   }).filter((item) => !acknowledgedAlerts.includes(item.alertKey));
 
   return (
@@ -2691,9 +2684,9 @@ function TodayEnvironmentalAlerts({ acknowledgedAlerts, dictionary, environmenta
       </header>
       {activeAlerts.length > 0 ? (
         <div className="today-environment-alert-list" role="alert">
-          {activeAlerts.slice(0, 8).map(({ alert, alertKey, measurement, plant }) => (
+          {activeAlerts.slice(0, 8).map(({ alert, alertKey, plant }) => (
             <article key={`${plant.id}-${alert.label}-${alert.direction}`}>
-              <div><strong>{plant.name} · {alert.label}</strong><p>{alert.value}{alert.unit}, {alert.direction === "below" ? dictionary.today.environmentAlertsBelowMin : dictionary.today.environmentAlertsAboveMax} {alert.limit}{alert.unit}.</p><small>{formatDictionaryString(dictionary.today.environmentAlertsLastReading, { date: formatMeasurementDate(measurement.measuredAt), source: formatMeasurementSource(measurement.source) })}</small></div>
+              <div><strong>{plant.name} · {alert.label}</strong><p>{alert.value}{alert.unit}, {alert.direction === "below" ? dictionary.today.environmentAlertsBelowMin : dictionary.today.environmentAlertsAboveMax} {alert.limit}{alert.unit} durante {formatAlertDuration(alert.durationMinutes)} ({alert.consecutiveReadings} lecturas).</p><small>Desde {formatMeasurementDate(alert.firstMeasuredAt)} · tendencia {alert.trend === "rising" ? "ascendente" : alert.trend === "falling" ? "descendente" : "estable"}</small></div>
               <div className="today-environment-alert-actions"><button className="text-button" onClick={() => onAcknowledge(alertKey)} type="button">{dictionary.today.environmentAlertsAcknowledge}</button><Link className="text-button" href={`${getInternalSectionHref(locale, "spaces")}#${plant.id}` as Route}>{dictionary.today.environmentAlertsViewPlant}</Link></div>
             </article>
           ))}
@@ -4283,16 +4276,42 @@ function PlantCycleControls({ onUpdatePlant, plant }: { onUpdatePlant: (plantId:
   const [dryWeight, setDryWeight] = useState("");
   const [cycleOutcome, setCycleOutcome] = useState<NonNullable<Plant["cycleOutcome"]>>("completed");
   const [lessonsLearned, setLessonsLearned] = useState("");
+  const [nextCyclePlan, setNextCyclePlan] = useState("");
+  const [cyclePlanNotes, setCyclePlanNotes] = useState(plant.cyclePlanNotes ?? "");
+  const [targetCycleDays, setTargetCycleDays] = useState(plant.targetCycleDays?.toString() ?? "");
+  const [targetDryWeight, setTargetDryWeight] = useState(plant.targetDryWeightG?.toString() ?? "");
+  const [planStatus, setPlanStatus] = useState("");
+
+  function saveCyclePlan(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    onUpdatePlant(plant.id, {
+      cyclePlanNotes: cyclePlanNotes.trim() || undefined,
+      targetCycleDays: parseOptionalNumber(targetCycleDays),
+      targetDryWeightG: parseOptionalNumber(targetDryWeight)
+    });
+    setPlanStatus("Plan declarado guardado. Se comparará con el resultado real al cerrar el ciclo.");
+  }
 
   function closeCycle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!completedAt) return;
-    onUpdatePlant(plant.id, { closingNotes: closingNotes.trim() || undefined, completedAt, cycleOutcome, finalDryWeightG: parseOptionalNumber(dryWeight), finalWetWeightG: parseOptionalNumber(wetWeight), lessonsLearned: lessonsLearned.trim() || undefined, lifecycle: "archived" });
+    onUpdatePlant(plant.id, { closingNotes: closingNotes.trim() || undefined, completedAt, cycleOutcome, finalDryWeightG: parseOptionalNumber(dryWeight), finalWetWeightG: parseOptionalNumber(wetWeight), lessonsLearned: lessonsLearned.trim() || undefined, lifecycle: "archived", nextCyclePlan: nextCyclePlan.trim() || undefined });
     setIsClosing(false);
   }
 
   return (
     <div className="plant-cycle-controls">
+      <details className="cycle-plan-control">
+        <summary>Plan y objetivos del ciclo</summary>
+        <form onSubmit={saveCyclePlan}>
+          <p>Son objetivos declarados por vos. CultiPilot los compara con el resultado, pero no los presenta como predicciones.</p>
+          <label>Duración objetivo (días, opcional)<input className="form-control" min="1" onChange={(event) => setTargetCycleDays(event.target.value)} type="number" value={targetCycleDays} /></label>
+          <label>Peso seco objetivo (g, opcional)<input className="form-control" min="0" onChange={(event) => setTargetDryWeight(event.target.value)} step="0.1" type="number" value={targetDryWeight} /></label>
+          <label>Plan o hipótesis del ciclo<textarea className="form-control" onChange={(event) => setCyclePlanNotes(event.target.value)} rows={2} value={cyclePlanNotes} /></label>
+          <button className="secondary-button" type="submit">Guardar plan declarado</button>
+          {planStatus ? <p role="status">{planStatus}</p> : null}
+        </form>
+      </details>
       <button className="text-button" onClick={() => setIsClosing((current) => !current)} type="button">
         {isClosing ? "Cancelar cierre" : "Cerrar y archivar ciclo"}
       </button>
@@ -4305,6 +4324,7 @@ function PlantCycleControls({ onUpdatePlant, plant }: { onUpdatePlant: (plantId:
           <label>Peso seco final (g, opcional)<input className="form-control" min="0" onChange={(event) => setDryWeight(event.target.value)} step="0.1" type="number" value={dryWeight} /></label>
           <label>Nota de cierre (opcional)<textarea className="form-control" onChange={(event) => setClosingNotes(event.target.value)} rows={2} value={closingNotes} /></label>
           <label>Aprendizajes para el próximo ciclo<textarea className="form-control" onChange={(event) => setLessonsLearned(event.target.value)} rows={2} value={lessonsLearned} /></label>
+          <label>Cambio concreto para el próximo ciclo<textarea className="form-control" onChange={(event) => setNextCyclePlan(event.target.value)} rows={2} value={nextCyclePlan} /></label>
           <button className="secondary-button" type="submit">Confirmar cierre</button>
         </form>
       ) : null}
@@ -4340,8 +4360,8 @@ function ArchivedCyclesPanel({
         <CycleSelector label="Segundo ciclo" onChange={setSecondId} plants={plants} value={second.id} />
       </div>
       <div className="archived-cycle-comparison">
-        <ArchivedCycleCard entries={entries} measurements={measurements} onClone={onCreatePlant} onReopen={() => onUpdatePlant(first.id, { closingNotes: undefined, completedAt: undefined, cycleOutcome: undefined, finalDryWeightG: undefined, finalWetWeightG: undefined, lessonsLearned: undefined, lifecycle: "active" })} plant={first} />
-        <ArchivedCycleCard entries={entries} measurements={measurements} onClone={onCreatePlant} onReopen={() => onUpdatePlant(second.id, { closingNotes: undefined, completedAt: undefined, cycleOutcome: undefined, finalDryWeightG: undefined, finalWetWeightG: undefined, lessonsLearned: undefined, lifecycle: "active" })} plant={second} />
+        <ArchivedCycleCard entries={entries} measurements={measurements} onClone={onCreatePlant} onReopen={() => onUpdatePlant(first.id, { closingNotes: undefined, completedAt: undefined, cycleOutcome: undefined, finalDryWeightG: undefined, finalWetWeightG: undefined, lessonsLearned: undefined, lifecycle: "active", nextCyclePlan: undefined })} plant={first} />
+        <ArchivedCycleCard entries={entries} measurements={measurements} onClone={onCreatePlant} onReopen={() => onUpdatePlant(second.id, { closingNotes: undefined, completedAt: undefined, cycleOutcome: undefined, finalDryWeightG: undefined, finalWetWeightG: undefined, lessonsLearned: undefined, lifecycle: "active", nextCyclePlan: undefined })} plant={second} />
       </div>
     </Card>
   );
@@ -4361,6 +4381,7 @@ function ArchivedCycleCard({ entries, measurements, onClone, onReopen, plant }: 
     return value === undefined ? [] : [value];
   });
   const averageVpd = vpdValues.length > 0 ? Number((vpdValues.reduce((total, value) => total + value, 0) / vpdValues.length).toFixed(2)) : undefined;
+  const actualDays = plant.completedAt ? getDaysBetween(plant.startedAt, plant.completedAt) : undefined;
 
   return (
     <article>
@@ -4377,9 +4398,15 @@ function ArchivedCycleCard({ entries, measurements, onClone, onReopen, plant }: 
         <PlantFact label="Resultado declarado" value={plant.cycleOutcome === "completed" ? "Completado" : plant.cycleOutcome === "partial" ? "Parcial" : plant.cycleOutcome === "stopped" ? "Interrumpido" : "Sin declarar"} />
         <PlantFact label="Peso húmedo declarado" value={plant.finalWetWeightG === undefined ? "Sin dato" : `${plant.finalWetWeightG} g`} />
         <PlantFact label="Peso seco declarado" value={plant.finalDryWeightG === undefined ? "Sin dato" : `${plant.finalDryWeightG} g`} />
+        <PlantFact label="Objetivo de duración" value={plant.targetCycleDays === undefined ? "No declarado" : `${plant.targetCycleDays} días`} />
+        <PlantFact label="Diferencia de duración" value={actualDays === undefined || plant.targetCycleDays === undefined ? "Faltan objetivo o cierre" : `${formatSignedNumber(actualDays - plant.targetCycleDays)} días`} />
+        <PlantFact label="Objetivo de peso seco" value={plant.targetDryWeightG === undefined ? "No declarado" : `${plant.targetDryWeightG} g`} />
+        <PlantFact label="Diferencia de peso seco" value={plant.finalDryWeightG === undefined || plant.targetDryWeightG === undefined ? "Faltan objetivo o resultado" : `${formatSignedNumber(Number((plant.finalDryWeightG - plant.targetDryWeightG).toFixed(1)))} g`} />
       </dl>
+      {plant.cyclePlanNotes ? <p className="archived-cycle-notes"><strong>Plan declarado:</strong> {plant.cyclePlanNotes}</p> : null}
       {plant.closingNotes ? <p className="archived-cycle-notes">{plant.closingNotes}</p> : null}
       {plant.lessonsLearned ? <p className="archived-cycle-lessons"><strong>Aprendizajes:</strong> {plant.lessonsLearned}</p> : null}
+      {plant.nextCyclePlan ? <p className="archived-cycle-lessons"><strong>Próximo cambio:</strong> {plant.nextCyclePlan}</p> : null}
       <div className="archived-cycle-actions"><button className="text-button" onClick={onReopen} type="button">Reabrir ciclo</button><CloneCycleForm onClone={onClone} plant={plant} /></div>
     </article>
   );
@@ -4387,7 +4414,7 @@ function ArchivedCycleCard({ entries, measurements, onClone, onReopen, plant }: 
 
 function CloneCycleForm({ onClone, plant }: { onClone: (plant: Plant) => void; plant: Plant }) {
   const [isOpen, setIsOpen] = useState(false); const [name, setName] = useState(`${plant.name} nuevo ciclo`); const [startDate, setStartDate] = useState(getTodayIso()); const [stage, setStage] = useState(plantStageOptions[0]); const [message, setMessage] = useState("");
-  function clone(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const cloned: Plant = { bank: plant.bank, id: `plant-clone-${Date.now()}`, legalRecordStatus: plant.legalRecordStatus, lifecycle: "active", lighting: plant.lighting, mode: plant.mode, name: name.trim() || `${plant.name} nuevo ciclo`, photoperiodHours: plant.photoperiodHours, pot: plant.pot, setup: plant.setup, spaceId: plant.spaceId, stage, startedAt: startDate, substrate: plant.substrate, variety: plant.variety }; onClone(cloned); setMessage("Nueva maceta creada sin copiar historial ni resultados."); setIsOpen(false); }
+  function clone(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const cloned: Plant = { bank: plant.bank, cyclePlanNotes: plant.nextCyclePlan ?? plant.cyclePlanNotes, id: `plant-clone-${Date.now()}`, legalRecordStatus: plant.legalRecordStatus, lifecycle: "active", lighting: plant.lighting, mode: plant.mode, name: name.trim() || `${plant.name} nuevo ciclo`, photoperiodHours: plant.photoperiodHours, pot: plant.pot, setup: plant.setup, spaceId: plant.spaceId, stage, startedAt: startDate, substrate: plant.substrate, targetCycleDays: plant.targetCycleDays, targetDryWeightG: plant.targetDryWeightG, variety: plant.variety }; onClone(cloned); setMessage("Nueva maceta creada con la configuración y el próximo cambio como plan; no se copiaron historiales ni resultados."); setIsOpen(false); }
   return <div className="clone-cycle-control"><button className="text-button" onClick={() => setIsOpen((current) => !current)} type="button">{isOpen ? "Cancelar clonación" : "Nuevo ciclo con esta configuración"}</button>{isOpen ? <form onSubmit={clone}><label>Nombre de la nueva maceta<input className="form-control" onChange={(event) => setName(event.target.value)} required value={name} /></label><label>Fecha de inicio<input className="form-control" onChange={(event) => setStartDate(event.target.value)} required type="date" value={startDate} /></label><label>Etapa inicial declarada<select className="form-control" onChange={(event) => setStage(event.target.value)} value={stage}>{plantStageOptions.map((option) => <option key={option}>{option}</option>)}</select></label><p>Se copian variedad, espacio, maceta, sustrato, luz y setup. No se copian tareas, mediciones, fotos, inspecciones ni resultados.</p><button className="secondary-button" type="submit">Crear ciclo independiente</button></form> : null}{message ? <p role="status">{message}</p> : null}</div>;
 }
 
@@ -5132,11 +5159,14 @@ function PlantEnvironmentPanel({
       )}
 
       <PlantEnvironmentalAlerts
+        measurements={sortedMeasurements}
         measurement={latestMeasurement}
         onUpdate={onUpdateAlertSettings}
         plant={plant}
         settings={alertSettings}
       />
+
+      <CsvMeasurementImporter measurements={sortedMeasurements} onImportMeasurement={onAddMeasurement} plant={plant} />
 
       {sortedMeasurements.length >= 2 ? <EnvironmentalHistoryChart measurements={sortedMeasurements} plant={plant} /> : null}
 
@@ -5162,6 +5192,115 @@ function PlantEnvironmentPanel({
     </section>
   );
 }
+
+type CsvMeasurementField = "measuredAt" | "temperatureC" | "ambientHumidityPercent" | "leafTemperatureC" | "substrateMoisturePercent" | "ppfdUmolM2S" | "heightCm" | "waterAmountMl";
+type CsvMeasurementMapping = Record<CsvMeasurementField, string>;
+
+const csvMeasurementFields: Array<{ field: CsvMeasurementField; label: string; aliases: string[] }> = [
+  { field: "measuredAt", label: "Fecha y hora", aliases: ["date", "time", "timestamp", "fecha", "hora", "datetime"] },
+  { field: "temperatureC", label: "Temperatura °C", aliases: ["temperature", "temperatura", "temp", "air temp"] },
+  { field: "ambientHumidityPercent", label: "Humedad %", aliases: ["humidity", "humedad", "rh"] },
+  { field: "leafTemperatureC", label: "Temperatura foliar °C", aliases: ["leaf temperature", "leaf temp", "temperatura foliar"] },
+  { field: "substrateMoisturePercent", label: "Humedad de sustrato %", aliases: ["soil moisture", "substrate moisture", "humedad sustrato", "vwc"] },
+  { field: "ppfdUmolM2S", label: "PPFD", aliases: ["ppfd", "par"] },
+  { field: "heightCm", label: "Altura cm", aliases: ["height", "altura"] },
+  { field: "waterAmountMl", label: "Agua ml", aliases: ["water", "riego", "agua", "volume"] }
+];
+
+function CsvMeasurementImporter({ measurements, onImportMeasurement, plant }: { measurements: PlantMeasurement[]; onImportMeasurement: (measurement: PlantMeasurement) => void; plant: Plant }) {
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [rows, setRows] = useState<string[][]>([]);
+  const [mapping, setMapping] = useState<CsvMeasurementMapping>(() => Object.fromEntries(csvMeasurementFields.map(({ field }) => [field, ""])) as CsvMeasurementMapping);
+  const [sourceName, setSourceName] = useState("");
+  const [status, setStatus] = useState("");
+
+  async function loadFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const parsed = parseCsvText(await file.text());
+    if (parsed.length < 2) { setStatus("El archivo no contiene encabezados y filas suficientes."); return; }
+    const nextHeaders = parsed[0].map((header) => header.trim());
+    setHeaders(nextHeaders);
+    setRows(parsed.slice(1).filter((row) => row.some((value) => value.trim())));
+    setSourceName(file.name);
+    setMapping(Object.fromEntries(csvMeasurementFields.map(({ field, aliases }) => [field, guessCsvColumn(nextHeaders, aliases)])) as CsvMeasurementMapping);
+    setStatus(`${parsed.length - 1} filas detectadas. Revisá el mapeo antes de importar.`);
+  }
+
+  function importRows() {
+    if (!mapping.measuredAt) { setStatus("Elegí la columna de fecha y hora."); return; }
+    const batchId = `csv-${plant.id}-${Date.now()}`;
+    const existingKeys = new Set(measurements.map(buildMeasurementDeduplicationKey));
+    let imported = 0; let duplicates = 0; let invalid = 0;
+    rows.forEach((row, index) => {
+      const value = (field: CsvMeasurementField) => mapping[field] ? row[headers.indexOf(mapping[field])] : undefined;
+      const measuredAt = parseImportedDate(value("measuredAt"));
+      const candidate: PlantMeasurement = {
+        ambientHumidityPercent: parseImportedNumber(value("ambientHumidityPercent")),
+        heightCm: parseImportedNumber(value("heightCm")),
+        id: `${batchId}-${index}`,
+        importBatchId: batchId,
+        importSource: sourceName.trim() || "CSV externo",
+        leafTemperatureC: parseImportedNumber(value("leafTemperatureC")),
+        measuredAt: measuredAt ?? "",
+        plantId: plant.id,
+        ppfdUmolM2S: parseImportedNumber(value("ppfdUmolM2S")),
+        source: "sensor",
+        substrateMoisturePercent: parseImportedNumber(value("substrateMoisturePercent")),
+        temperatureC: parseImportedNumber(value("temperatureC")),
+        waterAmountMl: parseImportedNumber(value("waterAmountMl"))
+      };
+      const hasData = [candidate.temperatureC, candidate.ambientHumidityPercent, candidate.leafTemperatureC, candidate.substrateMoisturePercent, candidate.ppfdUmolM2S, candidate.heightCm, candidate.waterAmountMl].some((item) => item !== undefined);
+      const validRanges = isImportedMeasurementValid(candidate);
+      if (!measuredAt || !hasData || !validRanges) { invalid += 1; return; }
+      const key = buildMeasurementDeduplicationKey(candidate);
+      if (existingKeys.has(key)) { duplicates += 1; return; }
+      existingKeys.add(key);
+      onImportMeasurement(candidate);
+      imported += 1;
+    });
+    setStatus(`Importadas: ${imported}. Duplicadas omitidas: ${duplicates}. Inválidas omitidas: ${invalid}. Origen conservado: ${sourceName || "CSV externo"}.`);
+  }
+
+  return (
+    <details className="csv-import-panel">
+      <summary>Importar histórico desde CSV</summary>
+      <div>
+        <p>Importación por maceta con vista previa, mapeo de columnas, validación y deduplicación. Los valores se guardan como lecturas externas; no se inventan columnas faltantes.</p>
+        <label>Archivo CSV<input accept=".csv,.txt,text/csv" className="form-control" onChange={loadFile} type="file" /></label>
+        {headers.length > 0 ? <>
+          <label>Nombre del origen<input className="form-control" onChange={(event) => setSourceName(event.target.value)} value={sourceName} /></label>
+          <div className="csv-mapping-grid">{csvMeasurementFields.map(({ field, label }) => <label key={field}>{label}<select className="form-control" onChange={(event) => setMapping((current) => ({ ...current, [field]: event.target.value }))} value={mapping[field]}><option value="">No importar</option>{headers.map((header) => <option key={header} value={header}>{header}</option>)}</select></label>)}</div>
+          <div className="csv-preview"><strong>Vista previa</strong>{rows.slice(0, 3).map((row, index) => <p key={index}>{headers.slice(0, 5).map((header, column) => `${header}: ${row[column] ?? ""}`).join(" · ")}</p>)}</div>
+          <button className="secondary-button" onClick={importRows} type="button">Validar e importar</button>
+        </> : null}
+        {status ? <p role="status">{status}</p> : null}
+      </div>
+    </details>
+  );
+}
+
+function parseCsvText(text: string) {
+  const firstLine = text.split(/\r?\n/, 1)[0] ?? "";
+  const delimiter = [",", ";", "\t"].sort((first, second) => firstLine.split(second).length - firstLine.split(first).length)[0];
+  const rows: string[][] = []; let row: string[] = []; let cell = ""; let quoted = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (character === '"' && quoted && text[index + 1] === '"') { cell += '"'; index += 1; }
+    else if (character === '"') quoted = !quoted;
+    else if (character === delimiter && !quoted) { row.push(cell); cell = ""; }
+    else if ((character === "\n" || character === "\r") && !quoted) { if (character === "\r" && text[index + 1] === "\n") index += 1; row.push(cell); rows.push(row); row = []; cell = ""; }
+    else cell += character;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows;
+}
+
+function guessCsvColumn(headers: string[], aliases: string[]) { return headers.find((header) => aliases.some((alias) => normalizeLookupText(header).includes(normalizeLookupText(alias)))) ?? ""; }
+function parseImportedNumber(value?: string) { if (!value?.trim()) return undefined; const parsed = Number(value.trim().replace(/\s/g, "").replace(",", ".")); return Number.isFinite(parsed) ? parsed : undefined; }
+function parseImportedDate(value?: string) { if (!value?.trim()) return undefined; const normalized = value.trim().replace(" ", "T"); if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(normalized)) return normalized.slice(0, 16); const date = new Date(normalized); return Number.isNaN(date.getTime()) ? undefined : date.toISOString().slice(0, 16); }
+function isImportedMeasurementValid(measurement: PlantMeasurement) { return (measurement.temperatureC === undefined || (measurement.temperatureC >= -50 && measurement.temperatureC <= 100)) && (measurement.leafTemperatureC === undefined || (measurement.leafTemperatureC >= -50 && measurement.leafTemperatureC <= 100)) && (measurement.ambientHumidityPercent === undefined || (measurement.ambientHumidityPercent >= 0 && measurement.ambientHumidityPercent <= 100)) && (measurement.substrateMoisturePercent === undefined || (measurement.substrateMoisturePercent >= 0 && measurement.substrateMoisturePercent <= 100)) && (measurement.ppfdUmolM2S === undefined || measurement.ppfdUmolM2S >= 0) && (measurement.heightCm === undefined || measurement.heightCm >= 0) && (measurement.waterAmountMl === undefined || measurement.waterAmountMl >= 0); }
+function buildMeasurementDeduplicationKey(measurement: PlantMeasurement) { return [measurement.plantId, measurement.measuredAt, measurement.temperatureC, measurement.ambientHumidityPercent, measurement.leafTemperatureC, measurement.substrateMoisturePercent, measurement.ppfdUmolM2S, measurement.heightCm, measurement.waterAmountMl].join("|"); }
 
 function MeasurementHistoryCard({
   measurement,
@@ -5191,10 +5330,10 @@ function MeasurementHistoryCard({
       <header>
         <div>
           <strong>{formatMeasurementDate(measurement.measuredAt)}</strong>
-          <span>{formatMeasurementSource(measurement.source)} · {plant.name}</span>
+          <span>{measurement.importSource ? `Importado de ${measurement.importSource}` : formatMeasurementSource(measurement.source)} · {plant.name}</span>
         </div>
         {measurement.source === "sensor" ? (
-          <span className="plant-measurement-readonly">Lectura del sensor</span>
+          <span className="plant-measurement-readonly">{measurement.importSource ? "Lectura importada" : "Lectura del sensor"}</span>
         ) : (
           <div className="measurement-history-actions"><button className="text-button" onClick={() => setIsEditing((current) => !current)} type="button">{isEditing ? "Cerrar edición" : "Editar"}</button><button aria-label={`Eliminar medicion del ${formatMeasurementDate(measurement.measuredAt)}`} className="text-button danger" onClick={() => onDeleteMeasurement(measurement.id)} type="button">Eliminar</button></div>
         )}
@@ -5216,7 +5355,7 @@ function MeasurementHistoryCard({
         <img alt={`Registro de ${plant.name} del ${formatMeasurementDate(measurement.measuredAt)}`} className="measurement-history-photo" src={measurement.photoDataUrl} />
       ) : null}
       <small className="measurement-history-origin">
-        Los campos cargados son datos del usuario; el VPD es un cálculo derivado de temperatura y humedad.
+        {measurement.importSource ? `Origen declarado: ${measurement.importSource}. ` : ""}Los campos cargados son datos registrados; el VPD es un cálculo derivado de temperatura y humedad.
       </small>
     </article>
   );
@@ -5224,11 +5363,13 @@ function MeasurementHistoryCard({
 
 function PlantEnvironmentalAlerts({
   measurement,
+  measurements,
   onUpdate,
   plant,
   settings
 }: {
   measurement?: PlantMeasurement;
+  measurements: PlantMeasurement[];
   onUpdate: (settings: PlantEnvironmentalAlertSettings) => void;
   plant: Plant;
   settings?: PlantEnvironmentalAlertSettings;
@@ -5238,8 +5379,10 @@ function PlantEnvironmentalAlerts({
   const [draft, setDraft] = useState(() => alertSettingsToDraft(settings));
 
   const assessment = assessPlantEnvironment(plant, measurement);
-  const alerts = buildConfiguredEnvironmentalAlerts(settings, measurement, assessment.vpdKpa);
-  const configuredCount = settings ? Object.entries(settings).filter(([key, value]) => key !== "plantId" && value !== undefined).length : 0;
+  const alerts = getEnvironmentalTrendAlerts(settings, plant, measurements);
+  const immediateAlerts = getConfiguredEnvironmentalAlerts(settings, measurement, assessment.vpdKpa);
+  const policyKeys = new Set(["minimumConsecutiveReadings", "minimumDurationMinutes", "hysteresisPercent"]);
+  const configuredCount = settings ? Object.entries(settings).filter(([key, value]) => key !== "plantId" && !policyKeys.has(key) && value !== undefined).length : 0;
 
   function toggleEditing() {
     if (!isEditing) setDraft(alertSettingsToDraft(settings));
@@ -5257,6 +5400,9 @@ function PlantEnvironmentalAlerts({
     onUpdate({
       humidityMaxPercent: parseOptionalNumber(draft.humidityMaxPercent),
       humidityMinPercent: parseOptionalNumber(draft.humidityMinPercent),
+      hysteresisPercent: parseOptionalNumber(draft.hysteresisPercent),
+      minimumConsecutiveReadings: parseOptionalNumber(draft.minimumConsecutiveReadings),
+      minimumDurationMinutes: parseOptionalNumber(draft.minimumDurationMinutes),
       plantId: plant.id,
       substrateMoistureMaxPercent: parseOptionalNumber(draft.substrateMoistureMaxPercent),
       substrateMoistureMinPercent: parseOptionalNumber(draft.substrateMoistureMinPercent),
@@ -5283,10 +5429,10 @@ function PlantEnvironmentalAlerts({
 
       {alerts.length > 0 ? (
         <div className="configured-alert-list" role="alert">
-          {alerts.map((alert) => <p key={alert}>{alert}</p>)}
+          {alerts.map((alert) => <p key={`${alert.label}-${alert.direction}`}><strong>{alert.label}:</strong> {alert.value}{alert.unit}, {alert.direction === "below" ? "debajo" : "encima"} del límite {alert.limit}{alert.unit} durante {formatAlertDuration(alert.durationMinutes)} ({alert.consecutiveReadings} lecturas). Tendencia {alert.trend === "rising" ? "ascendente" : alert.trend === "falling" ? "descendente" : "estable"}. Primera evidencia: {formatMeasurementDate(alert.firstMeasuredAt)}.</p>)}
         </div>
       ) : configuredCount > 0 ? (
-        <p className="configured-alert-ok">La última lectura no supera tus límites configurados.</p>
+        <p className="configured-alert-ok">{immediateAlerts.length > 0 ? `Hay ${immediateAlerts.length} lectura${immediateAlerts.length === 1 ? "" : "s"} fuera de límite, pero todavía no cumplen duración y continuidad para generar alerta.` : "Las lecturas recientes no sostienen una desviación fuera de tus límites."}</p>
       ) : (
         <p className="configured-alert-empty">Definí tus propios límites si querés recibir avisos. CultiPilot no agrega umbrales personalizados por defecto.</p>
       )}
@@ -5298,7 +5444,8 @@ function PlantEnvironmentalAlerts({
           <AlertRangeFields draft={draft} label="Humedad ambiental (%)" max="100" maxKey="humidityMaxPercent" min="0" minKey="humidityMinPercent" setDraft={setDraft} />
           <AlertRangeFields draft={draft} label="VPD calculado (kPa)" maxKey="vpdMaxKpa" min="0" minKey="vpdMinKpa" setDraft={setDraft} />
           <AlertRangeFields draft={draft} label="Humedad de sustrato (%)" max="100" maxKey="substrateMoistureMaxPercent" min="0" minKey="substrateMoistureMinPercent" setDraft={setDraft} />
-          <p>Los avisos comparan únicamente la última medición guardada con estos límites.</p>
+          <fieldset><legend>Confirmación de la alerta</legend><label>Lecturas consecutivas<input className="form-control" min="2" onChange={(event) => setDraft((current) => ({ ...current, minimumConsecutiveReadings: event.target.value }))} step="1" type="number" value={draft.minimumConsecutiveReadings} /></label><label>Duración mínima (min)<input className="form-control" min="0" onChange={(event) => setDraft((current) => ({ ...current, minimumDurationMinutes: event.target.value }))} step="1" type="number" value={draft.minimumDurationMinutes} /></label><label>Histéresis de recuperación (%)<input className="form-control" min="0" onChange={(event) => setDraft((current) => ({ ...current, hysteresisPercent: event.target.value }))} step="0.5" type="number" value={draft.hysteresisPercent} /></label></fieldset>
+          <p>Una alerta requiere continuidad y duración. La histéresis evita cerrarla por una oscilación mínima alrededor del límite.</p>
           <button className="secondary-button" type="submit">Guardar alertas</button>
         </form>
       ) : null}
@@ -5338,6 +5485,9 @@ function alertSettingsToDraft(settings?: PlantEnvironmentalAlertSettings): Alert
   return {
     humidityMaxPercent: settings?.humidityMaxPercent?.toString() ?? "",
     humidityMinPercent: settings?.humidityMinPercent?.toString() ?? "",
+    hysteresisPercent: settings?.hysteresisPercent?.toString() ?? "3",
+    minimumConsecutiveReadings: settings?.minimumConsecutiveReadings?.toString() ?? "3",
+    minimumDurationMinutes: settings?.minimumDurationMinutes?.toString() ?? "30",
     substrateMoistureMaxPercent: settings?.substrateMoistureMaxPercent?.toString() ?? "",
     substrateMoistureMinPercent: settings?.substrateMoistureMinPercent?.toString() ?? "",
     temperatureMaxC: settings?.temperatureMaxC?.toString() ?? "",
@@ -5347,7 +5497,15 @@ function alertSettingsToDraft(settings?: PlantEnvironmentalAlertSettings): Alert
   };
 }
 
+function formatAlertDuration(minutes: number) { return minutes >= 60 ? `${Number((minutes / 60).toFixed(minutes % 60 === 0 ? 0 : 1))} h` : `${minutes} min`; }
+
 function validateAlertSettingsDraft(draft: AlertSettingsDraft) {
+  const consecutiveReadings = parseOptionalNumber(draft.minimumConsecutiveReadings);
+  const durationMinutes = parseOptionalNumber(draft.minimumDurationMinutes);
+  const hysteresisPercent = parseOptionalNumber(draft.hysteresisPercent);
+  if (consecutiveReadings !== undefined && (!Number.isInteger(consecutiveReadings) || consecutiveReadings < 2)) return "Las lecturas consecutivas deben ser un número entero de 2 o más.";
+  if (durationMinutes !== undefined && durationMinutes < 0) return "La duración mínima no puede ser negativa.";
+  if (hysteresisPercent !== undefined && (hysteresisPercent < 0 || hysteresisPercent > 50)) return "La histéresis debe estar entre 0% y 50%.";
   const ranges: Array<[keyof AlertSettingsDraft, keyof AlertSettingsDraft, string]> = [
     ["temperatureMinC", "temperatureMaxC", "temperatura"],
     ["humidityMinPercent", "humidityMaxPercent", "humedad ambiental"],

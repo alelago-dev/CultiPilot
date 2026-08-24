@@ -9159,3 +9159,69 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
   background: var(--pc-surface) !important;
   color: var(--pc-foreground) !important;
 }
+
+/* Plan de ciclo e importacion: controles secundarios, visibles sin competir
+ * con la carga manual cotidiana. */
+.cycle-plan-control,
+.csv-import-panel {
+  margin-top: 0.85rem;
+  border: 1px solid var(--pc-border, #dce7df);
+  border-radius: 1rem;
+  background: var(--pc-surface-subtle, #f7faf8);
+  overflow: hidden;
+}
+
+.cycle-plan-control > summary,
+.csv-import-panel > summary {
+  padding: 0.85rem 1rem;
+  color: var(--pc-foreground, #183126);
+  font-size: 0.8rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.cycle-plan-control > div,
+.cycle-plan-control > form,
+.csv-import-panel > div {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0 1rem 1rem;
+}
+
+.csv-mapping-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.65rem;
+}
+
+.csv-mapping-grid label,
+.csv-import-panel > div > label {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--pc-muted, #65746c);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.csv-preview {
+  max-height: 10rem;
+  padding: 0.75rem;
+  border: 1px solid var(--pc-border, #dce7df);
+  border-radius: 0.75rem;
+  background: var(--pc-surface, #fff);
+  overflow: auto;
+}
+
+.csv-preview p {
+  margin: 0.35rem 0 0;
+  color: var(--pc-muted, #65746c);
+  font-size: 0.68rem;
+  overflow-wrap: anywhere;
+}
+
+[data-theme="dark"] .cycle-plan-control,
+[data-theme="dark"] .csv-import-panel,
+[data-theme="dark"] .csv-preview {
+  border-color: var(--pc-border) !important;
+  background: var(--pc-surface) !important;
+}
