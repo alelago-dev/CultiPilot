@@ -661,10 +661,15 @@ label:has(> .form-control) {
    * ya no se puede desplazar a proposito). Se deja el boton de VPD solo
    * con el icono (como ya son el boton de tema y el avatar) y se
    * angosta un poco el selector de idioma para que todo entre sin
-   * necesidad de scroll ni de recortar nada.
+   * necesidad de scroll ni de recortar nada. El boton de instalar app
+   * sigue la misma tecnica de icono-solo para poder mostrarse tambien
+   * en mobile (antes estaba oculto del todo en este rango) sin volver
+   * a desbordar el header.
    */
   .header-vpd-button span { display: none !important; }
   .header-vpd-button { min-width: 0 !important; width: 2.5rem !important; padding-inline: 0 !important; justify-content: center; gap: 0 !important; }
+  .install-app-button-label { display: none !important; }
+  .install-app-button { min-width: 0 !important; width: 2.5rem !important; padding-inline: 0 !important; justify-content: center; gap: 0 !important; }
   .header-locale-option { min-width: 1.7rem !important; padding-inline: 0.25rem !important; }
   .executive-home { padding-top: 1rem !important; }
   .executive-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
@@ -673,13 +678,28 @@ label:has(> .form-control) {
 }
 
 @media (max-width: 400px) {
-  /* Un ultimo achique solo para telefonos angostos (~360-400px): en ese
-     rango el boton de tema y el avatar bajan de 40px a 36px para ganar
-     los pixeles que faltan sin afectar telefonos mas anchos. */
+  /*
+   * Un ultimo achique solo para telefonos angostos (~360-400px): en ese
+   * rango el boton de tema y el avatar bajan de 40px a 36px para ganar
+   * los pixeles que faltan sin afectar telefonos mas anchos. Al volver
+   * a mostrar el boton de instalar app en mobile (antes estaba oculto
+   * del todo) hizo falta el mismo achique para el boton de VPD y el de
+   * instalar, mas un gap mas angosto entre los botones del header, para
+   * que el avatar no vuelva a quedar recortado a 360px de ancho.
+   */
   .header-theme-button,
   .account-avatar {
     width: 2.25rem !important;
     height: 2.25rem !important;
+  }
+
+  .header-vpd-button,
+  .install-app-button {
+    width: 2.25rem !important;
+  }
+
+  .header-actions {
+    gap: 0.15rem !important;
   }
 }
 
@@ -1085,12 +1105,24 @@ textarea {
     font-weight: 700;
   }
 
+  /*
+   * El boton de instalar se mostraba unicamente a partir de 640px: en
+   * celular quedaba con "display: none" y no habia forma de instalar la
+   * app con un toque (reportado por Ale al querer pasarle la app a su
+   * hermano). Ahora se muestra siempre; en pantallas angostas se angosta
+   * a solo-icono con la misma tecnica que ya se usa para el boton de VPD
+   * (ver el media query "max-width: 640px" mas abajo), para no reabrir
+   * el problema previo de desborde del header en telefonos chicos.
+   */
   .install-app-wrapper {
     position: relative;
-    display: none;
+    display: inline-flex;
   }
 
   .install-app-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     white-space: nowrap;
   }
 
@@ -1111,9 +1143,18 @@ textarea {
     box-shadow: 0 18px 36px rgba(28, 54, 38, 0.16);
   }
 
-  @media (min-width: 640px) {
-    .install-app-wrapper {
-      display: inline-flex;
+  /*
+   * En mobile el boton de instalar ya no esta pegado al borde derecho
+   * del header (ahi vive el avatar), sino en el medio de una fila de
+   * iconos angosta. El mensajito "right: 0" que antes quedaba bien
+   * pegado al costado ahora se iba fuera de pantalla por la izquierda.
+   * Se centra debajo del boton en vez de colgar de un borde fijo.
+   */
+  @media (max-width: 640px) {
+    .install-app-status {
+      right: auto;
+      left: 50%;
+      transform: translateX(-50%);
     }
   }
 

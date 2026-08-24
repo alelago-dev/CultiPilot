@@ -3,7 +3,7 @@
 import { type ChangeEvent, type Dispatch, type FormEvent, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
-import { Bug, CalendarDays, Camera, CloudSun, Droplet, Eye, Home, LayoutGrid, Leaf, ListChecks, MoonStar, NotebookPen, ShieldCheck, Scissors, Sparkles, Sprout, Sun, Thermometer, type LucideIcon } from "lucide-react";
+import { Bug, CalendarDays, Camera, CloudSun, Download, Droplet, Eye, Home, LayoutGrid, Leaf, ListChecks, MoonStar, NotebookPen, ShieldCheck, Scissors, Sparkles, Sprout, Sun, Thermometer, type LucideIcon } from "lucide-react";
 
 import { Card } from "@/components/card";
 import { CopyValueButton } from "@/components/copy-button";
@@ -6909,8 +6909,14 @@ function InstallAppButton({ dictionary }: { dictionary: Dictionary }) {
 
   return (
     <span className="install-app-wrapper">
-      <button className="secondary-button install-app-button" onClick={handleInstall} type="button">
-        {dictionary.header.installButton}
+      <button
+        aria-label={dictionary.header.installButton}
+        className="secondary-button install-app-button"
+        onClick={handleInstall}
+        type="button"
+      >
+        <Download aria-hidden="true" size={17} strokeWidth={2.5} />
+        <span className="install-app-button-label">{dictionary.header.installButton}</span>
       </button>
       {status ? <span className="install-app-status">{status}</span> : null}
     </span>
