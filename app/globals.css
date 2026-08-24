@@ -8633,6 +8633,50 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
   color: var(--pc-foreground) !important;
 }
 
+/*
+ * Resto de la tarjeta de resultado del buscador de geneticas (.finder-source,
+ * .finder-match-summary, .finder-chip-row y .finder-notes): mismo problema
+ * que el titulo de arriba -- colores fijos pensados solo para la tarjeta
+ * clara original, ilegibles sobre .finder-result-card ya oscurecida. Los
+ * chips de tipo/semanas/THC mantienen su tinte semantico por familia de
+ * color, pero con texto claro en vez del texto oscuro original.
+ */
+:root[data-theme="dark"] .finder-result-main .finder-source,
+:root[data-theme="dark"] .finder-source span,
+:root[data-theme="dark"] .finder-notes {
+  color: var(--pc-muted) !important;
+}
+
+:root[data-theme="dark"] .finder-match-summary {
+  background: rgba(63, 207, 108, 0.18) !important;
+  color: #a7f0c1 !important;
+}
+
+:root[data-theme="dark"] .finder-data-badge {
+  background: rgba(47, 163, 153, 0.22) !important;
+  color: #9fe0da !important;
+}
+
+:root[data-theme="dark"] .finder-type-badge.feminized {
+  background: rgba(63, 207, 108, 0.2) !important;
+  color: #a7f0c1 !important;
+}
+
+:root[data-theme="dark"] .finder-type-badge.autoflowering {
+  background: rgba(226, 180, 87, 0.22) !important;
+  color: #f0cf8f !important;
+}
+
+:root[data-theme="dark"] .finder-type-badge.regular {
+  background: rgba(163, 130, 224, 0.24) !important;
+  color: #d3c2f5 !important;
+}
+
+:root[data-theme="dark"] .finder-type-badge.fast {
+  background: rgba(90, 170, 214, 0.22) !important;
+  color: #a9d8ef !important;
+}
+
 :root[data-theme="dark"] .stepper-button.secondary {
   color: var(--pc-foreground) !important;
 }
