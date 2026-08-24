@@ -583,6 +583,8 @@ export type Dictionary = {
     measurementCardTitle: string;
     measurementCardBadge: string;
     measurementCardCopy: string;
+    measurementCardExpandLabel: string;
+    measurementCardCollapseLabel: string;
     plantOrPotLabel: string;
     noPlantsEmptyTitle: string;
     noPlantsEmptyBody: string;

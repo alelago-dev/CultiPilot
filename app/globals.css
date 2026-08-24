@@ -348,6 +348,43 @@ header.app-header.sticky {
   letter-spacing: -.01em;
 }
 
+.environment-entry-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .6rem;
+}
+
+.environment-entry-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  border: 1px solid var(--pc-border);
+  border-radius: 999px;
+  background: var(--pc-surface-subtle);
+  padding: .45rem .85rem;
+  color: var(--pc-primary);
+  font-family: var(--font-metrics);
+  font-size: .72rem;
+  font-weight: 650;
+  letter-spacing: -.01em;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+
+.environment-entry-toggle:hover {
+  background: var(--pc-primary-soft);
+}
+
+.environment-entry-toggle-arrow {
+  display: inline-block;
+  transition: transform .18s ease;
+}
+
+.environment-entry-toggle-arrow.is-open {
+  transform: rotate(180deg);
+}
+
 .space-banner {
   display: flex;
   align-items: center;
@@ -1172,10 +1209,18 @@ textarea {
     width: 22px;
     place-items: center;
     border-radius: 999px;
-    border: 1.5px solid rgba(35, 84, 62, 0.24);
+    border: 1.5px solid rgba(35, 84, 62, 0.45);
+    background: rgba(255, 255, 255, 0.9);
     color: #23543e;
     font-size: 0.58rem;
     font-weight: 700;
+    transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+  }
+
+  .coach-check.active span {
+    border-color: #24766f;
+    background: #24766f;
+    color: #ffffff;
   }
 
   .coach-check strong {
@@ -2415,6 +2460,15 @@ textarea {
     white-space: nowrap;
   }
 
+  /*
+   * event-water/photo/clean/review: unica fuente de verdad para el color de
+   * las etiquetas de accion del Calendario (agenda, grilla y detalle de
+   * dia). Habia otras dos definiciones de estas mismas clases mas abajo en
+   * el archivo que las pisaban en cascada y terminaban mezclando el color
+   * de "riego" con el de "foto" (mismo verde, casi imposible distinguirlos
+   * de un vistazo); se eliminaron y quedan solo estos cuatro tonos, uno por
+   * tipo de accion.
+   */
   .event-water {
     background: #dff1f1;
     color: #1c5f58;
@@ -4758,26 +4812,22 @@ textarea {
     font-weight: 580;
   }
 
-  .pill-green,
-  .event-photo {
+  .pill-green {
     background: #e8f3ee;
     color: #1f5a45;
   }
 
-  .pill-blue,
-  .event-water {
+  .pill-blue {
     background: #e8f0f6;
     color: #24526f;
   }
 
-  .pill-amber,
-  .event-clean {
+  .pill-amber {
     background: #f4eee0;
     color: #765c20;
   }
 
-  .pill-soft,
-  .event-review {
+  .pill-soft {
     background: #eef1ee;
     color: #52605a;
   }
@@ -5097,6 +5147,17 @@ textarea {
 
     .executive-overview {
       grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.72fr);
+    }
+
+    /*
+     * .executive-overview tiene 3 hijos (GrowCommandPanel, HomeAccountPanel,
+     * PushNotificationsPanel) pero la grilla de arriba solo define 2
+     * columnas: el tercero (push notifications) cae solo en la columna
+     * izquierda, dejando un hueco vacio a la derecha en desktop. Se lo
+     * estira a las dos columnas para que ocupe el ancho completo.
+     */
+    .executive-overview .push-notifications-panel {
+      grid-column: 1 / -1;
     }
   }
 
@@ -5642,26 +5703,22 @@ textarea {
     letter-spacing: 0;
   }
 
-  .pill-green,
-  .event-photo {
+  .pill-green {
     background: #e6f4e9;
     color: #1f6b4c;
   }
 
-  .pill-blue,
-  .event-water {
+  .pill-blue {
     background: #e3f2f1;
     color: #1f6b4c;
   }
 
-  .pill-amber,
-  .event-clean {
+  .pill-amber {
     background: #fbedd8;
     color: #9a5f14;
   }
 
-  .pill-soft,
-  .event-review {
+  .pill-soft {
     background: #f1efe4;
     color: #5c6d61;
   }
@@ -8276,6 +8333,18 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
   border-color: var(--pc-border) !important;
 }
 
+:root[data-theme="dark"] .today-stage-summary strong {
+  color: var(--pc-foreground) !important;
+}
+
+:root[data-theme="dark"] .today-stage-summary span {
+  color: var(--pc-primary) !important;
+}
+
+:root[data-theme="dark"] .today-stage-summary p {
+  color: var(--pc-muted) !important;
+}
+
 :root[data-theme="dark"] .environment-freshness-list a {
   background: var(--pc-surface-subtle) !important;
   border-color: var(--pc-border) !important;
@@ -8320,7 +8389,14 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
 
 :root[data-theme="dark"] .coach-check span {
   border-color: var(--pc-border-strong) !important;
+  background: var(--pc-surface) !important;
   color: var(--pc-foreground) !important;
+}
+
+:root[data-theme="dark"] .coach-check.active span {
+  border-color: #4fb3a8 !important;
+  background: #2f7d75 !important;
+  color: #ffffff !important;
 }
 
 :root[data-theme="dark"] .coach-check strong {
@@ -8335,6 +8411,64 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
 :root[data-theme="dark"] .grow-command-card.accent {
   background: var(--pc-surface) !important;
   border-color: var(--pc-border) !important;
+}
+
+/*
+ * .grow-command-board (el contenedor que envuelve el conteo por etapa
+ * "Semilla/Vegetativo/..." + Plantas activas + Proximos eventos, dentro
+ * de "Estado activo" en Hoy) tiene su propio fondo casi blanco fijo
+ * (#f7faf8 del pase "executive dashboard"), sin dark-aware -- las
+ * piezas de adentro (.grow-phase-step, .grow-command-card) ya se
+ * oscurecen arriba, pero quedaban flotando dentro de esta caja clara.
+ */
+:root[data-theme="dark"] .grow-command-board {
+  background: var(--pc-surface-subtle) !important;
+  border-color: var(--pc-border) !important;
+}
+
+/*
+ * .measurement-vpd-preview (la caja "VPD calculado en vivo" al pie del
+ * formulario de mediciones en Espacios) tiene fondo y texto fijos
+ * pensados solo para claro -- sin dark-aware quedaba como una tarjeta
+ * blanca suelta en medio de la pagina oscura. Se mantiene el color
+ * semantico por estado (ok/atencion/critico) pero adaptado a fondo
+ * oscuro en vez de aplanarlo a un gris neutro.
+ */
+:root[data-theme="dark"] .measurement-vpd-preview {
+  background: var(--pc-surface-subtle) !important;
+  border-color: var(--pc-border) !important;
+}
+:root[data-theme="dark"] .measurement-vpd-preview span,
+:root[data-theme="dark"] .measurement-vpd-preview small {
+  color: var(--pc-muted) !important;
+}
+:root[data-theme="dark"] .measurement-vpd-preview strong {
+  color: var(--pc-foreground) !important;
+}
+:root[data-theme="dark"] .measurement-vpd-preview p {
+  color: var(--pc-muted) !important;
+}
+:root[data-theme="dark"] .measurement-vpd-preview.status-in-range {
+  background: rgba(61, 145, 95, 0.2) !important;
+  border-color: rgba(95, 185, 138, 0.4) !important;
+}
+:root[data-theme="dark"] .measurement-vpd-preview.status-low,
+:root[data-theme="dark"] .measurement-vpd-preview.status-high {
+  background: rgba(217, 164, 65, 0.16) !important;
+  border-color: rgba(217, 164, 65, 0.4) !important;
+}
+:root[data-theme="dark"] .measurement-vpd-preview.status-critical {
+  background: rgba(226, 115, 79, 0.16) !important;
+  border-color: rgba(226, 115, 79, 0.4) !important;
+}
+
+:root[data-theme="dark"] .environment-entry-toggle {
+  background: var(--pc-surface-subtle) !important;
+  border-color: var(--pc-border) !important;
+  color: var(--pc-foreground) !important;
+}
+:root[data-theme="dark"] .environment-entry-toggle:hover {
+  background: var(--pc-primary-soft) !important;
 }
 
 :root[data-theme="dark"] .coach-panel,
@@ -8489,7 +8623,31 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
   color: var(--pc-muted) !important;
 }
 
+/*
+ * .finder-result-main h5 (nombre de la genetica en cada tarjeta de
+ * resultado del buscador, ej. "Amherst Sour Diesel") tiene el mismo verde
+ * casi negro fijo que .finder-header h3 -- ilegible sobre la tarjeta
+ * ahora oscura de .finder-result-card.
+ */
+:root[data-theme="dark"] .finder-result-main h5 {
+  color: var(--pc-foreground) !important;
+}
+
 :root[data-theme="dark"] .stepper-button.secondary {
+  color: var(--pc-foreground) !important;
+}
+
+/*
+ * .tab-stepper .stepper-button.primary ("Siguiente solapa" en Semillas)
+ * usa un tinte casi transparente (8% de opacidad) con texto verde casi
+ * negro, pensado para quedar sutil sobre fondo blanco -- en oscuro ese
+ * mismo tinte se pierde contra la pagina y el texto queda casi
+ * ilegible, lo que lo hacia ver identico al boton .disabled de al lado
+ * en vez de una accion secundaria distinguible.
+ */
+:root[data-theme="dark"] .tab-stepper .stepper-button.primary {
+  background: var(--pc-primary-soft) !important;
+  border-color: var(--pc-border) !important;
   color: var(--pc-foreground) !important;
 }
 

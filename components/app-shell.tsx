@@ -3148,6 +3148,7 @@ function SpacesSection({
   const activePlants = plants.filter((plant) => plant.lifecycle !== "archived");
   const archivedPlants = plants.filter((plant) => plant.lifecycle === "archived");
   const [measurementPlantId, setMeasurementPlantId] = useState(activePlants[0]?.id ?? "");
+  const [measurementsExpanded, setMeasurementsExpanded] = useState(false);
   const normalizedQuery = query.trim().toLowerCase();
   const selectedReferenceGenetic = geneticsCatalogAlphabetically.find((genetic) => genetic.id === referenceGeneticId);
   const visibleSpaces = spaces
@@ -3192,28 +3193,44 @@ function SpacesSection({
       <Card as="section" className="environment-entry-card mt-5 p-4 sm:p-5" id="mediciones-ambientales" variant="elevated">
         <div className="environment-entry-heading">
           <SectionHeader eyebrow={spacesText.measurementCardEyebrow} title={spacesText.measurementCardTitle} />
-          <span className="environment-entry-badge">{spacesText.measurementCardBadge}</span>
-        </div>
-        <p className="environment-entry-copy">{spacesText.measurementCardCopy}</p>
-        {activePlants.length > 0 ? (
-          <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(220px,0.45fr)_1fr]">
-            <label className="grid content-start gap-1 text-sm font-black text-moss-950">
-              {spacesText.plantOrPotLabel}
-              <select className="form-control" onChange={(event) => setMeasurementPlantId(event.target.value)} value={measurementPlantId}>
-                {activePlants.map((plant) => <option key={plant.id} value={plant.id}>{plant.name} · {plant.pot}</option>)}
-              </select>
-            </label>
-            {activePlants.find((plant) => plant.id === measurementPlantId) ? (
-              <PlantMeasurementForm
-                dictionary={dictionary}
-                onAddMeasurement={onAddMeasurement}
-                onDone={() => undefined}
-                plant={activePlants.find((plant) => plant.id === measurementPlantId)!}
-                resetAfterSave
-              />
-            ) : null}
+          <div className="environment-entry-heading-actions">
+            <span className="environment-entry-badge">{spacesText.measurementCardBadge}</span>
+            <button
+              aria-controls="mediciones-ambientales-form"
+              aria-expanded={measurementsExpanded}
+              className="environment-entry-toggle"
+              onClick={() => setMeasurementsExpanded((current) => !current)}
+              type="button"
+            >
+              {measurementsExpanded ? spacesText.measurementCardCollapseLabel : spacesText.measurementCardExpandLabel}
+              <span aria-hidden="true" className={`environment-entry-toggle-arrow${measurementsExpanded ? " is-open" : ""}`}>▾</span>
+            </button>
           </div>
-        ) : <EmptyState body={spacesText.noPlantsEmptyBody} title={spacesText.noPlantsEmptyTitle} />}
+        </div>
+        {measurementsExpanded ? (
+          <div id="mediciones-ambientales-form">
+            <p className="environment-entry-copy">{spacesText.measurementCardCopy}</p>
+            {activePlants.length > 0 ? (
+              <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(220px,0.45fr)_1fr]">
+                <label className="grid content-start gap-1 text-sm font-black text-moss-950">
+                  {spacesText.plantOrPotLabel}
+                  <select className="form-control" onChange={(event) => setMeasurementPlantId(event.target.value)} value={measurementPlantId}>
+                    {activePlants.map((plant) => <option key={plant.id} value={plant.id}>{plant.name} · {plant.pot}</option>)}
+                  </select>
+                </label>
+                {activePlants.find((plant) => plant.id === measurementPlantId) ? (
+                  <PlantMeasurementForm
+                    dictionary={dictionary}
+                    onAddMeasurement={onAddMeasurement}
+                    onDone={() => undefined}
+                    plant={activePlants.find((plant) => plant.id === measurementPlantId)!}
+                    resetAfterSave
+                  />
+                ) : null}
+              </div>
+            ) : <EmptyState body={spacesText.noPlantsEmptyBody} title={spacesText.noPlantsEmptyTitle} />}
+          </div>
+        ) : null}
       </Card>
 
       <ProductCatalogPanel items={productCatalog} onSaveItem={onSaveProductCatalogItem} plants={activePlants} />
