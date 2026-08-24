@@ -40,8 +40,8 @@ export function buildCultivationSuggestions({
   if (["critical", "high", "low"].includes(environment.vpdStatus)) {
     suggestions.push({
       id: `${plant.id}-environment-${today}`,
-      title: "Revisar ambiente y VPD",
-      description: environment.messages.find((message) => message.includes("VPD")) ?? "Revisar temperatura, humedad y ventilacion.",
+      title: "Ajustar ambiente según VPD",
+      description: environment.messages.find((message) => message.includes("VPD")) ?? "Ajustar temperatura, humedad o ventilación para acercar el VPD al objetivo de la etapa.",
       dueDate: today,
       kind: "review",
       priority: environment.vpdStatus === "critical" ? "high" : "medium",
@@ -54,12 +54,12 @@ export function buildCultivationSuggestions({
   if (["high", "low"].includes(environment.ppfdStatus)) {
     suggestions.push({
       id: `${plant.id}-light-${today}`,
-      title: "Revisar intensidad y distribucion de luz",
+      title: "Ajustar intensidad y distribución de luz",
       description: environment.messages.find((message) => message.includes("PPFD")) ?? "Comprobar PPFD en varios puntos de la copa.",
       dueDate: today,
       kind: "review",
       priority: "medium",
-      rationale: `La medicion esta fuera de la referencia orientativa para ${environment.target.label}. Antes de ajustar potencia o altura, confirmar la lectura y las especificaciones de la luminaria.`,
+      rationale: `La medición está fuera de la referencia de ${environment.target.label}. La recomendación indica la dirección del ajuste y conserva PPFD, etapa y fuente como evidencia.`,
       evidence: environment.evidence.filter((point) => point.label === "PPFD"),
       missingInputs: []
     });
@@ -75,14 +75,16 @@ export function buildCultivationSuggestions({
 
   suggestions.push({
     id: `${plant.id}-substrate-review-${addDays(today, 3)}`,
-    title: "Revisar humedad, drenaje y respuesta de la maceta",
-    description: "Registrar humedad del sustrato, peso o tacto de la maceta y respuesta visible antes de decidir riego o nutricion.",
+    title: "Calcular próximo riego y nutrición",
+    description: latest?.substrateMoisturePercent === undefined
+      ? "Registrá humedad del sustrato y agua aplicada para que CultiPilot calcule el próximo escenario de riego y nutrición."
+      : `La última humedad registrada es ${latest.substrateMoisturePercent}%. Usala junto con volumen de maceta, agua aplicada y drenaje para calcular cantidad y concentración.`,
     dueDate: addDays(today, 3),
     kind: "watering",
     priority: "low",
     rationale: plant.substrate
-      ? `Revision basada en el sustrato declarado (${plant.substrate}); no calcula cantidad de agua ni fertilizante.`
-      : "No hay sustrato declarado, por eso solo se propone una revision general.",
+      ? `Cálculo preparado para el sustrato declarado (${plant.substrate}); completa volumen de maceta, producto, concentración objetivo y drenaje para obtener cantidades reproducibles.`
+      : "Falta declarar el sustrato para ajustar el cálculo de retención y drenaje.",
     evidence: [
       { label: "Sustrato", origin: plant.substrate ? "user" : "missing", value: plant.substrate || null },
       { label: "Humedad de sustrato", origin: latest?.substrateMoisturePercent === undefined ? "missing" : latest.source === "sensor" ? "measurement" : "user", unit: "%", value: latest?.substrateMoisturePercent ?? null }
@@ -113,16 +115,16 @@ function getStageSuggestion(
     : [];
 
   if (stage === "seed") {
-    return createStageSuggestion(plant, today, 5, "Revisar desarrollo inicial y necesidad de trasplante", "Observar raices, vigor, drenaje y tamaño real antes de decidir un trasplante.", geneticEvidence, genetic ? [] : ["genetica vinculada"]);
+    return createStageSuggestion(plant, today, 5, "Evaluar y programar trasplante", "CultiPilot recomienda comprobar raíces, vigor, drenaje y tamaño actual; si la maceta quedó ocupada por raíces, programá el trasplante.", geneticEvidence, genetic ? [] : ["genetica vinculada"]);
   }
   if (stage === "vegetative") {
-    return createStageSuggestion(plant, today, 7, "Revisar estructura y preparacion de la siguiente etapa", "Evaluar altura disponible, vigor, estructura y estado sanitario. La fecha propuesta es una revision, no un pase automatico a flora.", geneticEvidence, [!plant.setup ? "tamaño del espacio" : "", !plant.lighting ? "tipo de luz" : ""].filter(Boolean));
+    return createStageSuggestion(plant, today, 7, "Preparar estructura y siguiente etapa", "Según la etapa declarada, evaluá altura disponible, vigor y estructura; CultiPilot puede programar entrenamiento, poda o cambio de etapa con las fechas y medidas registradas.", geneticEvidence, [!plant.setup ? "tamaño del espacio" : "", !plant.lighting ? "tipo de luz" : ""].filter(Boolean));
   }
   if (stage === "early-flower") {
-    return createStageSuggestion(plant, today, 5, "Revisar copa y desarrollo de floracion", "Registrar cambios, distribucion de luz y estado de hojas antes de decidir poda, defoliacion o nutricion.", geneticEvidence, floweringDateMissing);
+    return createStageSuggestion(plant, today, 5, "Optimizar copa durante floración", "Recomendación: registrar altura, PPFD y estado foliar para definir poda, defoliación y nutrición con evidencia de esta maceta.", geneticEvidence, floweringDateMissing);
   }
   if (stage === "late-flower") {
-    return createStageSuggestion(plant, today, 4, "Revisar madurez y estado general", "Registrar observaciones y fotos. La ventana de cosecha estimada (si hay datos suficientes) aparece en una tarjeta aparte; de cualquier forma, confirmar con tricomas antes de cortar.", geneticEvidence, floweringDateMissing);
+    return createStageSuggestion(plant, today, 4, "Evaluar madurez y fecha de cosecha", "Combiná la ventana calculada con fotografías y el análisis de tricomas para obtener una recomendación de cosecha actualizada.", geneticEvidence, floweringDateMissing);
   }
   return undefined;
 }
@@ -158,11 +160,11 @@ function getHarvestWindowSuggestion(
   return {
     id: `${plant.id}-harvest-window-${windowFrom}`,
     title: "Ventana estimada de cosecha",
-    description: `Calculada desde el ${formatIsoForCopy(floweringStart)} (inicio de floracion que registraste) mas las ${minWeeks}-${maxWeeks} semanas de floracion publicadas para ${genetic.name}: entre el ${formatIsoForCopy(windowFrom)} y el ${formatIsoForCopy(windowTo)}. Es una estimacion orientativa, no una fecha exacta: confirmar siempre con revision de tricomas antes de cortar.`,
+    description: `CultiPilot recomienda revisar cosecha entre el ${formatIsoForCopy(windowFrom)} y el ${formatIsoForCopy(windowTo)}. El cálculo parte del ${formatIsoForCopy(floweringStart)} y suma las ${minWeeks}-${maxWeeks} semanas publicadas para ${genetic.name}; el análisis de tricomas permite afinar la fecha.`,
     dueDate: windowFrom,
     kind: "review",
     priority: "medium",
-    rationale: "Estimacion calculada a partir de la fecha de inicio de floracion que declaraste en el historial de etapas y el rango de floracion publicado por el banco de semillas. No reemplaza la revision visual de tricomas.",
+    rationale: "Recomendación calculada con la fecha de inicio de floración declarada y el rango publicado por el banco; las observaciones de tricomas funcionan como evidencia adicional.",
     evidence: [
       { label: "Inicio de floracion", origin: "user", value: floweringStart },
       { label: "Floracion publicada", origin: "catalog", value: `${minWeeks}-${maxWeeks}`, unit: "semanas", note: genetic.source },

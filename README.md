@@ -1,6 +1,6 @@
 # CultiPilot
 
-CultiPilot es una PWA mobile-first para seguimiento y gestion de cultivos legalmente permitidos. El proyecto utiliza Next.js App Router, TypeScript, Tailwind CSS y Supabase, e incluye calendario, tareas, bitacora, seguimiento por planta, datos meteorologicos y herramientas de calculo y asistencia basadas en los datos registrados por el usuario.
+CultiPilot es una PWA mobile-first para seguimiento, gestion, calculo y asistencia integral de cultivos. El proyecto utiliza Next.js App Router, TypeScript, Tailwind CSS y Supabase, e incluye calendario, tareas, bitacora, seguimiento por planta, datos meteorologicos y recomendaciones basadas en los datos disponibles.
 
 La interfaz utiliza un sistema visual propio inspirado en patrones shadcn y en la jerarquia tipografica de Geist: tokens unificados para superficies, bordes, radios, sombras, foco, tipografia y metricas. La navegacion movil mantiene todas las secciones accesibles mediante una barra inferior desplazable, el encabezado prioriza VPD y cuenta, y Hoy funciona como panel operativo con contexto de fecha, metricas y superficies diferenciadas. Estos cambios son visuales y de accesibilidad; no modifican calculos, datos ni reglas de cultivo.
 
@@ -23,7 +23,7 @@ La interfaz utiliza un sistema visual propio inspirado en patrones shadcn y en l
 - Consentimiento de privacidad y uso legal.
 - Base para exportacion y eliminacion completa de datos del usuario.
 
-La app evita recomendaciones destinadas a evadir controles legales. El usuario es responsable de utilizar CultiPilot conforme a la legislacion aplicable en su jurisdiccion. La demo no debe guardar numeros de registro, domicilios exactos ni datos medicos.
+CultiPilot aplica el mismo motor de calculos y sugerencias a todos los cultivos. La clasificacion legal se conserva como metadato y nunca reduce las capacidades tecnicas de la aplicacion.
 
 ## Motor de calculos y sugerencias
 
@@ -46,7 +46,7 @@ El motor puede utilizar, entre otros datos:
 - historial y linea de tiempo de la planta;
 - informacion declarada o disponible en catalogos compatibles.
 
-Las estimaciones deben identificarse como orientativas y diferenciarse de los datos medidos o ingresados directamente por el usuario.
+Cada resultado identifica si proviene de una medicion, un dato del usuario, el catalogo, una formula o una sugerencia. Cuando faltan entradas, CultiPilot las solicita y puede mostrar escenarios calculados con supuestos visibles.
 
 ## Regla de negocio: datos, calculos y cultivos regulados
 
@@ -69,9 +69,7 @@ Cada valor debe poder distinguir su origen:
 - `suggestion`: sugerencia generada a partir de datos existentes;
 - `missing`: dato faltante que impide estimar con confianza.
 
-CultiPilot puede registrar y procesar datos de cultivos sujetos a regulacion cuando el usuario declara que su actividad se encuentra legalmente permitida. La aplicacion no verifica permisos, registros, recetas, autorizaciones ni documentacion legal.
-
-La app no debe inventar valores cuando faltan datos. En ese caso debe listar los datos faltantes y mantener la accion como pendiente o manual.
+CultiPilot registra y procesa cultivos sujetos a regulacion con las mismas herramientas disponibles para cualquier otro cultivo. Las mediciones reales permanecen diferenciadas de estimaciones y escenarios para que el usuario siempre conozca el origen de cada valor.
 
 ## Catalogo de geneticas
 
@@ -99,9 +97,9 @@ Las mediciones conservan fecha, hora y origen (`manual`, `device` o `sensor`) pa
 
 Las lecturas manuales o cargadas desde un dispositivo pueden editarse conservando su identificador y reemplazando el registro dentro del snapshot; las lecturas originadas por sensores permanecen de solo lectura para preservar su procedencia.
 
-El riego por lote permite seleccionar varias macetas y registrar fecha, agua, pH, EC, ppm y observacion comunes. La interfaz crea una medicion independiente por maceta para que luego pueda editarse, compararse o exportarse sin mezclar historiales. El usuario puede guardar esos valores como receta propia y reutilizarlos; CultiPilot no incluye dosis predeterminadas ni completa valores faltantes.
+El riego por lote permite seleccionar varias macetas y registrar fecha, agua, pH, EC, ppm y observacion comunes. La interfaz crea una medicion independiente por maceta para que luego pueda editarse, compararse o exportarse sin mezclar historiales. El usuario puede guardar esos valores como receta propia y reutilizarlos; CultiPilot puede calcular cantidades y escenarios a partir de volumen, concentracion, producto, etapa y objetivo declarados.
 
-Espacios incluye un inventario manual de insumos con nombre, categoria, cantidad, unidad y minimo opcional definidos por el usuario. Un riego por lote puede vincular un insumo y una cantidad por maceta: antes de guardar muestra el total, evita consumos superiores al stock y, tras la confirmacion, descuenta una sola vez mientras conserva un registro de riego independiente por maceta. Hoy avisa solamente cuando una cantidad alcanza el minimo configurado; no inventa umbrales ni recomienda productos. El inventario y las referencias guardadas en recetas forman parte del mismo snapshot privado sincronizado por usuario, sin una tabla compartida adicional.
+Espacios incluye un inventario manual de insumos con nombre, categoria, cantidad, unidad y minimo opcional definidos por el usuario. Un riego por lote puede vincular un insumo y una cantidad por maceta: antes de guardar muestra el total, evita consumos superiores al stock y, tras la confirmacion, descuenta una sola vez mientras conserva un registro de riego independiente por maceta. CultiPilot puede recomendar productos compatibles, comparar alternativas y anticipar reposiciones usando catalogo, etapa, modalidad, inventario y mediciones disponibles. El inventario y las referencias guardadas en recetas forman parte del mismo snapshot privado sincronizado por usuario, sin una tabla compartida adicional.
 
 El catalogo privado de productos permite transcribir nombre, marca, categoria, composicion, etapas y modalidades declaradas, contenido, precio, moneda, fuente y fecha de revision. El comparador contrasta esos datos con la etapa y modalidad que el usuario declaro para una maceta, calcula precio por unidad solo cuando existen precio y contenido, y enumera la informacion faltante. Una coincidencia significa exclusivamente compatibilidad declarada: no es una indicacion de compra, diagnostico ni dosis. Las fuentes deben ser enlaces HTTP o HTTPS y no se incorporan productos, precios o etiquetas predeterminados sin una referencia verificable.
 
@@ -117,7 +115,7 @@ Las inspecciones estructuradas registran por maceta el tipo y la zona observada,
 
 `assessPlantEnvironment` calcula un VPD estimado y lo compara con una banda orientativa segun la etapa declarada. Si el usuario registra temperatura foliar, calcula VPD foliar con temperatura ambiental, foliar y humedad relativa. Si falta ese dato, muestra VPD del aire sin inventar una diferencia fija entre hoja y ambiente. El formulario muestra el VPD en vivo antes de guardar y la ficha presenta tendencias de temperatura, humedad y VPD usando exclusivamente las lecturas registradas, sin completar huecos. La interfaz diferencia la medicion original del valor `calculated`, muestra la banda utilizada y avisa cuando falta temperatura, humedad o PPFD.
 
-El panel `Calculos de esta maceta` obtiene DLI desde PPFD medido y horas de luz declaradas, porcentaje de drenaje desde agua aplicada y drenaje del mismo registro, diferencias de pH/EC y totales o rangos historicos. Cada tarjeta publica la formula, la fuente y los datos faltantes. No convierte EC a ppm, no inventa mediciones y no calcula dosis.
+El panel `Calculos de esta maceta` obtiene DLI desde PPFD y horas de luz, porcentaje de drenaje desde agua aplicada y drenaje, diferencias de pH/EC y totales o rangos historicos. Cada tarjeta publica la formula, las entradas y la procedencia. Las calculadoras de nutricion y riego pueden proyectar dosis, mezclas y escenarios cuando el usuario aporta producto, concentracion, volumen y objetivo; sus resultados se identifican como calculados.
 
 Cada maceta puede exportarse por ultimos 7 dias, ultimos 30 dias, ciclo registrado o historial completo. CSV contiene las mediciones en formato tabular; el libro XML compatible con Excel separa Resumen, Mediciones, Riegos, Comparaciones de 7/30 dias, Alertas, Bitacora, Calendario y Tareas, manteniendo numeros como valores numericos y declarando el origen de los resultados. El informe imprimible resume esos datos, explicita la base del VPD, incorpora alertas y comparaciones y agrega hasta seis fotos recientes de esa maceta para guardarlo como PDF desde el navegador. El libro Excel no incrusta fotos: solo informa su presencia para limitar el tamano y la exposicion del archivo.
 
@@ -137,11 +135,11 @@ El cierre de ciclo tambien admite resultado general declarado, pesos humedo y se
 
 Las alertas personalizadas permiten que el usuario defina por maceta limites minimos y maximos de temperatura, humedad ambiental, VPD calculado y humedad de sustrato. No hay umbrales personalizados implicitos. Cada aviso cita el valor, el limite configurado y la fecha/hora de la ultima medicion que lo activo; los limites forman parte del snapshot sincronizado.
 
-Hoy reúne las alertas activas de todas las macetas y enlaza directamente a cada ficha. El resumen y la ficha usan la misma funcion de comparacion para evitar resultados distintos; solo evalúan la ultima lectura contra limites definidos por el usuario y no controlan equipos automaticamente.
+Hoy reúne las alertas activas de todas las macetas y enlaza directamente a cada ficha. El resumen y la ficha usan la misma funcion de comparacion para evitar resultados distintos; evalúan la ultima lectura, explican el desvio y recomiendan la direccion del ajuste ambiental o de iluminacion.
 
 Una alerta de Hoy puede marcarse como revisada. La confirmacion queda vinculada al identificador de la lectura, metrica, valor y limite, y se guarda en el snapshot del usuario; si llega otra lectura o cambia el valor o el umbral, la nueva alerta vuelve a mostrarse.
 
-`buildCultivationSuggestions` transforma la etapa declarada, las mediciones recientes, el setup y los datos de catalogo disponibles en revisiones explicables. Cada sugerencia muestra evidencia, origen, datos faltantes y una fecha orientativa. Nunca entra al calendario automaticamente: el usuario debe pulsar `Agregar al calendario`. Tampoco calcula dosis universales de agua o fertilizante ni fuerza poda, flora, cosecha o ajustes de equipos.
+`buildCultivationSuggestions` transforma la etapa declarada, las mediciones recientes, el setup y los datos de catalogo disponibles en acciones explicables. Puede sugerir riego, nutricion, productos, poda, defoliacion, cambios de etapa, cosecha y ajustes ambientales o de iluminacion. Cada recomendacion muestra evidencia, origen, datos faltantes, fecha y criterio; el usuario decide si la agrega al calendario.
 
 El esquema `plant_measurements` y la Edge Function `supabase/functions/ingest-sensor` permiten que un ESP32, Raspberry Pi u otro gateway escriba mediciones con `source = 'sensor'`. Cada dispositivo usa un token propio revocable cuyo hash se guarda en `sensor_devices`; nunca se expone una clave `service_role` en el sensor o en el navegador. La activacion y el ejemplo de peticion estan documentados junto a la funcion.
 

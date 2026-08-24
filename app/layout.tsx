@@ -26,7 +26,7 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export const metadata: Metadata = {
   title: "CultiPilot",
-  description: "Calendario PWA para seguimiento de cultivos horticolas legales.",
+  description: "Asistente PWA para seguimiento, calculos y recomendaciones de cultivo.",
   applicationName: "CultiPilot",
   icons: {
     apple: `${basePath}/favicon.png`,

@@ -3951,11 +3951,323 @@ function PlantDataCoverage({ measurements, plant }: { measurements: PlantMeasure
   return <section className="plant-data-coverage" aria-label={`Cobertura de datos de ${plant.name}`}><header><div><p className="plant-calculation-eyebrow">Calidad del historial</p><h4>Cobertura de los últimos 30 días</h4><span>Cuenta solamente campos realmente registrados desde {formatDisplayDate(startDate)}.</span></div><span className="pill pill-blue">{covered} de {coverage.length} variables</span></header><dl>{coverage.map(([label, count]) => <div className={count === 0 ? "is-missing" : ""} key={label}><dt>{label}</dt><dd>{count === 0 ? "Sin datos" : `${count} registro${count === 1 ? "" : "s"}`}</dd></div>)}</dl><p>La ausencia de una variable no implica un problema de cultivo; solo indica que no fue registrada durante esta ventana.</p></section>;
 }
 
-function ProductCatalogPanel({ items, onSaveItem, plants }: { items: ProductCatalogItem[]; onSaveItem: (item: ProductCatalogItem) => void; plants: Plant[] }) {
-  const [name, setName] = useState(""); const [brand, setBrand] = useState(""); const [category, setCategory] = useState<ProductCatalogItem["category"]>("nutrient"); const [composition, setComposition] = useState(""); const [stages, setStages] = useState(""); const [mode, setMode] = useState<Plant["mode"] | "">(""); const [packageQuantity, setPackageQuantity] = useState(""); const [packageUnit, setPackageUnit] = useState("ml"); const [price, setPrice] = useState(""); const [currency, setCurrency] = useState("ARS"); const [sourceUrl, setSourceUrl] = useState(""); const [sourceCheckedAt, setSourceCheckedAt] = useState(getTodayIso()); const [selectedPlantId, setSelectedPlantId] = useState(plants[0]?.id ?? ""); const [status, setStatus] = useState("");
+function ProductCatalogPanel({
+  items,
+  onSaveItem,
+  plants,
+}: {
+  items: ProductCatalogItem[];
+  onSaveItem: (item: ProductCatalogItem) => void;
+  plants: Plant[];
+}) {
+  const [name, setName] = useState("");
+  const [brand, setBrand] = useState("");
+  const [category, setCategory] =
+    useState<ProductCatalogItem["category"]>("nutrient");
+  const [composition, setComposition] = useState("");
+  const [stages, setStages] = useState("");
+  const [mode, setMode] = useState<Plant["mode"] | "">("");
+  const [packageQuantity, setPackageQuantity] = useState("");
+  const [packageUnit, setPackageUnit] = useState("ml");
+  const [price, setPrice] = useState("");
+  const [currency, setCurrency] = useState("ARS");
+  const [sourceUrl, setSourceUrl] = useState("");
+  const [sourceCheckedAt, setSourceCheckedAt] = useState(getTodayIso());
+  const [selectedPlantId, setSelectedPlantId] = useState(plants[0]?.id ?? "");
+  const [status, setStatus] = useState("");
   const selectedPlant = plants.find((plant) => plant.id === selectedPlantId);
-  function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const cleanSource = sourceUrl.trim(); if (cleanSource && !/^https?:\/\//i.test(cleanSource)) { setStatus("La fuente debe comenzar con http:// o https://."); return; } onSaveItem({ brand: brand.trim() || undefined, category, compatibleModes: mode ? [mode] : [], compatibleStages: stages.split(",").map((item) => item.trim()).filter(Boolean), composition: composition.trim() || undefined, currency: price ? currency.trim().toUpperCase() || undefined : undefined, id: `product-${Date.now()}`, name: name.trim(), packageQuantity: parseOptionalNumber(packageQuantity), packageUnit: packageUnit.trim() || undefined, price: parseOptionalNumber(price), sourceCheckedAt: cleanSource ? sourceCheckedAt || undefined : undefined, sourceUrl: cleanSource || undefined }); setName(""); setBrand(""); setComposition(""); setStages(""); setPrice(""); setSourceUrl(""); setStatus("Producto agregado al catálogo privado."); }
-  return <Card as="section" className="product-catalog-panel mt-5 p-4 sm:p-5"><SectionHeader eyebrow="Referencia declarada" title="Catálogo y comparación de productos" /><p>Guardá datos de la etiqueta o de una fuente verificable. CultiPilot compara compatibilidad declarada y precio unitario; no prescribe dosis ni diagnostica necesidades.</p><form onSubmit={submit}><label>Producto<input className="form-control" onChange={(event) => setName(event.target.value)} required value={name} /></label><label>Marca opcional<input className="form-control" onChange={(event) => setBrand(event.target.value)} value={brand} /></label><label>Categoría<select className="form-control" onChange={(event) => setCategory(event.target.value as ProductCatalogItem["category"])} value={category}><option value="nutrient">Nutriente</option><option value="substrate">Sustrato</option><option value="treatment">Tratamiento</option><option value="other">Otro</option></select></label><label>Composición declarada<input className="form-control" onChange={(event) => setComposition(event.target.value)} placeholder="Copiar etiqueta, sin inferir" value={composition} /></label><label>Etapas declaradas<input className="form-control" onChange={(event) => setStages(event.target.value)} placeholder="Vegetativo, floración" value={stages} /></label><label>Modalidad declarada<select className="form-control" onChange={(event) => setMode(event.target.value as Plant["mode"] | "")} value={mode}><option value="">Sin especificar</option><option value="Interior">Interior</option><option value="Exterior">Exterior</option><option value="Invernadero">Invernadero</option></select></label><label>Contenido<input className="form-control" min="0" onChange={(event) => setPackageQuantity(event.target.value)} step="0.01" type="number" value={packageQuantity} /></label><label>Unidad<input className="form-control" onChange={(event) => setPackageUnit(event.target.value)} value={packageUnit} /></label><label>Precio<input className="form-control" min="0" onChange={(event) => setPrice(event.target.value)} step="0.01" type="number" value={price} /></label><label>Moneda<input className="form-control" onChange={(event) => setCurrency(event.target.value)} value={currency} /></label><label>Fuente<input className="form-control" onChange={(event) => setSourceUrl(event.target.value)} placeholder="https://..." type="url" value={sourceUrl} /></label><label>Fuente revisada<input className="form-control" onChange={(event) => setSourceCheckedAt(event.target.value)} type="date" value={sourceCheckedAt} /></label><button className="primary-button" type="submit">Guardar referencia</button></form>{status ? <p role="status">{status}</p> : null}<div className="product-comparison"><label>Comparar para una maceta<select className="form-control" onChange={(event) => setSelectedPlantId(event.target.value)} value={selectedPlantId}><option value="">Sin seleccionar</option>{plants.map((plant) => <option key={plant.id} value={plant.id}>{plant.name} · {plant.stage} · {plant.mode}</option>)}</select></label><div>{items.map((item) => { const normalizedStage = selectedPlant?.stage.trim().toLowerCase() ?? ""; const stageMatch = item.compatibleStages.length === 0 || !selectedPlant ? undefined : item.compatibleStages.some((stage) => normalizedStage.includes(stage.toLowerCase()) || stage.toLowerCase().includes(normalizedStage)); const modeMatch = item.compatibleModes.length === 0 || !selectedPlant ? undefined : item.compatibleModes.includes(selectedPlant.mode); const unitPrice = item.price !== undefined && item.packageQuantity ? item.price / item.packageQuantity : undefined; const missing = [!item.composition && "composición", item.price === undefined && "precio", !item.packageQuantity && "contenido", !item.sourceUrl && "fuente", item.compatibleStages.length === 0 && "etapa compatible", item.compatibleModes.length === 0 && "modalidad compatible"].filter(Boolean) as string[]; return <article key={item.id}><header><div><strong>{item.name}</strong><span>{item.brand || "Marca no declarada"} · {item.category}</span></div><span className={`pill ${stageMatch === false || modeMatch === false ? "pill-amber" : stageMatch && modeMatch ? "pill-green" : "pill-blue"}`}>{stageMatch === false || modeMatch === false ? "Revisar compatibilidad" : stageMatch && modeMatch ? "Coincide con lo declarado" : "Compatibilidad incompleta"}</span></header><p>{item.composition || "Composición no registrada."}</p><dl><div><dt>Precio</dt><dd>{item.price === undefined ? "Sin dato" : `${item.currency || ""} ${item.price}`}</dd></div><div><dt>Precio unitario</dt><dd>{unitPrice === undefined ? "No calculable" : `${item.currency || ""} ${unitPrice.toFixed(2)} / ${item.packageUnit || "unidad"}`}</dd></div><div><dt>Etapa</dt><dd>{stageMatch === undefined ? "No declarada" : stageMatch ? "Compatible declarada" : "No coincide"}</dd></div><div><dt>Modalidad</dt><dd>{modeMatch === undefined ? "No declarada" : modeMatch ? "Compatible declarada" : "No coincide"}</dd></div></dl>{missing.length ? <small>Datos faltantes: {missing.join(", ")}.</small> : null}{item.sourceUrl ? <a href={item.sourceUrl} rel="noreferrer" target="_blank">Ver fuente{item.sourceCheckedAt ? ` · revisada ${formatDisplayDate(item.sourceCheckedAt)}` : ""}</a> : null}</article>; })}</div></div></Card>;
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const cleanSource = sourceUrl.trim();
+    if (cleanSource && !/^https?:\/\//i.test(cleanSource)) {
+      setStatus("La fuente debe comenzar con http:// o https://.");
+      return;
+    }
+    onSaveItem({
+      brand: brand.trim() || undefined,
+      category,
+      compatibleModes: mode ? [mode] : [],
+      compatibleStages: stages
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean),
+      composition: composition.trim() || undefined,
+      currency: price ? currency.trim().toUpperCase() || undefined : undefined,
+      id: `product-${Date.now()}`,
+      name: name.trim(),
+      packageQuantity: parseOptionalNumber(packageQuantity),
+      packageUnit: packageUnit.trim() || undefined,
+      price: parseOptionalNumber(price),
+      sourceCheckedAt: cleanSource ? sourceCheckedAt || undefined : undefined,
+      sourceUrl: cleanSource || undefined,
+    });
+    setName("");
+    setBrand("");
+    setComposition("");
+    setStages("");
+    setPrice("");
+    setSourceUrl("");
+    setStatus("Producto agregado al catálogo privado.");
+  }
+  return (
+    <Card as="section" className="product-catalog-panel mt-5 p-4 sm:p-5">
+      <SectionHeader
+        eyebrow="Referencia declarada"
+        title="Catálogo y comparación de productos"
+      />
+      <p>
+        Guardá los datos de cada producto. CultiPilot recomienda alternativas
+        compatibles, compara precio unitario y señala qué información necesita
+        para calcular una aplicación.
+      </p>
+      <form onSubmit={submit}>
+        <label>
+          Producto
+          <input
+            className="form-control"
+            onChange={(event) => setName(event.target.value)}
+            required
+            value={name}
+          />
+        </label>
+        <label>
+          Marca opcional
+          <input
+            className="form-control"
+            onChange={(event) => setBrand(event.target.value)}
+            value={brand}
+          />
+        </label>
+        <label>
+          Categoría
+          <select
+            className="form-control"
+            onChange={(event) =>
+              setCategory(event.target.value as ProductCatalogItem["category"])
+            }
+            value={category}
+          >
+            <option value="nutrient">Nutriente</option>
+            <option value="substrate">Sustrato</option>
+            <option value="treatment">Tratamiento</option>
+            <option value="other">Otro</option>
+          </select>
+        </label>
+        <label>
+          Composición declarada
+          <input
+            className="form-control"
+            onChange={(event) => setComposition(event.target.value)}
+            placeholder="Copiar etiqueta, sin inferir"
+            value={composition}
+          />
+        </label>
+        <label>
+          Etapas declaradas
+          <input
+            className="form-control"
+            onChange={(event) => setStages(event.target.value)}
+            placeholder="Vegetativo, floración"
+            value={stages}
+          />
+        </label>
+        <label>
+          Modalidad declarada
+          <select
+            className="form-control"
+            onChange={(event) =>
+              setMode(event.target.value as Plant["mode"] | "")
+            }
+            value={mode}
+          >
+            <option value="">Sin especificar</option>
+            <option value="Interior">Interior</option>
+            <option value="Exterior">Exterior</option>
+            <option value="Invernadero">Invernadero</option>
+          </select>
+        </label>
+        <label>
+          Contenido
+          <input
+            className="form-control"
+            min="0"
+            onChange={(event) => setPackageQuantity(event.target.value)}
+            step="0.01"
+            type="number"
+            value={packageQuantity}
+          />
+        </label>
+        <label>
+          Unidad
+          <input
+            className="form-control"
+            onChange={(event) => setPackageUnit(event.target.value)}
+            value={packageUnit}
+          />
+        </label>
+        <label>
+          Precio
+          <input
+            className="form-control"
+            min="0"
+            onChange={(event) => setPrice(event.target.value)}
+            step="0.01"
+            type="number"
+            value={price}
+          />
+        </label>
+        <label>
+          Moneda
+          <input
+            className="form-control"
+            onChange={(event) => setCurrency(event.target.value)}
+            value={currency}
+          />
+        </label>
+        <label>
+          Fuente
+          <input
+            className="form-control"
+            onChange={(event) => setSourceUrl(event.target.value)}
+            placeholder="https://..."
+            type="url"
+            value={sourceUrl}
+          />
+        </label>
+        <label>
+          Fuente revisada
+          <input
+            className="form-control"
+            onChange={(event) => setSourceCheckedAt(event.target.value)}
+            type="date"
+            value={sourceCheckedAt}
+          />
+        </label>
+        <button className="primary-button" type="submit">
+          Guardar referencia
+        </button>
+      </form>
+      {status ? <p role="status">{status}</p> : null}
+      <div className="product-comparison">
+        <label>
+          Comparar para una maceta
+          <select
+            className="form-control"
+            onChange={(event) => setSelectedPlantId(event.target.value)}
+            value={selectedPlantId}
+          >
+            <option value="">Sin seleccionar</option>
+            {plants.map((plant) => (
+              <option key={plant.id} value={plant.id}>
+                {plant.name} · {plant.stage} · {plant.mode}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div>
+          {items.map((item) => {
+            const normalizedStage =
+              selectedPlant?.stage.trim().toLowerCase() ?? "";
+            const stageMatch =
+              item.compatibleStages.length === 0 || !selectedPlant
+                ? undefined
+                : item.compatibleStages.some(
+                    (stage) =>
+                      normalizedStage.includes(stage.toLowerCase()) ||
+                      stage.toLowerCase().includes(normalizedStage),
+                  );
+            const modeMatch =
+              item.compatibleModes.length === 0 || !selectedPlant
+                ? undefined
+                : item.compatibleModes.includes(selectedPlant.mode);
+            const unitPrice =
+              item.price !== undefined && item.packageQuantity
+                ? item.price / item.packageQuantity
+                : undefined;
+            const missing = [
+              !item.composition && "composición",
+              item.price === undefined && "precio",
+              !item.packageQuantity && "contenido",
+              !item.sourceUrl && "fuente",
+              item.compatibleStages.length === 0 && "etapa compatible",
+              item.compatibleModes.length === 0 && "modalidad compatible",
+            ].filter(Boolean) as string[];
+            return (
+              <article key={item.id}>
+                <header>
+                  <div>
+                    <strong>{item.name}</strong>
+                    <span>
+                      {item.brand || "Marca no declarada"} · {item.category}
+                    </span>
+                  </div>
+                  <span
+                    className={`pill ${stageMatch === false || modeMatch === false ? "pill-amber" : stageMatch && modeMatch ? "pill-green" : "pill-blue"}`}
+                  >
+                    {stageMatch === false || modeMatch === false
+                      ? "Revisar compatibilidad"
+                      : stageMatch && modeMatch
+                        ? "Coincide con lo declarado"
+                        : "Compatibilidad incompleta"}
+                  </span>
+                </header>
+                <p>{item.composition || "Composición no registrada."}</p>
+                <dl>
+                  <div>
+                    <dt>Precio</dt>
+                    <dd>
+                      {item.price === undefined
+                        ? "Sin dato"
+                        : `${item.currency || ""} ${item.price}`}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Precio unitario</dt>
+                    <dd>
+                      {unitPrice === undefined
+                        ? "No calculable"
+                        : `${item.currency || ""} ${unitPrice.toFixed(2)} / ${item.packageUnit || "unidad"}`}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Etapa</dt>
+                    <dd>
+                      {stageMatch === undefined
+                        ? "No declarada"
+                        : stageMatch
+                          ? "Compatible declarada"
+                          : "No coincide"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Modalidad</dt>
+                    <dd>
+                      {modeMatch === undefined
+                        ? "No declarada"
+                        : modeMatch
+                          ? "Compatible declarada"
+                          : "No coincide"}
+                    </dd>
+                  </div>
+                </dl>
+                {missing.length ? (
+                  <small>Datos faltantes: {missing.join(", ")}.</small>
+                ) : null}
+                {item.sourceUrl ? (
+                  <a href={item.sourceUrl} rel="noreferrer" target="_blank">
+                    Ver fuente
+                    {item.sourceCheckedAt
+                      ? ` · revisada ${formatDisplayDate(item.sourceCheckedAt)}`
+                      : ""}
+                  </a>
+                ) : null}
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    </Card>
+  );
 }
 
 function InventoryPanel({ items, movements, onSaveItem, products }: { items: InventoryItem[]; movements: InventoryMovement[]; onSaveItem: (item: InventoryItem, context?: InventoryMovementContext) => void; products: ProductCatalogItem[] }) {
@@ -4570,34 +4882,179 @@ function toCsvCell(value: number | string | undefined) { if (value === undefined
 function sanitizeFilename(value: string) { return normalizeLookupText(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "maceta"; }
 function downloadTextFile(filename: string, content: string, type: string) { const blob = new Blob([content], { type }); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = filename; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url); }
 
-function buildPrintablePlantReport({ alertSettings, bounds, calendarEvents, entries, historyMeasurements, measurements, period, plant, tasks }: { alertSettings?: PlantEnvironmentalAlertSettings; bounds: { end: string; start: string }; calendarEvents: CalendarEvent[]; entries: CareEntry[]; historyMeasurements: PlantMeasurement[]; measurements: PlantMeasurement[]; period: ExportPeriod; plant: Plant; tasks: Task[] }) {
-  const sortedMeasurements = [...measurements].sort((first, second) => second.measuredAt.localeCompare(first.measuredAt));
+function buildPrintablePlantReport({
+  alertSettings,
+  bounds,
+  calendarEvents,
+  entries,
+  historyMeasurements,
+  measurements,
+  period,
+  plant,
+  tasks,
+}: {
+  alertSettings?: PlantEnvironmentalAlertSettings;
+  bounds: { end: string; start: string };
+  calendarEvents: CalendarEvent[];
+  entries: CareEntry[];
+  historyMeasurements: PlantMeasurement[];
+  measurements: PlantMeasurement[];
+  period: ExportPeriod;
+  plant: Plant;
+  tasks: Task[];
+}) {
+  const sortedMeasurements = [...measurements].sort((first, second) =>
+    second.measuredAt.localeCompare(first.measuredAt),
+  );
   const latestMeasurement = sortedMeasurements[0];
-  const latestAssessment = latestMeasurement ? assessPlantEnvironment(plant, latestMeasurement) : undefined;
+  const latestAssessment = latestMeasurement
+    ? assessPlantEnvironment(plant, latestMeasurement)
+    : undefined;
   const water = sumWaterSince(sortedMeasurements, bounds.start);
-  const irrigationRecords = sortedMeasurements.filter(hasCalculationIrrigationData);
+  const irrigationRecords = sortedMeasurements.filter(
+    hasCalculationIrrigationData,
+  );
   const photos = [
-    ...sortedMeasurements.filter((measurement) => measurement.photoDataUrl).map((measurement) => ({ date: measurement.measuredAt, source: "Medición", url: measurement.photoDataUrl! })),
-    ...entries.filter((entry) => entry.photoDataUrl).map((entry) => ({ date: entry.createdAt, source: entry.title || "Bitácora", url: entry.photoDataUrl! }))
-  ].sort((first, second) => second.date.localeCompare(first.date)).slice(0, 6);
-  const table = (headers: string[], rows: Array<Array<number | string | undefined>>) => rows.length === 0
-    ? '<p class="empty">Sin registros en el período seleccionado.</p>'
-    : `<table><thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell ?? "—")}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
-  const measurementTable = table(["Fecha", "Origen", "Temp.", "HR", "VPD calculado", "PPFD", "Sustrato", "Observaciones"], sortedMeasurements.map((measurement) => {
-    const assessment = assessPlantEnvironment(plant, measurement);
-    return [formatMeasurementDate(measurement.measuredAt), formatMeasurementSource(measurement.source), measurement.temperatureC === undefined ? undefined : `${measurement.temperatureC} °C`, measurement.ambientHumidityPercent === undefined ? undefined : `${measurement.ambientHumidityPercent}%`, assessment.vpdKpa === undefined ? undefined : `${assessment.vpdKpa} kPa (${assessment.vpdBasis === "leaf" ? "foliar" : "aire"})`, measurement.ppfdUmolM2S, measurement.substrateMoisturePercent === undefined ? undefined : `${measurement.substrateMoisturePercent}%`, measurement.observations];
-  }));
-  const irrigationTable = table(["Fecha", "Agua", "pH entrada", "EC entrada", "Drenaje", "Drenaje calculado"], irrigationRecords.map((measurement) => [formatMeasurementDate(measurement.measuredAt), measurement.waterAmountMl === undefined ? undefined : `${measurement.waterAmountMl} ml`, measurement.irrigationPh, measurement.irrigationEcMsCm === undefined ? undefined : `${measurement.irrigationEcMsCm} mS/cm`, measurement.runoffAmountMl === undefined ? undefined : `${measurement.runoffAmountMl} ml`, measurement.waterAmountMl && measurement.runoffAmountMl !== undefined ? `${Number(((measurement.runoffAmountMl / measurement.waterAmountMl) * 100).toFixed(1))}%` : undefined]));
-  const comparisonTable = table(["Ventana", "Métrica", "Actual", "Anterior", "Cambio"], ([7, 30] as const).flatMap((days) => buildPeriodComparison(historyMeasurements, plant, days).comparisons.map((item) => [ `${days} días`, item.label, item.current.value === undefined ? undefined : `${item.current.value}${item.unit} (${item.current.count})`, item.previous.value === undefined ? undefined : `${item.previous.value}${item.unit} (${item.previous.count})`, item.current.value !== undefined && item.previous.value !== undefined ? `${formatSignedNumber(Number((item.current.value - item.previous.value).toFixed(2)))}${item.unit}` : undefined ])));
-  const reportAlerts = getConfiguredEnvironmentalAlerts(alertSettings, latestMeasurement, latestAssessment?.vpdKpa);
-  const alertsTable = table(["Fecha", "Métrica", "Valor", "Límite configurado"], reportAlerts.map((alert) => [latestMeasurement ? formatMeasurementDate(latestMeasurement.measuredAt) : undefined, alert.label, `${alert.value}${alert.unit}`, `${alert.direction === "below" ? "Mínimo" : "Máximo"}: ${alert.limit}${alert.unit}`]));
-  const photoSection = photos.length === 0 ? '<p class="empty">Sin fotos en el período seleccionado.</p>' : `<div class="photos">${photos.map((photo) => `<figure><img alt="Foto de ${escapeHtml(plant.name)}" src="${escapeHtml(photo.url)}"><figcaption>${escapeHtml(photo.source)} · ${escapeHtml(formatMeasurementDate(photo.date))}</figcaption></figure>`).join("")}</div>`;
-  const printablePeriod = period === "all" ? "Todo el historial" : `${formatDisplayDate(bounds.start)} → ${formatDisplayDate(bounds.end)}`;
+    ...sortedMeasurements
+      .filter((measurement) => measurement.photoDataUrl)
+      .map((measurement) => ({
+        date: measurement.measuredAt,
+        source: "Medición",
+        url: measurement.photoDataUrl!,
+      })),
+    ...entries
+      .filter((entry) => entry.photoDataUrl)
+      .map((entry) => ({
+        date: entry.createdAt,
+        source: entry.title || "Bitácora",
+        url: entry.photoDataUrl!,
+      })),
+  ]
+    .sort((first, second) => second.date.localeCompare(first.date))
+    .slice(0, 6);
+  const table = (
+    headers: string[],
+    rows: Array<Array<number | string | undefined>>,
+  ) =>
+    rows.length === 0
+      ? '<p class="empty">Sin registros en el período seleccionado.</p>'
+      : `<table><thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell ?? "—")}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  const measurementTable = table(
+    [
+      "Fecha",
+      "Origen",
+      "Temp.",
+      "HR",
+      "VPD calculado",
+      "PPFD",
+      "Sustrato",
+      "Observaciones",
+    ],
+    sortedMeasurements.map((measurement) => {
+      const assessment = assessPlantEnvironment(plant, measurement);
+      return [
+        formatMeasurementDate(measurement.measuredAt),
+        formatMeasurementSource(measurement.source),
+        measurement.temperatureC === undefined
+          ? undefined
+          : `${measurement.temperatureC} °C`,
+        measurement.ambientHumidityPercent === undefined
+          ? undefined
+          : `${measurement.ambientHumidityPercent}%`,
+        assessment.vpdKpa === undefined
+          ? undefined
+          : `${assessment.vpdKpa} kPa (${assessment.vpdBasis === "leaf" ? "foliar" : "aire"})`,
+        measurement.ppfdUmolM2S,
+        measurement.substrateMoisturePercent === undefined
+          ? undefined
+          : `${measurement.substrateMoisturePercent}%`,
+        measurement.observations,
+      ];
+    }),
+  );
+  const irrigationTable = table(
+    [
+      "Fecha",
+      "Agua",
+      "pH entrada",
+      "EC entrada",
+      "Drenaje",
+      "Drenaje calculado",
+    ],
+    irrigationRecords.map((measurement) => [
+      formatMeasurementDate(measurement.measuredAt),
+      measurement.waterAmountMl === undefined
+        ? undefined
+        : `${measurement.waterAmountMl} ml`,
+      measurement.irrigationPh,
+      measurement.irrigationEcMsCm === undefined
+        ? undefined
+        : `${measurement.irrigationEcMsCm} mS/cm`,
+      measurement.runoffAmountMl === undefined
+        ? undefined
+        : `${measurement.runoffAmountMl} ml`,
+      measurement.waterAmountMl && measurement.runoffAmountMl !== undefined
+        ? `${Number(((measurement.runoffAmountMl / measurement.waterAmountMl) * 100).toFixed(1))}%`
+        : undefined,
+    ]),
+  );
+  const comparisonTable = table(
+    ["Ventana", "Métrica", "Actual", "Anterior", "Cambio"],
+    ([7, 30] as const).flatMap((days) =>
+      buildPeriodComparison(historyMeasurements, plant, days).comparisons.map(
+        (item) => [
+          `${days} días`,
+          item.label,
+          item.current.value === undefined
+            ? undefined
+            : `${item.current.value}${item.unit} (${item.current.count})`,
+          item.previous.value === undefined
+            ? undefined
+            : `${item.previous.value}${item.unit} (${item.previous.count})`,
+          item.current.value !== undefined && item.previous.value !== undefined
+            ? `${formatSignedNumber(Number((item.current.value - item.previous.value).toFixed(2)))}${item.unit}`
+            : undefined,
+        ],
+      ),
+    ),
+  );
+  const reportAlerts = getConfiguredEnvironmentalAlerts(
+    alertSettings,
+    latestMeasurement,
+    latestAssessment?.vpdKpa,
+  );
+  const alertsTable = table(
+    ["Fecha", "Métrica", "Valor", "Límite configurado"],
+    reportAlerts.map((alert) => [
+      latestMeasurement
+        ? formatMeasurementDate(latestMeasurement.measuredAt)
+        : undefined,
+      alert.label,
+      `${alert.value}${alert.unit}`,
+      `${alert.direction === "below" ? "Mínimo" : "Máximo"}: ${alert.limit}${alert.unit}`,
+    ]),
+  );
+  const photoSection =
+    photos.length === 0
+      ? '<p class="empty">Sin fotos en el período seleccionado.</p>'
+      : `<div class="photos">${photos.map((photo) => `<figure><img alt="Foto de ${escapeHtml(plant.name)}" src="${escapeHtml(photo.url)}"><figcaption>${escapeHtml(photo.source)} · ${escapeHtml(formatMeasurementDate(photo.date))}</figcaption></figure>`).join("")}</div>`;
+  const printablePeriod =
+    period === "all"
+      ? "Todo el historial"
+      : `${formatDisplayDate(bounds.start)} → ${formatDisplayDate(bounds.end)}`;
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>CultiPilot · ${escapeHtml(plant.name)}</title><style>
     @page{size:A4;margin:14mm}*{box-sizing:border-box}body{margin:0;color:#1f3028;font:12px/1.45 Arial,sans-serif}header{border-bottom:3px solid #496b57;padding-bottom:12px}h1{margin:0;font-size:25px}h2{margin:22px 0 8px;color:#274b38;font-size:17px}p{margin:4px 0}.meta,.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.card{border:1px solid #ccd8d0;border-radius:8px;padding:8px}.card span{display:block;color:#64746b;font-size:10px;text-transform:uppercase}.card strong{display:block;margin-top:3px;font-size:13px}.note{margin-top:12px;padding:9px;border-left:4px solid #8baa94;background:#eff5f1}.empty{color:#6b756f;font-style:italic}table{width:100%;border-collapse:collapse;font-size:9px}th,td{border:1px solid #d7dfda;padding:5px;text-align:left;vertical-align:top}th{background:#e9f1ec}.photos{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.photos figure{margin:0;break-inside:avoid}.photos img{display:block;width:100%;max-height:260px;object-fit:contain;background:#edf1ee}.photos figcaption{padding:4px;color:#59675f;font-size:9px}.section{break-inside:avoid}.footer{margin-top:20px;border-top:1px solid #ccd8d0;padding-top:8px;color:#64746b;font-size:9px}@media(max-width:650px){.meta,.metrics{grid-template-columns:repeat(2,1fr)}}@media print{button{display:none}.section{break-inside:auto}h2{break-after:avoid}table{break-inside:auto}tr{break-inside:avoid}}
   </style></head><body><header><h1>${escapeHtml(plant.name)}</h1><p>${escapeHtml(plant.variety || "Variedad no declarada")} · Informe individual de maceta</p><div class="meta"><div class="card"><span>Período</span><strong>${escapeHtml(printablePeriod)}</strong></div><div class="card"><span>Etapa declarada</span><strong>${escapeHtml(plant.stage || "Sin declarar")}</strong></div><div class="card"><span>Inicio declarado</span><strong>${escapeHtml(plant.startedAt || "Sin dato")}</strong></div><div class="card"><span>Estado</span><strong>${plant.completedAt ? `Cerrado ${escapeHtml(plant.completedAt)}` : "Activo"}</strong></div></div></header>
-  <section><h2>Resumen del período</h2><div class="metrics"><div class="card"><span>Mediciones</span><strong>${sortedMeasurements.length}</strong></div><div class="card"><span>Riegos registrados</span><strong>${irrigationRecords.length}</strong></div><div class="card"><span>Agua registrada</span><strong>${water.total} ml</strong></div><div class="card"><span>Bitácora / tareas / eventos</span><strong>${entries.length} / ${tasks.length} / ${calendarEvents.length}</strong></div><div class="card"><span>Último VPD calculable</span><strong>${latestAssessment?.vpdKpa === undefined ? "Faltan temperatura y humedad" : `${latestAssessment.vpdKpa} kPa (${latestAssessment.vpdBasis === "leaf" ? "foliar" : "aire"})`}</strong></div><div class="card"><span>Fotoperíodo declarado</span><strong>${plant.photoperiodHours === undefined ? "Sin dato" : `${plant.photoperiodHours} h`}</strong></div></div><p class="note">El VPD es calculado con la fórmula de Tetens. Si falta temperatura foliar se informa VPD del aire y no se inventa una diferencia con la hoja. Este informe resume datos declarados, medidos y calculados; no prescribe dosis ni cambios de equipos.</p></section>
-  <section><h2>Alertas según límites actuales</h2>${alertsTable}</section><section><h2>Comparaciones de 7 y 30 días</h2>${comparisonTable}</section><section><h2>Mediciones ambientales</h2>${measurementTable}</section><section><h2>Riegos</h2>${irrigationTable}</section><section><h2>Bitácora</h2>${table(["Fecha", "Título", "Nota", "Etiquetas"], entries.map((entry) => [formatMeasurementDate(entry.createdAt), entry.title, entry.note, entry.tags.join(", ")]))}</section><section><h2>Calendario y tareas</h2>${table(["Fecha", "Tipo", "Título", "Estado / descripción"], [...calendarEvents.map((event) => [event.startDate, "Calendario", event.title, event.description]), ...tasks.map((task) => [task.dueDate, "Tarea", task.title, task.status])])}</section><section><h2>Fotos recientes (${photos.length} de hasta 6)</h2>${photoSection}</section><p class="footer">Generado por CultiPilot el ${escapeHtml(new Date().toLocaleString("es"))}. Informe exclusivo de ${escapeHtml(plant.name)}. Usá Imprimir → Guardar como PDF.</p><script>window.addEventListener('load',function(){setTimeout(function(){window.print()},400)})</script></body></html>`;
+  <section><h2>Resumen del período</h2><div class="metrics"><div class="card"><span>Mediciones</span><strong>${sortedMeasurements.length}</strong></div><div class="card"><span>Riegos registrados</span><strong>${irrigationRecords.length}</strong></div><div class="card"><span>Agua registrada</span><strong>${water.total} ml</strong></div><div class="card"><span>Bitácora / tareas / eventos</span><strong>${entries.length} / ${tasks.length} / ${calendarEvents.length}</strong></div><div class="card"><span>Último VPD calculable</span><strong>${latestAssessment?.vpdKpa === undefined ? "Faltan temperatura y humedad" : `${latestAssessment.vpdKpa} kPa (${latestAssessment.vpdBasis === "leaf" ? "foliar" : "aire"})`}</strong></div><div class="card"><span>Fotoperíodo declarado</span><strong>${plant.photoperiodHours === undefined ? "Sin dato" : `${plant.photoperiodHours} h`}</strong></div></div><p class="note">El VPD se calcula con la fórmula de Tetens. Si falta temperatura foliar se informa VPD del aire. Este informe reúne datos declarados, medidos y calculados para respaldar dosis, recomendaciones y ajustes explicables.</p></section>
+  <section><h2>Alertas según límites actuales</h2>${alertsTable}</section><section><h2>Comparaciones de 7 y 30 días</h2>${comparisonTable}</section><section><h2>Mediciones ambientales</h2>${measurementTable}</section><section><h2>Riegos</h2>${irrigationTable}</section><section><h2>Bitácora</h2>${table(
+    ["Fecha", "Título", "Nota", "Etiquetas"],
+    entries.map((entry) => [
+      formatMeasurementDate(entry.createdAt),
+      entry.title,
+      entry.note,
+      entry.tags.join(", "),
+    ]),
+  )}</section><section><h2>Calendario y tareas</h2>${table(["Fecha", "Tipo", "Título", "Estado / descripción"], [...calendarEvents.map((event) => [event.startDate, "Calendario", event.title, event.description]), ...tasks.map((task) => [task.dueDate, "Tarea", task.title, task.status])])}</section><section><h2>Fotos recientes (${photos.length} de hasta 6)</h2>${photoSection}</section><p class="footer">Generado por CultiPilot el ${escapeHtml(new Date().toLocaleString("es"))}. Informe exclusivo de ${escapeHtml(plant.name)}. Usá Imprimir → Guardar como PDF.</p><script>window.addEventListener('load',function(){setTimeout(function(){window.print()},400)})</script></body></html>`;
 }
 
 function escapeHtml(value: number | string) { return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }

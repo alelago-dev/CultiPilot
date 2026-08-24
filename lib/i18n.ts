@@ -166,7 +166,7 @@ const dictionaries: Record<Locale, Dictionary> = {
       coachTitle: "Estado de tus plantas",
       coachManualPill: "Manual",
       coachIntro:
-        "Inspirado en las mejores apps de plantas: una rutina corta para observar, registrar y decidir vos. No diagnostica ni calcula automaticamente.",
+        "Una rutina corta para observar, registrar y recibir calculos, diagnosticos de escenario y sugerencias explicadas con tus datos.",
       coachFocusLabel: "Foco sugerido",
       coachFocusFallback: "Registrar observacion",
       coachPlantFallback: "Crear una planta para comenzar",
@@ -573,7 +573,7 @@ const dictionaries: Record<Locale, Dictionary> = {
           { title: "Revision completa", summary: "Recordatorios manuales para revisar estructura, mantenimiento, nutricion y plagas." },
           { title: "Hitos declarados", summary: "Hitos editables para registrar cambio de etapa, cierre declarado, foto y secado." }
         ],
-        presetsNote: "Estas sugerencias solo acomodan recordatorios visibles. No calculan fechas, riego, rendimiento ni decisiones de cultivo.",
+        presetsNote: "Estos recordatorios se complementan con los calculos de fechas, riego, rendimiento y decisiones que CultiPilot genera a partir de los datos del cultivo.",
         moistureLabel: "Proxima revision de humedad",
         stageLabel: "Cambio de etapa / flora",
         dryingLabel: "Secado de ramas",
@@ -979,7 +979,7 @@ const dictionaries: Record<Locale, Dictionary> = {
       coachTitle: "Your plants' status",
       coachManualPill: "Manual",
       coachIntro:
-        "Inspired by the best plant apps: a short routine to observe, log, and decide for yourself. It doesn't diagnose or calculate automatically.",
+        "A short routine to observe, log, and receive calculations, scenario diagnostics, and suggestions explained with your data.",
       coachFocusLabel: "Suggested focus",
       coachFocusFallback: "Log an observation",
       coachPlantFallback: "Create a plant to get started",
@@ -1034,7 +1034,7 @@ const dictionaries: Record<Locale, Dictionary> = {
       environmentAlertsEmptyConfigured: "No latest reading exceeds the limits configured on {n} plant{plural}.",
       environmentAlertsEmptyUnconfigured: "You haven't configured custom limits yet. You can do it from each plant's page.",
       environmentAlertsFooter:
-        "These are explainable alerts based on the last saved measurement; they aren't a diagnosis and don't control equipment automatically.",
+        "These are explainable scenario diagnostics based on the latest saved measurement, with recommended adjustments and supporting evidence.",
       quickAccessEyebrow: "Quick log",
       quickAccessTitle: "Environmental measurements",
       quickAccessBody: "Log temperature and humidity per pot to calculate VPD. Leaf temperature and the rest are optional.",
@@ -1386,7 +1386,7 @@ const dictionaries: Record<Locale, Dictionary> = {
           { title: "Full review", summary: "Manual reminders to review structure, maintenance, nutrition and pests." },
           { title: "Declared milestones", summary: "Editable milestones to log stage change, declared closing, photo and drying." }
         ],
-        presetsNote: "These suggestions only set up visible reminders. They don't calculate dates, watering, yield or cultivation decisions.",
+        presetsNote: "These reminders work alongside CultiPilot's date, watering, yield, and cultivation calculations based on your crop data.",
         moistureLabel: "Next moisture check",
         stageLabel: "Stage change / flowering",
         dryingLabel: "Branch drying",

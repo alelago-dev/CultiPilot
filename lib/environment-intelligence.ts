@@ -58,11 +58,11 @@ export function assessPlantEnvironment(plant: Plant, measurement?: PlantMeasurem
   if (target.vpdMin === undefined || target.vpdMax === undefined) {
     messages.push(`No hay una banda VPD asociada a la etapa declarada "${plant.stage}". El VPD se calcula, pero no se clasifica.`);
   } else if (vpdStatus === "critical") {
-    messages.push("VPD en zona de riesgo orientativa: confirmar la medicion y revisar ambiente y ventilacion antes de cambiar equipos.");
+    messages.push("VPD en zona crítica: confirmá la lectura y corregí temperatura, humedad o ventilación hacia el rango de la etapa.");
   } else if (vpdStatus === "low") {
-    messages.push("VPD orientativo bajo: revisar exceso de humedad, temperatura y renovacion de aire antes de ajustar equipos.");
+    messages.push("VPD bajo: reducí humedad relativa o aumentá gradualmente temperatura y renovación de aire hasta acercarte al rango de la etapa.");
   } else if (vpdStatus === "high") {
-    messages.push("VPD orientativo alto: revisar aire seco, temperatura y ventilacion antes de ajustar equipos.");
+    messages.push("VPD alto: aumentá humedad relativa o reducí gradualmente temperatura e intensidad térmica hasta acercarte al rango de la etapa.");
   } else if (vpdStatus === "in-range") {
     messages.push("La ultima relacion entre temperatura y humedad esta dentro del rango orientativo para la etapa declarada.");
   }
@@ -70,9 +70,9 @@ export function assessPlantEnvironment(plant: Plant, measurement?: PlantMeasurem
   if (measurement?.ppfdUmolM2S === undefined) {
     missingInputs.push("PPFD a nivel de la copa");
   } else if (ppfdStatus === "low") {
-    messages.push("PPFD por debajo de la referencia: comprobar medicion, distribucion y especificaciones de la luminaria.");
+    messages.push("PPFD bajo: aumentá gradualmente potencia o acercá la luminaria, midiendo nuevamente en varios puntos de la copa.");
   } else if (ppfdStatus === "high") {
-    messages.push("PPFD por encima de la referencia: comprobar signos de estres y limites de la luminaria antes de modificar potencia o distancia.");
+    messages.push("PPFD alto: reducí gradualmente potencia o aumentá distancia, y verificá la nueva lectura y la respuesta de la copa.");
   }
 
   return {

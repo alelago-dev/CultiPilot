@@ -1,7 +1,7 @@
 {
   "name": "CultiPilot",
   "short_name": "CultiPilot",
-  "description": "Calendario para seguimiento de cultivos horticolas legalmente permitidos.",
+  "description": "Asistente para seguimiento, calculos y recomendaciones de cultivo.",
   "start_url": "./es/hoy/",
   "display": "standalone",
   "background_color": "#f0eee9",
