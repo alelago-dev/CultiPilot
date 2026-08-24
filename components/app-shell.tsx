@@ -3669,6 +3669,7 @@ function PlantSpaceRow({
             measurements={measurements}
             onAddCalendarEvent={onAddCalendarEvent}
             plant={plant}
+            stageTransitions={stageTransitions.filter((transition) => transition.plantId === plant.id)}
           />
           <dl className="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
             <PlantFact label="Maceta" value={plant.pot} />
@@ -5069,15 +5070,17 @@ function PlantSuggestionsPanel({
   genetic,
   measurements,
   onAddCalendarEvent,
-  plant
+  plant,
+  stageTransitions
 }: {
   calendarEvents: CalendarEvent[];
   genetic?: GeneticReferenceEntry;
   measurements: PlantMeasurement[];
   onAddCalendarEvent: (event: CalendarEvent) => void;
   plant: Plant;
+  stageTransitions: PlantStageTransition[];
 }) {
-  const suggestions = buildCultivationSuggestions({ existingEvents: calendarEvents, genetic, measurements, plant });
+  const suggestions = buildCultivationSuggestions({ existingEvents: calendarEvents, genetic, measurements, plant, stageTransitions });
 
   function addSuggestion(suggestion: CultivationSuggestion) {
     onAddCalendarEvent({

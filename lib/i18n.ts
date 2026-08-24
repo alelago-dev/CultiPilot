@@ -465,7 +465,7 @@ const dictionaries: Record<Locale, Dictionary> = {
       finder: {
         eyebrow: "Buscador guiado",
         title: "Encuentra una genetica de referencia",
-        description: "Filtra por ambiente, tipo, efecto y sabores publicados. No calcula tareas ni completa campos de cultivo.",
+        description: "Filtra por ambiente, tipo, efecto y sabores publicados. El buscador en si no completa el cultivo: al asignar una genetica a una planta y registrar el inicio de floracion en su historial de etapas, esos datos alimentan la ventana de cosecha estimada de esa maceta.",
         modeLabel: "Manual",
         educationSummary: "Como leer la informacion del catalogo",
         thcTitle: "THC publicado",
@@ -1277,7 +1277,7 @@ const dictionaries: Record<Locale, Dictionary> = {
       finder: {
         eyebrow: "Guided finder",
         title: "Find a reference genetic",
-        description: "Filter by environment, type, effect and published flavors. It doesn't calculate tasks or fill in cultivation fields.",
+        description: "Filter by environment, type, effect and published flavors. The finder itself doesn't fill in your crop: once you assign a genetic to a plant and log its flowering start date in the stage history, that data powers that plant's estimated harvest window.",
         modeLabel: "Manual",
         educationSummary: "How to read the catalog information",
         thcTitle: "Published THC",
