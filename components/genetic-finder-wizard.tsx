@@ -226,6 +226,9 @@ function FinderOptionGrid({
   );
 }
 
+const initialVisibleResultCount = 2;
+const additionalResultsPerPage = 3;
+
 function FinderResults({
   dictionary,
   finderState,
@@ -238,6 +241,9 @@ function FinderResults({
   onSelectGenetic?: (genetic: GeneticReferenceEntry) => void;
 }) {
   const finder = dictionary.seeds.finder;
+  const [visibleCount, setVisibleCount] = useState(initialVisibleResultCount);
+  const visibleMatches = matches.slice(0, visibleCount);
+  const remainingCount = matches.length - visibleMatches.length;
 
   return (
     <div className="finder-results">
@@ -248,7 +254,7 @@ function FinderResults({
 
       {matches.length > 0 ? (
         <div className="finder-result-grid">
-          {matches.map(({ genetic }) => (
+          {visibleMatches.map(({ genetic }) => (
             <article className="finder-result-card" key={genetic.id}>
               <div className="finder-result-main">
                 <div>
@@ -279,6 +285,16 @@ function FinderResults({
       ) : (
         <div className="finder-empty">{finder.emptyResultsMessage}</div>
       )}
+
+      {remainingCount > 0 ? (
+        <button
+          className="secondary-button"
+          onClick={() => setVisibleCount((value) => value + additionalResultsPerPage)}
+          type="button"
+        >
+          {formatDictionaryString(finder.showMoreButtonTemplate, { remaining: String(remainingCount) })}
+        </button>
+      ) : null}
     </div>
   );
 }

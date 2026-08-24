@@ -400,7 +400,15 @@ const careScore = 86;
 const assetBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const manualPlantId = "plant-manual-regulated";
 const geneticsCatalogAlphabetically = getGeneticsCatalogAlphabetically();
-const legalBankOptions = ["Catalogo propio", "BSF", "Zig Zag", "Banco legal local", "Otro banco autorizado", "No declarado"];
+const legalBankOptions = [
+  "Catalogo propio",
+  "BSF",
+  "Zig Zag",
+  "Ojitos Rojos",
+  "Banco legal local",
+  "Otro banco autorizado",
+  "No declarado"
+];
 const legalRecordStatusOptions = ["Confirmado", "Pendiente de verificar", "No aplica"];
 const legalSetupOptions = [
   "40 x 40 cm",
@@ -2088,6 +2096,7 @@ function FirstCultivationScreen({
   const [geneticName, setGeneticName] = useState("No seleccionada");
   const [selectedGenetic, setSelectedGenetic] = useState<GeneticReferenceEntry | null>(null);
   const [customGeneticName, setCustomGeneticName] = useState("");
+  const [showGeneticFinder, setShowGeneticFinder] = useState(false);
   const geneticOptions = [
     "No seleccionada",
     ...(selectedGenetic && selectedGenetic.name !== "No seleccionada" ? [selectedGenetic.name] : []),
@@ -2158,15 +2167,29 @@ function FirstCultivationScreen({
                 <SectionHeader eyebrow="Datos declarados" title="Identificacion" />
 
                 <SectionHeader eyebrow="Paso 1" title="Genetica" />
-                <GeneticFinderWizard
-                  compact
-                  dictionary={getDictionary("es")}
-                  onSelectGenetic={(genetic) => {
-                    setGeneticName(genetic.name);
-                    setSelectedGenetic(genetic);
-                    setCustomGeneticName("");
-                  }}
-                />
+                <button
+                  className="secondary-button justify-self-start"
+                  onClick={() => setShowGeneticFinder((value) => !value)}
+                  type="button"
+                >
+                  {showGeneticFinder
+                    ? "Ocultar buscador de catalogo"
+                    : selectedGenetic
+                      ? "Cambiar genetica del catalogo"
+                      : "Buscar genetica en catalogo"}
+                </button>
+                {showGeneticFinder ? (
+                  <GeneticFinderWizard
+                    compact
+                    dictionary={getDictionary("es")}
+                    onSelectGenetic={(genetic) => {
+                      setGeneticName(genetic.name);
+                      setSelectedGenetic(genetic);
+                      setCustomGeneticName("");
+                      setShowGeneticFinder(false);
+                    }}
+                  />
+                ) : null}
                 <div className="grid gap-3 sm:grid-cols-2">
                   <FormSelect label="Genetica elegida" onChange={(value) => {
                     setGeneticName(value);

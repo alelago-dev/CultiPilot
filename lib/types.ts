@@ -378,6 +378,7 @@ export type Dictionary = {
       matchSummaryTemplate: string;
       emptyResultsMessage: string;
       addSeedButton: string;
+      showMoreButtonTemplate: string;
       backButton: string;
       continueFiltersButton: string;
       startOverButton: string;

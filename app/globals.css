@@ -8627,6 +8627,20 @@ h1, h2, h3, .text-h1, .text-h2 { font-family: var(--font-display) !important; }
   color: var(--pc-foreground) !important;
 }
 
+/*
+ * Bug: el fondo de .finder-option/.finder-flavor se oscurece via
+ * !important arriba, pero su texto en negrita (strong) seguia con el
+ * color oscuro por defecto (#162015) heredado del modo claro -> texto
+ * invisible sobre fondo casi negro (ver linea ~3527). Pasaba en las 4
+ * etapas del buscador guiado (lugar/tipo/efecto/sabores), mas notorio
+ * en sabores porque esa tarjeta no tiene texto descriptivo adicional
+ * que compense (solo queda visible la sigla de 2 letras).
+ */
+:root[data-theme="dark"] .finder-option strong,
+:root[data-theme="dark"] .finder-flavor strong {
+  color: var(--pc-foreground) !important;
+}
+
 :root[data-theme="dark"] .calendar-history-controls button,
 :root[data-theme="dark"] .calendar-month-picker,
 :root[data-theme="dark"] .calendar-status-pill,
