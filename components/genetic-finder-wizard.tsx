@@ -38,7 +38,7 @@ type FinderStep = "place" | "type" | "effect" | "flavors";
 type GeneticFinderWizardProps = {
   compact?: boolean;
   dictionary: Dictionary;
-  onSelectGenetic?: (name: string) => void;
+  onSelectGenetic?: (genetic: GeneticReferenceEntry) => void;
 };
 
 const steps: FinderStep[] = ["place", "type", "effect", "flavors"];
@@ -235,7 +235,7 @@ function FinderResults({
   dictionary: Dictionary;
   finderState: FinderState;
   matches: Array<{ genetic: GeneticReferenceEntry; score: number }>;
-  onSelectGenetic?: (name: string) => void;
+  onSelectGenetic?: (genetic: GeneticReferenceEntry) => void;
 }) {
   const finder = dictionary.seeds.finder;
 
@@ -269,7 +269,7 @@ function FinderResults({
               </div>
               <p className="finder-notes">{compactText(genetic.flavor_notes || genetic.effect_notes, dictionary)}</p>
               {onSelectGenetic ? (
-                <button className="finder-use-button" onClick={() => onSelectGenetic(genetic.name)} type="button">
+                <button className="finder-use-button" onClick={() => onSelectGenetic(genetic)} type="button">
                   {finder.addSeedButton}
                 </button>
               ) : null}

@@ -103,9 +103,9 @@ export function SeedsSection({ calendarHref, calendarLinkHref, dictionary, local
           {activeTab === "finder" ? (
             <GeneticFinderWizard
               dictionary={dictionary}
-              onSelectGenetic={(name) => {
+              onSelectGenetic={(genetic) => {
                 shouldScrollToGeneticField.current = true;
-                setSelectedGeneticName(name);
+                setSelectedGeneticName(genetic.name);
                 setActiveTab("manual");
               }}
             />

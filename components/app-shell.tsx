@@ -2082,16 +2082,17 @@ function FirstCultivationScreen({
   onCreateFirstCultivation: (input: FirstCultivationInput) => void;
 }) {
   const todayIso = getTodayIso();
-  const geneticOptions = [
-    "No seleccionada",
-    ...geneticsCatalogAlphabetically.map((genetic) => genetic.name),
-    "Otra / no listada"
-  ];
   const [step, setStep] = useState(0);
   const [bank, setBank] = useState(legalBankOptions[0]);
   const [legalRecordStatus, setLegalRecordStatus] = useState(legalRecordStatusOptions[0]);
-  const [geneticName, setGeneticName] = useState(geneticOptions[0]);
+  const [geneticName, setGeneticName] = useState("No seleccionada");
+  const [selectedGenetic, setSelectedGenetic] = useState<GeneticReferenceEntry | null>(null);
   const [customGeneticName, setCustomGeneticName] = useState("");
+  const geneticOptions = [
+    "No seleccionada",
+    ...(selectedGenetic && selectedGenetic.name !== "No seleccionada" ? [selectedGenetic.name] : []),
+    "Otra / no listada"
+  ];
   const [nickname, setNickname] = useState("");
   const [mode, setMode] = useState<Plant["mode"]>("Interior");
   const [setup, setSetup] = useState("80 x 80 cm");
@@ -2155,33 +2156,50 @@ function FirstCultivationScreen({
             {step === 0 ? (
               <div className="grid gap-3">
                 <SectionHeader eyebrow="Datos declarados" title="Identificacion" />
+
+                <SectionHeader eyebrow="Paso 1" title="Genetica" />
                 <GeneticFinderWizard
                   compact
                   dictionary={getDictionary("es")}
-                  onSelectGenetic={(name) => {
-                    setGeneticName(name);
+                  onSelectGenetic={(genetic) => {
+                    setGeneticName(genetic.name);
+                    setSelectedGenetic(genetic);
                     setCustomGeneticName("");
                   }}
                 />
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <FormSelect label="Banco o catalogo" onChange={setBank} options={legalBankOptions} value={bank} />
+                  <FormSelect label="Genetica elegida" onChange={(value) => {
+                    setGeneticName(value);
+                    if (value !== selectedGenetic?.name) setSelectedGenetic(null);
+                  }} options={geneticOptions} value={geneticName} />
+                  {geneticName === "Otra / no listada" ? (
+                    <FormField
+                      label="Genetica escrita por el usuario"
+                      onChange={setCustomGeneticName}
+                      placeholder="Nombre declarado"
+                      value={customGeneticName}
+                    />
+                  ) : null}
+                </div>
+
+                <SectionHeader eyebrow="Paso 2" title="Datos del cultivo" />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <FormSelect label="Banco o catalogo" onChange={setBank} options={legalBankOptions} value={bank} />
+                    {selectedGenetic ? (
+                      <p className="mt-1 text-xs font-bold text-stone-500">
+                        Fuente declarada de la genetica elegida: {selectedGenetic.source}. Elegi vos la categoria legal que corresponda.
+                      </p>
+                    ) : null}
+                  </div>
                   <FormSelect
                     label="Registro legal"
                     onChange={setLegalRecordStatus}
                     options={legalRecordStatusOptions}
                     value={legalRecordStatus}
                   />
-                  <FormSelect label="Nombre de genetica" onChange={setGeneticName} options={geneticOptions} value={geneticName} />
                   <FormField label="Nombre visible del cultivo" onChange={setNickname} placeholder="Ej. Indoor 80 julio" value={nickname} />
                 </div>
-                {geneticName === "Otra / no listada" ? (
-                  <FormField
-                    label="Genetica escrita por el usuario"
-                    onChange={setCustomGeneticName}
-                    placeholder="Nombre declarado"
-                    value={customGeneticName}
-                  />
-                ) : null}
               </div>
             ) : null}
 
