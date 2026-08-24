@@ -2099,7 +2099,7 @@ function FirstCultivationScreen({
   const [showGeneticFinder, setShowGeneticFinder] = useState(false);
   const geneticOptions = [
     "No seleccionada",
-    ...(selectedGenetic && selectedGenetic.name !== "No seleccionada" ? [selectedGenetic.name] : []),
+    ...geneticsCatalogAlphabetically.map((genetic) => genetic.name),
     "Otra / no listada"
   ];
   const [nickname, setNickname] = useState("");
@@ -2193,7 +2193,9 @@ function FirstCultivationScreen({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <FormSelect label="Genetica elegida" onChange={(value) => {
                     setGeneticName(value);
-                    if (value !== selectedGenetic?.name) setSelectedGenetic(null);
+                    setSelectedGenetic(
+                      geneticsCatalogAlphabetically.find((genetic) => genetic.name === value) ?? null
+                    );
                   }} options={geneticOptions} value={geneticName} />
                   {geneticName === "Otra / no listada" ? (
                     <FormField
