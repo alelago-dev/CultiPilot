@@ -107,9 +107,7 @@ type QuickPlantInput = {
 };
 
 type FirstCultivationInput = {
-  bank: string;
   geneticName: string;
-  legalRecordStatus: string;
   light: string;
   mode: Plant["mode"];
   nickname: string;
@@ -400,16 +398,6 @@ const careScore = 86;
 const assetBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const manualPlantId = "plant-manual-regulated";
 const geneticsCatalogAlphabetically = getGeneticsCatalogAlphabetically();
-const legalBankOptions = [
-  "Catalogo propio",
-  "BSF",
-  "Zig Zag",
-  "Ojitos Rojos",
-  "Banco legal local",
-  "Otro banco autorizado",
-  "No declarado"
-];
-const legalRecordStatusOptions = ["Confirmado", "Pendiente de verificar", "No aplica"];
 const legalSetupOptions = [
   "40 x 40 cm",
   "60 x 60 cm",
@@ -1235,9 +1223,9 @@ export function AppShell({
       const plantNumber = index + 1;
 
       return {
-        bank: input.bank,
+        bank: "No declarado",
         id: createEventId("plant-manual"),
-        legalRecordStatus: input.legalRecordStatus,
+        legalRecordStatus: "No aplica",
         lighting: input.light,
         mode: input.mode,
         name: potCount > 1 ? `${plantName} #${plantNumber}` : plantName,
@@ -1253,7 +1241,7 @@ export function AppShell({
     const nextEvents: CalendarEvent[] = nextPlants.flatMap((plant) => {
       const plantEvents: CalendarEvent[] = [{
         completedDates: [],
-        description: `Alta manual de ${plant.name}. Banco: ${input.bank}. Registro legal: ${input.legalRecordStatus}.`,
+        description: `Alta manual de ${plant.name}. Genetica declarada: ${input.geneticName}.`,
         id: createEventId("event-review"),
         kind: "review",
         plantId: plant.id,
@@ -2091,8 +2079,6 @@ function FirstCultivationScreen({
 }) {
   const todayIso = getTodayIso();
   const [step, setStep] = useState(0);
-  const [bank, setBank] = useState(legalBankOptions[0]);
-  const [legalRecordStatus, setLegalRecordStatus] = useState(legalRecordStatusOptions[0]);
   const [geneticName, setGeneticName] = useState("");
   const [selectedGenetic, setSelectedGenetic] = useState<GeneticReferenceEntry | null>(null);
   const [showGeneticFinder, setShowGeneticFinder] = useState(false);
@@ -2111,10 +2097,8 @@ function FirstCultivationScreen({
 
   function handleSubmit() {
     onCreateFirstCultivation({
-      bank,
       geneticName: selectedGeneticName || "Genetica declarada por usuario",
       humidityReminderOffset,
-      legalRecordStatus,
       light,
       mode,
       nickname,
@@ -2134,7 +2118,7 @@ function FirstCultivationScreen({
           <p className="eyebrow text-mint-50/80">Primer cultivo</p>
           <h1>Configuremos tu cultivo paso a paso</h1>
           <p>
-            Carga banco, registro, genetica, espacio y primeros recordatorios. Las sugerencias futuras usaran datos
+            Carga genetica, nombre, espacio y primeros recordatorios. Las sugerencias futuras usaran datos
             declarados, catalogos, mediciones reales y estimaciones identificadas.
           </p>
         </div>
@@ -2179,7 +2163,6 @@ function FirstCultivationScreen({
                     onSelectGenetic={(genetic) => {
                       setGeneticName(genetic.name);
                       setSelectedGenetic(genetic);
-                      setBank(getCatalogBankName(genetic));
                       setShowGeneticFinder(false);
                     }}
                   />
@@ -2197,7 +2180,6 @@ function FirstCultivationScreen({
                         ) ?? null;
                         setGeneticName(value);
                         setSelectedGenetic(catalogMatch);
-                        setBank(catalogMatch ? getCatalogBankName(catalogMatch) : legalBankOptions[0]);
                       }}
                       placeholder="Escribi: Kush, Gorilla, Auto..."
                       value={geneticName}
@@ -2215,23 +2197,7 @@ function FirstCultivationScreen({
                   </label>
                 </div>
 
-                <SectionHeader eyebrow="Paso 2" title="Datos del cultivo" />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {!selectedGenetic ? (
-                    <FormSelect label="Banco u origen (si no esta en el catalogo)" onChange={setBank} options={legalBankOptions} value={bank} />
-                  ) : (
-                    <div className="rounded-lg border border-moss-950/10 bg-white/70 p-3 text-sm font-bold text-stone-600">
-                      <span className="block text-xs uppercase text-stone-500">Origen de la ficha</span>
-                      <strong className="mt-1 block text-moss-950">{getCatalogBankName(selectedGenetic)}</strong>
-                      <span className="mt-1 block text-xs">{selectedGenetic.source}</span>
-                    </div>
-                  )}
-                  <FormSelect
-                    label="Registro legal"
-                    onChange={setLegalRecordStatus}
-                    options={legalRecordStatusOptions}
-                    value={legalRecordStatus}
-                  />
+                <div className="mt-2 grid gap-3">
                   <FormField label="Nombre visible del cultivo" onChange={setNickname} placeholder="Ej. Indoor 80 julio" value={nickname} />
                 </div>
               </div>
