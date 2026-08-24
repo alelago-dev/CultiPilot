@@ -2093,15 +2093,9 @@ function FirstCultivationScreen({
   const [step, setStep] = useState(0);
   const [bank, setBank] = useState(legalBankOptions[0]);
   const [legalRecordStatus, setLegalRecordStatus] = useState(legalRecordStatusOptions[0]);
-  const [geneticName, setGeneticName] = useState("No seleccionada");
+  const [geneticName, setGeneticName] = useState("");
   const [selectedGenetic, setSelectedGenetic] = useState<GeneticReferenceEntry | null>(null);
-  const [customGeneticName, setCustomGeneticName] = useState("");
   const [showGeneticFinder, setShowGeneticFinder] = useState(false);
-  const geneticOptions = [
-    "No seleccionada",
-    ...geneticsCatalogAlphabetically.map((genetic) => genetic.name),
-    "Otra / no listada"
-  ];
   const [nickname, setNickname] = useState("");
   const [mode, setMode] = useState<Plant["mode"]>("Interior");
   const [setup, setSetup] = useState("80 x 80 cm");
@@ -2112,7 +2106,7 @@ function FirstCultivationScreen({
   const [startDate, setStartDate] = useState(todayIso);
   const [humidityReminderOffset, setHumidityReminderOffset] = useState(7);
   const [photoReminderOffset, setPhotoReminderOffset] = useState(7);
-  const selectedGeneticName = geneticName === "Otra / no listada" ? customGeneticName.trim() : geneticName;
+  const selectedGeneticName = geneticName.trim();
   const stepTitles = ["Identificacion", "Espacio de cultivo", "Fechas y recordatorios"];
 
   function handleSubmit() {
@@ -2185,38 +2179,53 @@ function FirstCultivationScreen({
                     onSelectGenetic={(genetic) => {
                       setGeneticName(genetic.name);
                       setSelectedGenetic(genetic);
-                      setCustomGeneticName("");
+                      setBank(getCatalogBankName(genetic));
                       setShowGeneticFinder(false);
                     }}
                   />
                 ) : null}
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <FormSelect label="Genetica elegida" onChange={(value) => {
-                    setGeneticName(value);
-                    setSelectedGenetic(
-                      geneticsCatalogAlphabetically.find((genetic) => genetic.name === value) ?? null
-                    );
-                  }} options={geneticOptions} value={geneticName} />
-                  {geneticName === "Otra / no listada" ? (
-                    <FormField
-                      label="Genetica escrita por el usuario"
-                      onChange={setCustomGeneticName}
-                      placeholder="Nombre declarado"
-                      value={customGeneticName}
+                  <label className="grid gap-1 text-sm font-black text-moss-950">
+                    Buscar o elegir genetica
+                    <input
+                      className="form-control"
+                      list="first-cultivation-genetics"
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        const catalogMatch = geneticsCatalogAlphabetically.find(
+                          (genetic) => normalizeLookupText(genetic.name) === normalizeLookupText(value)
+                        ) ?? null;
+                        setGeneticName(value);
+                        setSelectedGenetic(catalogMatch);
+                        setBank(catalogMatch ? getCatalogBankName(catalogMatch) : legalBankOptions[0]);
+                      }}
+                      placeholder="Escribi: Kush, Gorilla, Auto..."
+                      value={geneticName}
                     />
-                  ) : null}
+                    <datalist id="first-cultivation-genetics">
+                      {geneticsCatalogAlphabetically.map((genetic) => (
+                        <option key={genetic.id} value={genetic.name}>{getCatalogBankName(genetic)}</option>
+                      ))}
+                    </datalist>
+                    <small className="font-bold text-stone-500">
+                      {selectedGenetic
+                        ? `Ficha vinculada · ${getCatalogBankName(selectedGenetic)}`
+                        : "Escribi para filtrar el catalogo o declara una genetica propia."}
+                    </small>
+                  </label>
                 </div>
 
                 <SectionHeader eyebrow="Paso 2" title="Datos del cultivo" />
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <FormSelect label="Banco o catalogo" onChange={setBank} options={legalBankOptions} value={bank} />
-                    {selectedGenetic ? (
-                      <p className="mt-1 text-xs font-bold text-stone-500">
-                        Fuente declarada de la genetica elegida: {selectedGenetic.source}. Elegi vos la categoria legal que corresponda.
-                      </p>
-                    ) : null}
-                  </div>
+                  {!selectedGenetic ? (
+                    <FormSelect label="Banco u origen (si no esta en el catalogo)" onChange={setBank} options={legalBankOptions} value={bank} />
+                  ) : (
+                    <div className="rounded-lg border border-moss-950/10 bg-white/70 p-3 text-sm font-bold text-stone-600">
+                      <span className="block text-xs uppercase text-stone-500">Origen de la ficha</span>
+                      <strong className="mt-1 block text-moss-950">{getCatalogBankName(selectedGenetic)}</strong>
+                      <span className="mt-1 block text-xs">{selectedGenetic.source}</span>
+                    </div>
+                  )}
                   <FormSelect
                     label="Registro legal"
                     onChange={setLegalRecordStatus}
@@ -8183,6 +8192,16 @@ function normalizeLookupText(value: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase();
+}
+
+function getCatalogBankName(genetic: GeneticReferenceEntry) {
+  const bankField = Object.entries(genetic.raw_fields ?? {}).find(([label]) => {
+    const normalizedLabel = normalizeLookupText(label);
+    return normalizedLabel.includes("banco") || normalizedLabel.includes("catalogo");
+  })?.[1];
+
+  if (typeof bankField === "string" && bankField.trim()) return bankField.trim();
+  return genetic.source.split(" - ")[0]?.trim() || "Fuente del catalogo";
 }
 
 function getPlantStage(stage: string) {

@@ -1,4 +1,4 @@
-const CACHE_NAME = "cultipilot-v64";
+const CACHE_NAME = "cultipilot-v65";
 const ROUTES = [
   "/",
   "/es/",
