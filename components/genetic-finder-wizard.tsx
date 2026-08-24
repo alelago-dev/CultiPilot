@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 
 import { formatDictionaryString } from "@/lib/i18n";
 import {
@@ -33,6 +33,17 @@ type FinderState = {
   seedType: FinderSeedType;
 };
 
+type MatchStatus = "match" | "missing";
+type MatchDetail = { label: string; reason: string; status: MatchStatus };
+type GeneticMatch = {
+  confidence: "high" | "medium" | "low";
+  details: MatchDetail[];
+  genetic: GeneticReferenceEntry;
+  matchedCriteria: number;
+  score: number;
+  totalCriteria: number;
+};
+
 type FinderStep = "place" | "type" | "potency" | "flavors";
 
 type GeneticFinderWizardProps = {
@@ -53,10 +64,15 @@ const initialFinderState: FinderState = {
 
 export function GeneticFinderWizard({ compact = false, dictionary, onSelectGenetic }: GeneticFinderWizardProps) {
   const finder = dictionary.seeds.finder;
+  const enhancementCopy = getFinderEnhancementCopy(dictionary);
   const [finderState, setFinderState] = useState<FinderState>(initialFinderState);
+  const [strictMode, setStrictMode] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const currentStep = steps[stepIndex];
-  const matches = useMemo(() => filterGenetics(finderState), [finderState]);
+  const calculation = useMemo(
+    () => calculateGeneticMatches(finderState, strictMode, dictionary),
+    [dictionary, finderState, strictMode]
+  );
   const progress = ((stepIndex + 1) / steps.length) * 100;
 
   function goNext() {
@@ -74,6 +90,23 @@ export function GeneticFinderWizard({ compact = false, dictionary, onSelectGenet
         ? current.flavors.filter((selectedFlavor) => selectedFlavor !== flavor)
         : [...current.flavors, flavor]
     }));
+  }
+
+  function savePreferences() {
+    window.localStorage.setItem("cultipilot-genetic-finder-preferences", JSON.stringify({ finderState, strictMode }));
+  }
+
+  function applySavedPreferences() {
+    try {
+      const stored = window.localStorage.getItem("cultipilot-genetic-finder-preferences");
+      if (!stored) return;
+      const parsed = JSON.parse(stored) as { finderState?: FinderState; strictMode?: boolean };
+      if (parsed.finderState) setFinderState(parsed.finderState);
+      if (typeof parsed.strictMode === "boolean") setStrictMode(parsed.strictMode);
+      setStepIndex(steps.length - 1);
+    } catch {
+      window.localStorage.removeItem("cultipilot-genetic-finder-preferences");
+    }
   }
 
   const stepCountText = formatDictionaryString(finder.stepCountTemplate, {
@@ -173,11 +206,11 @@ export function GeneticFinderWizard({ compact = false, dictionary, onSelectGenet
       ) : null}
 
       <FinderResults
+        calculation={calculation}
         dictionary={dictionary}
-        finderState={finderState}
-        key={JSON.stringify(finderState)}
-        matches={matches}
         onSelectGenetic={onSelectGenetic}
+        onStrictModeChange={setStrictMode}
+        strictMode={strictMode}
       />
 
       <div className="finder-actions">
@@ -193,6 +226,7 @@ export function GeneticFinderWizard({ compact = false, dictionary, onSelectGenet
             className="secondary-button"
             onClick={() => {
               setFinderState(initialFinderState);
+              setStrictMode(false);
               setStepIndex(0);
             }}
             type="button"
@@ -200,6 +234,10 @@ export function GeneticFinderWizard({ compact = false, dictionary, onSelectGenet
             {finder.startOverButton}
           </button>
         )}
+        <div className="finder-preference-actions">
+          <button className="secondary-button" onClick={savePreferences} type="button">{enhancementCopy.savePreferences}</button>
+          <button className="secondary-button" onClick={applySavedPreferences} type="button">{enhancementCopy.applyPreferences}</button>
+        </div>
       </div>
     </section>
   );
@@ -236,20 +274,39 @@ const initialVisibleResultCount = 10;
 const additionalResultsPerPage = 20;
 
 function FinderResults({
+  calculation,
   dictionary,
-  finderState,
-  matches,
-  onSelectGenetic
+  onSelectGenetic,
+  onStrictModeChange,
+  strictMode
 }: {
+  calculation: { excludedByMissingData: number; incompleteMatches: number; matches: GeneticMatch[] };
   dictionary: Dictionary;
-  finderState: FinderState;
-  matches: Array<{ genetic: GeneticReferenceEntry; score: number }>;
   onSelectGenetic?: (genetic: GeneticReferenceEntry) => void;
+  onStrictModeChange: (value: boolean) => void;
+  strictMode: boolean;
 }) {
   const finder = dictionary.seeds.finder;
+  const copy = getFinderEnhancementCopy(dictionary);
+  const matches = calculation.matches;
   const [visibleCount, setVisibleCount] = useState(initialVisibleResultCount);
+  const [comparisonIds, setComparisonIds] = useState<string[]>([]);
+  const favoriteIds = useStoredGeneticIds();
+  const favoriteGenetics = favoriteIds
+    .map((id) => geneticsCatalog.find((genetic) => genetic.id === id))
+    .filter((genetic): genetic is GeneticReferenceEntry => Boolean(genetic));
   const visibleMatches = matches.slice(0, visibleCount);
   const remainingCount = matches.length - visibleMatches.length;
+  const comparisonGenetics = comparisonIds
+    .map((id) => geneticsCatalog.find((genetic) => genetic.id === id))
+    .filter((genetic): genetic is GeneticReferenceEntry => Boolean(genetic));
+
+  function toggleComparison(id: string) {
+    setComparisonIds((current) => {
+      if (current.includes(id)) return current.filter((currentId) => currentId !== id);
+      return current.length < 3 ? [...current, id] : current;
+    });
+  }
 
   return (
     <div className="finder-results">
@@ -258,9 +315,61 @@ function FinderResults({
         <p>{finder.resultsHint}</p>
       </div>
 
+      <section className="finder-calculation-summary" aria-label={copy.calculationSummary}>
+        <div><strong>{geneticsCatalog.length}</strong><span>{copy.evaluated}</span></div>
+        <div><strong>{matches.length}</strong><span>{copy.matches}</span></div>
+        <div>
+          <strong>{strictMode ? calculation.excludedByMissingData : calculation.incompleteMatches}</strong>
+          <span>{strictMode ? copy.missingData : copy.incompleteData}</span>
+        </div>
+        <label>
+          <input checked={strictMode} onChange={(event) => onStrictModeChange(event.target.checked)} type="checkbox" />
+          <span><strong>{copy.strictMode}</strong><small>{copy.strictModeHint}</small></span>
+        </label>
+      </section>
+
+      {favoriteGenetics.length > 0 ? (
+        <details className="finder-favorites">
+          <summary>{copy.favorites} ({favoriteGenetics.length})</summary>
+          <div>
+            {favoriteGenetics.map((genetic) => (
+              <span key={genetic.id}>
+                <button disabled={!comparisonIds.includes(genetic.id) && comparisonIds.length >= 3} onClick={() => toggleComparison(genetic.id)} type="button">{genetic.name}</button>
+                <button aria-label={`${copy.removeFavorite} ${genetic.name}`} onClick={() => toggleStoredGeneticId(genetic.id, favoriteIds)} type="button">×</button>
+              </span>
+            ))}
+          </div>
+        </details>
+      ) : null}
+
+      {comparisonGenetics.length > 0 ? (
+        <section className="finder-comparison" aria-label={copy.comparison}>
+          <header><div><h4>{copy.comparison}</h4><p>{copy.comparisonHint}</p></div><span>{comparisonGenetics.length}/3</span></header>
+          <div>
+            {comparisonGenetics.map((genetic) => (
+              <article key={genetic.id}>
+                <button aria-label={`${copy.remove} ${genetic.name}`} onClick={() => toggleComparison(genetic.id)} type="button">×</button>
+                <h5>{genetic.name}</h5>
+                <dl>
+                  <div><dt>{copy.type}</dt><dd>{formatGeneticType(genetic.type, dictionary)}</dd></div>
+                  <div><dt>THC</dt><dd>{formatThcRange(genetic.thc_percent_range, dictionary)}</dd></div>
+                  <div><dt>{copy.duration}</dt><dd>{formatRange(genetic.flowering_weeks_range, dictionary.seeds.weeksUnit)}</dd></div>
+                  <div><dt>{copy.flavor}</dt><dd>{compactText(genetic.flavor_notes, dictionary)}</dd></div>
+                </dl>
+                <small>{genetic.source}</small>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       {matches.length > 0 ? (
         <div className="finder-result-grid">
-          {visibleMatches.map(({ genetic }) => (
+          {visibleMatches.map((match) => {
+            const { genetic } = match;
+            const isFavorite = favoriteIds.includes(genetic.id);
+            const isCompared = comparisonIds.includes(genetic.id);
+            return (
             <article className="finder-result-card" key={genetic.id}>
               <div className="finder-result-main">
                 <div>
@@ -270,8 +379,22 @@ function FinderResults({
                     {genetic.source}
                   </p>
                 </div>
+                <button
+                  aria-label={`${isFavorite ? copy.removeFavorite : copy.addFavorite} ${genetic.name}`}
+                  className={isFavorite ? "finder-favorite active" : "finder-favorite"}
+                  onClick={() => toggleStoredGeneticId(genetic.id, favoriteIds)}
+                  type="button"
+                >{isFavorite ? "★" : "☆"}</button>
               </div>
-              <p className="finder-match-summary">{formatMatchSummary(genetic, finderState, dictionary)}</p>
+              <div className="finder-confidence-row">
+                <p className="finder-match-summary">{formatMatchSummary(match, dictionary)}</p>
+                <span className={`finder-confidence ${match.confidence}`}>{copy.confidence}: {copy[match.confidence]}</span>
+              </div>
+              <ul className="finder-match-details">
+                {match.details.map((detail) => (
+                  <li className={detail.status} key={detail.label}><span>{detail.status === "match" ? "✓" : "?"}</span><div><strong>{detail.label}</strong><small>{detail.reason}</small></div></li>
+                ))}
+              </ul>
               <div className="finder-chip-row">
                 <span className={`finder-type-badge ${getGeneticTypeClass(genetic.type)}`}>
                   {formatGeneticType(genetic.type, dictionary)}
@@ -280,13 +403,14 @@ function FinderResults({
                 <span className="finder-data-badge">{formatThcRange(genetic.thc_percent_range, dictionary)}</span>
               </div>
               <p className="finder-notes">{compactText(genetic.flavor_notes || genetic.effect_notes, dictionary)}</p>
-              {onSelectGenetic ? (
-                <button className="finder-use-button" onClick={() => onSelectGenetic(genetic)} type="button">
-                  {finder.addSeedButton}
+              <div className="finder-card-actions">
+                <button className={isCompared ? "secondary-button active" : "secondary-button"} disabled={!isCompared && comparisonIds.length >= 3} onClick={() => toggleComparison(genetic.id)} type="button">
+                  {isCompared ? copy.removeComparison : copy.compare}
                 </button>
-              ) : null}
+                {onSelectGenetic ? <button className="finder-use-button" onClick={() => onSelectGenetic(genetic)} type="button">{finder.addSeedButton}</button> : null}
+              </div>
             </article>
-          ))}
+          );})}
         </div>
       ) : (
         <div className="finder-empty">{finder.emptyResultsMessage}</div>
@@ -305,70 +429,98 @@ function FinderResults({
   );
 }
 
-function filterGenetics(finderState: FinderState) {
-  return geneticsCatalog
-    .map((genetic) => ({ genetic, score: scoreGenetic(genetic, finderState) }))
-    .filter(({ genetic }) => matchesRequiredFilters(genetic, finderState))
-    .sort((first, second) => second.score - first.score || first.genetic.name.localeCompare(second.genetic.name, "es"));
-}
+function calculateGeneticMatches(finderState: FinderState, strictMode: boolean, dictionary: Dictionary) {
+  let excludedByMissingData = 0;
+  let incompleteMatches = 0;
+  const matches: GeneticMatch[] = [];
 
-function scoreGenetic(genetic: GeneticReferenceEntry, finderState: FinderState) {
-  let score = 0;
-  const searchableText = buildSearchableText(genetic);
-
-  if (finderState.seedType !== "any") {
-    score += 7;
-  }
-
-  if (matchesGrowPlace(searchableText, finderState.growPlace) === true) {
-    score += 3;
-  }
-
-  if (finderState.potency !== "any") {
-    score += 4;
-  }
-
-  finderState.flavors.forEach((flavor) => {
-    if (getFlavorKeywords(flavor).some((keyword) => searchableText.includes(keyword))) {
-      score += 3;
+  geneticsCatalog.forEach((genetic) => {
+    const evaluation = evaluateGenetic(genetic, finderState, dictionary);
+    if (!evaluation.compatible) return;
+    if (evaluation.missingCriteria > 0) incompleteMatches += 1;
+    if (strictMode && evaluation.missingCriteria > 0) {
+      excludedByMissingData += 1;
+      return;
     }
+
+    const coverage = evaluation.totalCriteria > 0 ? evaluation.matchedCriteria / evaluation.totalCriteria : 0;
+    matches.push({
+      confidence: coverage === 1 ? "high" : coverage >= 0.5 ? "medium" : "low",
+      details: evaluation.details,
+      genetic,
+      matchedCriteria: evaluation.matchedCriteria,
+      score: evaluation.score,
+      totalCriteria: evaluation.totalCriteria
+    });
   });
 
-  return score;
+  matches.sort((first, second) => second.score - first.score || first.genetic.name.localeCompare(second.genetic.name, "es"));
+  return { excludedByMissingData, incompleteMatches, matches };
 }
 
-function formatMatchSummary(genetic: GeneticReferenceEntry, finderState: FinderState, dictionary: Dictionary) {
+function evaluateGenetic(genetic: GeneticReferenceEntry, finderState: FinderState, dictionary: Dictionary) {
+  const copy = getFinderEnhancementCopy(dictionary);
   const searchableText = buildSearchableText(genetic);
-  const criteria: boolean[] = [];
+  const details: MatchDetail[] = [];
+  let compatible = true;
+  let matchedCriteria = 0;
+  let missingCriteria = 0;
+  let totalCriteria = 0;
+
+  function record(label: string, result: boolean | null, matchReason: string, missingReason: string) {
+    totalCriteria += 1;
+    if (result === true) {
+      matchedCriteria += 1;
+      details.push({ label, reason: matchReason, status: "match" });
+    } else if (result === null) {
+      missingCriteria += 1;
+      details.push({ label, reason: missingReason, status: "missing" });
+    } else {
+      compatible = false;
+    }
+  }
 
   if (finderState.growPlace !== "any") {
-    criteria.push(matchesGrowPlace(searchableText, finderState.growPlace) === true);
+    const label = dictionary.seeds.finder.placeOptions.find((option) => option.id === finderState.growPlace)?.label ?? copy.environment;
+    record(copy.environment, matchesGrowPlace(searchableText, finderState.growPlace), label, copy.environmentMissing);
   }
 
   if (finderState.seedType !== "any") {
-    criteria.push(geneticMatchesType(genetic.type, finderState.seedType));
+    record(copy.type, geneticMatchesType(genetic.type, finderState.seedType), formatGeneticType(genetic.type, dictionary), "");
   }
 
   if (finderState.potency !== "any") {
-    criteria.push(geneticMatchesPotency(genetic, finderState.potency));
+    record(copy.potency, geneticMatchesPotency(genetic, finderState.potency), formatThcRange(genetic.thc_percent_range, dictionary), copy.thcMissing);
   }
 
   if (finderState.flavors.length > 0) {
-    criteria.push(
-      finderState.flavors.some((flavor) =>
-        getFlavorKeywords(flavor).some((keyword) => searchableText.includes(keyword))
-      )
+    const hasFlavorData = hasPublishedFlavorData(genetic);
+    const selectedLabels = finderState.flavors.map((flavor) =>
+      dictionary.seeds.finder.flavorOptions.find((option) => option.id === flavor)?.label ?? flavor
     );
+    const matchingLabels = finderState.flavors.filter((flavor) =>
+      getFlavorKeywords(flavor).some((keyword) => searchableText.includes(keyword))
+    ).map((flavor) => dictionary.seeds.finder.flavorOptions.find((option) => option.id === flavor)?.label ?? flavor);
+    record(copy.flavor, !hasFlavorData ? null : matchingLabels.length > 0, matchingLabels.join(", ") || selectedLabels.join(", "), copy.flavorMissing);
   }
 
-  if (criteria.length === 0) {
-    return dictionary.seeds.finder.matchSummaryNoFilters;
-  }
+  if (totalCriteria === 0) details.push({ label: copy.noFilters, reason: copy.noFiltersHint, status: "missing" });
 
-  const matchingCriteria = criteria.filter(Boolean).length;
+  return {
+    compatible,
+    details,
+    matchedCriteria,
+    missingCriteria,
+    score: matchedCriteria * 10 - missingCriteria,
+    totalCriteria
+  };
+}
+
+function formatMatchSummary(match: GeneticMatch, dictionary: Dictionary) {
+  if (match.totalCriteria === 0) return dictionary.seeds.finder.matchSummaryNoFilters;
   return formatDictionaryString(dictionary.seeds.finder.matchSummaryTemplate, {
-    matching: String(matchingCriteria),
-    total: String(criteria.length)
+    matching: String(match.matchedCriteria),
+    total: String(match.totalCriteria)
   });
 }
 
@@ -376,23 +528,6 @@ function geneticMatchesType(geneticType: GeneticType, selectedType: FinderSeedTy
   if (selectedType === "any") return true;
   if (selectedType === "feminized") return geneticType === "feminized" || geneticType === "faster_flowering";
   return geneticType === selectedType;
-}
-
-function matchesRequiredFilters(genetic: GeneticReferenceEntry, finderState: FinderState) {
-  const growPlaceMatch = matchesGrowPlace(buildSearchableText(genetic), finderState.growPlace);
-  if (growPlaceMatch === false) return false;
-  if (finderState.seedType !== "any" && !geneticMatchesType(genetic.type, finderState.seedType)) return false;
-  if (finderState.potency !== "any" && !geneticMatchesPotency(genetic, finderState.potency)) return false;
-
-  if (finderState.flavors.length > 0) {
-    const searchableText = buildSearchableText(genetic);
-    const matchesFlavor = finderState.flavors.some((flavor) =>
-      getFlavorKeywords(flavor).some((keyword) => searchableText.includes(keyword))
-    );
-    if (!matchesFlavor) return false;
-  }
-
-  return true;
 }
 
 function matchesGrowPlace(searchableText: string, growPlace: FinderGrowPlace): boolean | null {
@@ -406,11 +541,15 @@ function matchesGrowPlace(searchableText: string, growPlace: FinderGrowPlace): b
 
 function geneticMatchesPotency(genetic: GeneticReferenceEntry, potency: FinderPotency) {
   if (potency === "any") return true;
-  const [, publishedMaximum] = genetic.thc_percent_range;
-  if (publishedMaximum <= 0) return false;
-  if (potency === "low") return publishedMaximum < 10;
-  if (potency === "medium") return publishedMaximum >= 10 && publishedMaximum <= 20;
+  const [publishedMinimum, publishedMaximum] = genetic.thc_percent_range;
+  if (publishedMaximum <= 0) return null;
+  if (potency === "low") return publishedMinimum < 10;
+  if (potency === "medium") return publishedMaximum >= 10 && publishedMinimum <= 20;
   return publishedMaximum > 20;
+}
+
+function hasPublishedFlavorData(genetic: GeneticReferenceEntry) {
+  return Boolean(genetic.flavor_notes && !/no informado|no declarado|sin notas/i.test(genetic.flavor_notes));
 }
 
 function getFlavorKeywords(flavor: FinderFlavor) {
@@ -482,4 +621,104 @@ function formatThcRange([min, max]: [number, number], dictionary: Dictionary) {
 function compactText(value: string, dictionary: Dictionary) {
   if (!value || value === "No declarado en Excel") return dictionary.seeds.finder.noNotesMessage;
   return value.length > 118 ? `${value.slice(0, 115)}...` : value;
+}
+
+const favoriteStorageKey = "cultipilot-genetic-favorites";
+const favoriteChangeEvent = "cultipilot-genetic-favorites-change";
+
+function useStoredGeneticIds() {
+  const snapshot = useSyncExternalStore(
+    (listener) => {
+      window.addEventListener("storage", listener);
+      window.addEventListener(favoriteChangeEvent, listener);
+      return () => {
+        window.removeEventListener("storage", listener);
+        window.removeEventListener(favoriteChangeEvent, listener);
+      };
+    },
+    () => window.localStorage.getItem(favoriteStorageKey) ?? "[]",
+    () => "[]"
+  );
+
+  try {
+    const values = JSON.parse(snapshot) as unknown;
+    return Array.isArray(values) ? values.filter((value): value is string => typeof value === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function toggleStoredGeneticId(id: string, currentIds: string[]) {
+  const nextIds = currentIds.includes(id) ? currentIds.filter((currentId) => currentId !== id) : [...currentIds, id];
+  window.localStorage.setItem(favoriteStorageKey, JSON.stringify(nextIds));
+  window.dispatchEvent(new Event(favoriteChangeEvent));
+}
+
+function getFinderEnhancementCopy(dictionary: Dictionary) {
+  const isSpanish = dictionary.seeds.finder.backButton === "Atras";
+  return isSpanish ? {
+    addFavorite: "Guardar favorita",
+    applyPreferences: "Aplicar preferencias guardadas",
+    calculationSummary: "Resumen del calculo",
+    compare: "Comparar",
+    comparison: "Comparacion",
+    comparisonHint: "Hasta tres fichas, con los mismos campos lado a lado.",
+    confidence: "Confianza",
+    duration: "Duracion",
+    environment: "Ambiente",
+    environmentMissing: "La fuente no declara interior ni exterior; no se asumio compatibilidad.",
+    evaluated: "evaluadas",
+    favorites: "Favoritas guardadas",
+    flavor: "Aroma",
+    flavorMissing: "La fuente no publica aromas comparables.",
+    high: "alta",
+    incompleteData: "compatibles con datos faltantes",
+    low: "baja",
+    matches: "coincidencias",
+    medium: "media",
+    missingData: "excluidas por datos faltantes",
+    noFilters: "Sin filtros",
+    noFiltersHint: "Orden alfabetico del catalogo completo.",
+    potency: "Potencia",
+    remove: "Quitar",
+    removeComparison: "Quitar comparacion",
+    removeFavorite: "Quitar favorita",
+    savePreferences: "Guardar estas preferencias",
+    strictMode: "Coincidencia estricta",
+    strictModeHint: "Oculta fichas si falta algun dato elegido.",
+    thcMissing: "La fuente no publica un rango de THC.",
+    type: "Tipo"
+  } : {
+    addFavorite: "Save favorite",
+    applyPreferences: "Apply saved preferences",
+    calculationSummary: "Calculation summary",
+    compare: "Compare",
+    comparison: "Comparison",
+    comparisonHint: "Up to three sheets with the same fields side by side.",
+    confidence: "Confidence",
+    duration: "Duration",
+    environment: "Environment",
+    environmentMissing: "The source does not declare indoor or outdoor; compatibility was not assumed.",
+    evaluated: "evaluated",
+    favorites: "Saved favorites",
+    flavor: "Flavor",
+    flavorMissing: "The source has no comparable flavor notes.",
+    high: "high",
+    incompleteData: "compatible with missing data",
+    low: "low",
+    matches: "matches",
+    medium: "medium",
+    missingData: "excluded for missing data",
+    noFilters: "No filters",
+    noFiltersHint: "Full catalog in alphabetical order.",
+    potency: "Potency",
+    remove: "Remove",
+    removeComparison: "Remove comparison",
+    removeFavorite: "Remove favorite",
+    savePreferences: "Save these preferences",
+    strictMode: "Strict match",
+    strictModeHint: "Hide sheets missing any selected data.",
+    thcMissing: "The source does not publish a THC range.",
+    type: "Type"
+  };
 }
