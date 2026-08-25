@@ -16,10 +16,15 @@ export type EnvironmentalAssessment = {
   missingInputs: string[];
   ppfdStatus: EnvironmentalStatus;
   target: StageTarget;
-  vpdBasis: "air" | "leaf";
+  vpdBasis: "leaf-estimated" | "leaf-measured";
   vpdKpa?: number;
   vpdStatus: EnvironmentalStatus;
 };
+
+// La tabla foliar de referencia usa este diferencial cuando no hay una
+// medicion infrarroja de la hoja. Nunca se presenta como una medicion: queda
+// identificado como supuesto y como estimacion en la evaluacion.
+export const DEFAULT_LEAF_TEMPERATURE_OFFSET_C = 2.8;
 
 export type ConfiguredEnvironmentalAlert = {
   direction: "above" | "below";
@@ -53,12 +58,14 @@ export function assessPlantEnvironment(plant: Plant, measurement?: PlantMeasurem
   if (measurement?.temperatureC === undefined) missingInputs.push("temperatura");
   if (measurement?.ambientHumidityPercent === undefined) missingInputs.push("humedad ambiental");
 
-  const vpdBasis = measurement?.leafTemperatureC === undefined ? "air" : "leaf";
+  const vpdBasis = measurement?.leafTemperatureC === undefined ? "leaf-estimated" : "leaf-measured";
   const vpdKpa =
     measurement?.temperatureC !== undefined && measurement.ambientHumidityPercent !== undefined
-      ? measurement.leafTemperatureC === undefined
-        ? calculateAirVpd(measurement.temperatureC, measurement.ambientHumidityPercent)
-        : calculateLeafVpd(measurement.temperatureC, measurement.leafTemperatureC, measurement.ambientHumidityPercent)
+      ? calculateLeafVpd(
+          measurement.temperatureC,
+          measurement.leafTemperatureC ?? measurement.temperatureC - DEFAULT_LEAF_TEMPERATURE_OFFSET_C,
+          measurement.ambientHumidityPercent
+        )
       : undefined;
   const vpdStatus = compareToRange(vpdKpa, target.vpdMin, target.vpdMax, { maximum: 1.6, minimum: 0.4 });
   const ppfdStatus = compareToRange(measurement?.ppfdUmolM2S, target.ppfdMin, target.ppfdMax);
@@ -113,11 +120,11 @@ export function assessPlantEnvironment(plant: Plant, measurement?: PlantMeasurem
       },
       {
         capturedAt: measurement?.measuredAt,
-        label: vpdBasis === "leaf" ? "VPD foliar estimado" : "VPD de aire estimado",
+        label: vpdBasis === "leaf-measured" ? "VPD foliar calculado" : "VPD foliar estimado",
         note:
-          vpdBasis === "leaf"
+          vpdBasis === "leaf-measured"
             ? "Calculado con temperatura ambiental, temperatura foliar y humedad relativa."
-            : "Calculado con temperatura del aire y humedad relativa; no supone que la hoja este mas fria.",
+            : `Calculado suponiendo una hoja ${DEFAULT_LEAF_TEMPERATURE_OFFSET_C} °C mas fria que el aire; confirmalo con temperatura foliar medida.`,
         origin: vpdKpa === undefined ? "missing" : "calculated",
         unit: "kPa",
         value: vpdKpa ?? null

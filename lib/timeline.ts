@@ -98,7 +98,7 @@ export function buildPlantTimeline({
     const values = [
       measurement.temperatureC === undefined ? "" : `${measurement.temperatureC} °C`,
       measurement.ambientHumidityPercent === undefined ? "" : `${measurement.ambientHumidityPercent}% HR`,
-      assessment.vpdKpa === undefined ? "" : `VPD ${assessment.vpdKpa} kPa calculado (${assessment.vpdBasis === "leaf" ? "foliar" : "aire"})`,
+      assessment.vpdKpa === undefined ? "" : `VPD ${assessment.vpdKpa} kPa calculado (${assessment.vpdBasis === "leaf-measured" ? "foliar con hoja medida" : "foliar estimado -2,8 °C"})`,
       measurement.ppfdUmolM2S === undefined ? "" : `PPFD ${measurement.ppfdUmolM2S}`,
       measurement.observations ?? ""
     ].filter(Boolean);

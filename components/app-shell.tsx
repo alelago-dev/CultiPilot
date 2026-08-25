@@ -40,7 +40,7 @@ import {
 import { formatDictionaryString, getDictionary } from "@/lib/i18n";
 import { getGeneticsCatalogAlphabetically, type GeneticReferenceEntry } from "@/lib/genetics-catalog";
 import { requestReminderNotification } from "@/lib/notifications";
-import { assessPlantEnvironment, getConfiguredEnvironmentalAlerts, getEnvironmentalTrendAlerts, type EnvironmentalStatus } from "@/lib/environment-intelligence";
+import { assessPlantEnvironment, DEFAULT_LEAF_TEMPERATURE_OFFSET_C, getConfiguredEnvironmentalAlerts, getEnvironmentalTrendAlerts, type EnvironmentalStatus } from "@/lib/environment-intelligence";
 import { buildCultivationSuggestions, type CultivationSuggestion } from "@/lib/cultivation-suggestions";
 import { calculateHorticulturePlan, seedCatalog, type HorticulturePlanInput } from "@/lib/seed-catalog";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -4911,7 +4911,7 @@ function isDateInExportBounds(value: string, bounds: { end: string; start: strin
 function buildMeasurementExportRows(measurements: PlantMeasurement[], plant: Plant): Array<Array<number | string | undefined>> {
   return [["Fecha/hora", "Origen", "Temperatura °C", "Temperatura foliar °C", "Humedad %", "VPD calculado kPa", "Base VPD", "Sustrato %", "PPFD µmol/m²/s", "Altura cm", "Observaciones", "Foto presente"], ...measurements.map((measurement) => {
     const assessment = assessPlantEnvironment(plant, measurement);
-    return [measurement.measuredAt, formatMeasurementSource(measurement.source), measurement.temperatureC, measurement.leafTemperatureC, measurement.ambientHumidityPercent, assessment.vpdKpa, assessment.vpdBasis === "leaf" ? "foliar" : "aire", measurement.substrateMoisturePercent, measurement.ppfdUmolM2S, measurement.heightCm, measurement.observations, measurement.photoDataUrl ? "Sí" : "No"];
+    return [measurement.measuredAt, formatMeasurementSource(measurement.source), measurement.temperatureC, measurement.leafTemperatureC, measurement.ambientHumidityPercent, assessment.vpdKpa, assessment.vpdBasis === "leaf-measured" ? "foliar medida" : "foliar estimada (-2,8 °C)", measurement.substrateMoisturePercent, measurement.ppfdUmolM2S, measurement.heightCm, measurement.observations, measurement.photoDataUrl ? "Sí" : "No"];
   })];
 }
 
@@ -5028,7 +5028,7 @@ function buildPrintablePlantReport({
           : `${measurement.ambientHumidityPercent}%`,
         assessment.vpdKpa === undefined
           ? undefined
-          : `${assessment.vpdKpa} kPa (${assessment.vpdBasis === "leaf" ? "foliar" : "aire"})`,
+          : `${assessment.vpdKpa} kPa (${assessment.vpdBasis === "leaf-measured" ? "foliar medida" : "foliar estimada"})`,
         measurement.ppfdUmolM2S,
         measurement.substrateMoisturePercent === undefined
           ? undefined
@@ -5110,7 +5110,7 @@ function buildPrintablePlantReport({
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>CultiPilot · ${escapeHtml(plant.name)}</title><style>
     @page{size:A4;margin:14mm}*{box-sizing:border-box}body{margin:0;color:#1f3028;font:12px/1.45 Arial,sans-serif}header{border-bottom:3px solid #496b57;padding-bottom:12px}h1{margin:0;font-size:25px}h2{margin:22px 0 8px;color:#274b38;font-size:17px}p{margin:4px 0}.meta,.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.card{border:1px solid #ccd8d0;border-radius:8px;padding:8px}.card span{display:block;color:#64746b;font-size:10px;text-transform:uppercase}.card strong{display:block;margin-top:3px;font-size:13px}.note{margin-top:12px;padding:9px;border-left:4px solid #8baa94;background:#eff5f1}.empty{color:#6b756f;font-style:italic}table{width:100%;border-collapse:collapse;font-size:9px}th,td{border:1px solid #d7dfda;padding:5px;text-align:left;vertical-align:top}th{background:#e9f1ec}.photos{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.photos figure{margin:0;break-inside:avoid}.photos img{display:block;width:100%;max-height:260px;object-fit:contain;background:#edf1ee}.photos figcaption{padding:4px;color:#59675f;font-size:9px}.section{break-inside:avoid}.footer{margin-top:20px;border-top:1px solid #ccd8d0;padding-top:8px;color:#64746b;font-size:9px}@media(max-width:650px){.meta,.metrics{grid-template-columns:repeat(2,1fr)}}@media print{button{display:none}.section{break-inside:auto}h2{break-after:avoid}table{break-inside:auto}tr{break-inside:avoid}}
   </style></head><body><header><h1>${escapeHtml(plant.name)}</h1><p>${escapeHtml(plant.variety || "Variedad no declarada")} · Informe individual de maceta</p><div class="meta"><div class="card"><span>Período</span><strong>${escapeHtml(printablePeriod)}</strong></div><div class="card"><span>Etapa declarada</span><strong>${escapeHtml(plant.stage || "Sin declarar")}</strong></div><div class="card"><span>Inicio declarado</span><strong>${escapeHtml(plant.startedAt || "Sin dato")}</strong></div><div class="card"><span>Estado</span><strong>${plant.completedAt ? `Cerrado ${escapeHtml(plant.completedAt)}` : "Activo"}</strong></div></div></header>
-  <section><h2>Resumen del período</h2><div class="metrics"><div class="card"><span>Mediciones</span><strong>${sortedMeasurements.length}</strong></div><div class="card"><span>Riegos registrados</span><strong>${irrigationRecords.length}</strong></div><div class="card"><span>Agua registrada</span><strong>${water.total} ml</strong></div><div class="card"><span>Bitácora / tareas / eventos</span><strong>${entries.length} / ${tasks.length} / ${calendarEvents.length}</strong></div><div class="card"><span>Último VPD calculable</span><strong>${latestAssessment?.vpdKpa === undefined ? "Faltan temperatura y humedad" : `${latestAssessment.vpdKpa} kPa (${latestAssessment.vpdBasis === "leaf" ? "foliar" : "aire"})`}</strong></div><div class="card"><span>Fotoperíodo declarado</span><strong>${plant.photoperiodHours === undefined ? "Sin dato" : `${plant.photoperiodHours} h`}</strong></div></div><p class="note">El VPD se calcula con la fórmula de Tetens. Si falta temperatura foliar se informa VPD del aire. Este informe reúne datos declarados, medidos y calculados para respaldar dosis, recomendaciones y ajustes explicables.</p></section>
+  <section><h2>Resumen del período</h2><div class="metrics"><div class="card"><span>Mediciones</span><strong>${sortedMeasurements.length}</strong></div><div class="card"><span>Riegos registrados</span><strong>${irrigationRecords.length}</strong></div><div class="card"><span>Agua registrada</span><strong>${water.total} ml</strong></div><div class="card"><span>Bitácora / tareas / eventos</span><strong>${entries.length} / ${tasks.length} / ${calendarEvents.length}</strong></div><div class="card"><span>Último VPD calculable</span><strong>${latestAssessment?.vpdKpa === undefined ? "Faltan temperatura y humedad" : `${latestAssessment.vpdKpa} kPa (${latestAssessment.vpdBasis === "leaf-measured" ? "foliar con hoja medida" : "foliar estimado -2,8 °C"})`}</strong></div><div class="card"><span>Fotoperíodo declarado</span><strong>${plant.photoperiodHours === undefined ? "Sin dato" : `${plant.photoperiodHours} h`}</strong></div></div><p class="note">El VPD foliar se calcula con la fórmula de Tetens. Si falta temperatura foliar se estima la hoja 2,8 °C por debajo del aire y se informa como estimación. Este informe reúne datos declarados, medidos y calculados.</p></section>
   <section><h2>Alertas según límites actuales</h2>${alertsTable}</section><section><h2>Comparaciones de 7 y 30 días</h2>${comparisonTable}</section><section><h2>Mediciones ambientales</h2>${measurementTable}</section><section><h2>Riegos</h2>${irrigationTable}</section><section><h2>Bitácora</h2>${table(
     ["Fecha", "Título", "Nota", "Etiquetas"],
     entries.map((entry) => [
@@ -5181,7 +5181,7 @@ function PlantEnvironmentPanel({
           value={latestMeasurement?.ambientHumidityPercent === undefined ? "Sin dato" : `${latestMeasurement.ambientHumidityPercent}%`}
         />
         <EnvironmentMetric
-          label={assessment.vpdBasis === "leaf" ? "VPD foliar estimado" : "VPD de aire estimado"}
+          label={assessment.vpdBasis === "leaf-measured" ? "VPD foliar calculado" : "VPD foliar estimado"}
           status={assessment.vpdStatus}
           value={assessment.vpdKpa === undefined ? "Faltan datos" : `${assessment.vpdKpa} kPa`}
           target={assessment.target.vpdMin === undefined ? "Sin referencia para esta etapa" : `${assessment.target.vpdMin}-${assessment.target.vpdMax} kPa`}
@@ -5199,9 +5199,9 @@ function PlantEnvironmentPanel({
       </div>
 
       <p className="plant-environment-basis">
-        {assessment.vpdBasis === "leaf"
+        {assessment.vpdBasis === "leaf-measured"
           ? "Se uso la temperatura foliar medida."
-          : "Sin temperatura foliar: se muestra VPD del aire y no se supone una diferencia fija con la hoja."}
+          : `Sin temperatura foliar medida: se estima la hoja ${DEFAULT_LEAF_TEMPERATURE_OFFSET_C} °C mas fria que el aire, como en la tabla de referencia.`}
       </p>
       <p className="plant-environment-basis">
         Fórmula: presión de vapor saturado (Tetens) menos presión real de vapor. Resultado calculado, no medido. Tendencia: {vpdTrend}.
@@ -5379,7 +5379,7 @@ function MeasurementHistoryCard({
   const facts = [
     ["Temperatura", formatOptionalMeasurement(measurement.temperatureC, "°C")],
     ["Humedad", formatOptionalMeasurement(measurement.ambientHumidityPercent, "%")],
-    [assessment.vpdBasis === "leaf" ? "VPD foliar" : "VPD del aire", formatOptionalMeasurement(assessment.vpdKpa, " kPa", "Calculado")],
+    [assessment.vpdBasis === "leaf-measured" ? "VPD foliar (hoja medida)" : "VPD foliar estimado (-2,8 °C)", formatOptionalMeasurement(assessment.vpdKpa, " kPa", "Calculado")],
     ["Temperatura foliar", formatOptionalMeasurement(measurement.leafTemperatureC, "°C")],
     ["Sustrato", formatOptionalMeasurement(measurement.substrateMoisturePercent, "%")],
     ["PPFD", formatOptionalMeasurement(measurement.ppfdUmolM2S, " µmol/m²/s")],
@@ -5854,6 +5854,7 @@ function PlantMeasurementForm({
   resetAfterSave?: boolean;
 }) {
   const t = dictionary?.spaces.measurementForm;
+  const isEnglish = t?.saveMeasurementButton === "Save measurement";
   const field = (value?: number) => value?.toString() ?? "";
   const [measuredAt, setMeasuredAt] = useState(() => initialMeasurement ? toLocalDateTimeValue(initialMeasurement.measuredAt) : getLocalDateTimeValue());
   const [source, setSource] = useState<PlantMeasurement["source"]>(initialMeasurement?.source ?? "manual");
@@ -5993,18 +5994,58 @@ function PlantMeasurementForm({
           {previewAssessment.vpdKpa === undefined
             ? `${t?.vpdMissingPrefix ?? "Falta:"} ${previewAssessment.missingInputs.filter((item) => item !== "PPFD a nivel de la copa").join(", ") || (t?.vpdMissingFallback ?? "temperatura y humedad")}.`
             : t
-              ? formatDictionaryString(t.vpdEstimatedTemplate, {
-                  basis: previewAssessment.vpdBasis === "leaf" ? t.vpdLeafLabel : t.vpdAirLabel,
-                  status: formatEnvironmentalStatus(previewAssessment.vpdStatus, dictionary)
-                })
-              : `${previewAssessment.vpdBasis === "leaf" ? "VPD foliar" : "VPD del aire"} estimado · ${formatEnvironmentalStatus(previewAssessment.vpdStatus)}.`}
+              ? previewAssessment.vpdBasis === "leaf-measured"
+                ? `${t.vpdLeafLabel} ${isEnglish ? "calculated" : "calculado"} · ${formatEnvironmentalStatus(previewAssessment.vpdStatus, dictionary)}.`
+                : `${t.vpdAirLabel} · ${formatEnvironmentalStatus(previewAssessment.vpdStatus, dictionary)}.`
+              : `${previewAssessment.vpdBasis === "leaf-measured" ? "VPD foliar con hoja medida" : "VPD foliar estimado"} · ${formatEnvironmentalStatus(previewAssessment.vpdStatus)}.`}
         </p>
         <small>
-          {t?.vpdFormulaNote ?? "Fórmula Tetens."} {previewAssessment.vpdBasis === "leaf" ? (t?.vpdLeafNote ?? "Usa la temperatura foliar ingresada.") : (t?.vpdNoLeafNote ?? "Sin temperatura foliar, no se supone una diferencia con el aire.")}
+          {t?.vpdFormulaNote ?? "Fórmula Tetens."} {previewAssessment.vpdBasis === "leaf-measured" ? (t?.vpdLeafNote ?? "Usa la temperatura foliar ingresada.") : `Sin temperatura foliar medida, estima la hoja ${DEFAULT_LEAF_TEMPERATURE_OFFSET_C} °C por debajo del aire.`}
         </small>
       </div>
+      <VpdReferenceScale
+        isEnglish={isEnglish}
+        plantStage={plant.stage}
+        vpdKpa={previewAssessment.vpdKpa}
+      />
       <button className="primary-button" type="submit">{initialMeasurement ? (t?.saveChangesButton ?? "Guardar cambios") : (t?.saveMeasurementButton ?? "Guardar medicion")}</button>
     </form>
+  );
+}
+
+function VpdReferenceScale({ isEnglish, plantStage, vpdKpa }: { isEnglish: boolean; plantStage: string; vpdKpa?: number }) {
+  const markerPosition = vpdKpa === undefined ? undefined : Math.min(100, Math.max(0, (vpdKpa / 2) * 100));
+
+  return (
+    <section className="vpd-reference-scale" aria-label={isEnglish ? "Leaf VPD reference bands" : "Bandas de referencia de VPD foliar"}>
+      <header>
+        <div>
+          <strong>{isEnglish ? "Leaf VPD comfort bands" : "Bandas de confort de VPD foliar"}</strong>
+          <span>{isEnglish ? `Declared stage: ${plantStage || "not provided"}` : `Etapa declarada: ${plantStage || "sin informar"}`}</span>
+        </div>
+        <span>{vpdKpa === undefined ? (isEnglish ? "Enter temperature and humidity" : "Ingresá temperatura y humedad") : `${vpdKpa} kPa`}</span>
+      </header>
+      <div className="vpd-reference-track" aria-hidden="true">
+        <span className="danger" />
+        <span className="early" />
+        <span className="transition" />
+        <span className="flower" />
+        <span className="danger" />
+        {markerPosition === undefined ? null : <i style={{ left: `${markerPosition}%` }} />}
+      </div>
+      <div className="vpd-reference-ticks" aria-hidden="true"><span>0</span><span>0,4</span><span>0,8</span><span>1,2</span><span>1,6</span><span>2+</span></div>
+      <dl>
+        <div><dt className="danger" /> <dd>{isEnglish ? "Outside general comfort (<0.4 or >1.6)" : "Fuera del confort general (<0,4 o >1,6)"}</dd></div>
+        <div><dt className="early" /> <dd>{isEnglish ? "Propagation / early veg: 0.4–0.8" : "Propagación / vegetativo temprano: 0,4–0,8"}</dd></div>
+        <div><dt className="transition" /> <dd>{isEnglish ? "Late veg / early flower: 0.8–1.2" : "Vegetativo tardío / flora temprana: 0,8–1,2"}</dd></div>
+        <div><dt className="flower" /> <dd>{isEnglish ? "Mid / late flower: 1.2–1.6" : "Flora media / tardía: 1,2–1,6"}</dd></div>
+      </dl>
+      <p>
+        {isEnglish ? "Tetens formula. With no measured leaf temperature, the chart assumption of air −2.8 °C is used and clearly marked as an estimate." : "Fórmula de Tetens. Sin temperatura foliar medida se usa el supuesto de la tabla: aire −2,8 °C, identificado como estimación."}
+        {" "}<a href="https://dutch-passion.blog/es/deficit-de-presion-de-vapor-para-cannabis-tabla-vdp/" rel="noopener noreferrer" target="_blank">{isEnglish ? "Stage reference" : "Referencia por etapas"}</a>
+        {" · "}<a href="https://e-gro.org/pdf/e816.pdf" rel="noopener noreferrer" target="_blank">{isEnglish ? "Leaf VPD method" : "Método de VPD foliar"}</a>.
+      </p>
+    </section>
   );
 }
 
