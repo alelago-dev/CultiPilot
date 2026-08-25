@@ -14,16 +14,16 @@ export const navigationByLocale: Record<Locale, NavigationItem[]> = {
   es: [
     { icon: "H", key: "today", label: "Hoy", short: "Hoy", slug: "hoy" },
     { icon: "S", key: "seeds", label: "Semillas", short: "Semillas", slug: "semillas" },
-    { icon: "E", key: "spaces", label: "Espacios", short: "Espacios", slug: "espacios" },
-    { icon: "C", key: "calendar", label: "Calendario", short: "Calendario", slug: "calendario" },
+    { icon: "E", key: "spaces", label: "Espacios", short: "Cultivos", slug: "espacios" },
+    { icon: "C", key: "calendar", label: "Calendario", short: "Plan", slug: "calendario" },
     { icon: "D", key: "journal", label: "Diario", short: "Diario", slug: "diario" },
     { icon: "L", key: "privacy", label: "Privacidad", short: "Privacidad", slug: "privacidad" }
   ],
   en: [
     { icon: "T", key: "today", label: "Today", short: "Today", slug: "today" },
     { icon: "S", key: "seeds", label: "Seeds", short: "Seeds", slug: "seeds" },
-    { icon: "G", key: "spaces", label: "Spaces", short: "Spaces", slug: "spaces" },
-    { icon: "C", key: "calendar", label: "Calendar", short: "Calendar", slug: "calendar" },
+    { icon: "G", key: "spaces", label: "Spaces", short: "Grows", slug: "spaces" },
+    { icon: "C", key: "calendar", label: "Calendar", short: "Plan", slug: "calendar" },
     { icon: "J", key: "journal", label: "Journal", short: "Journal", slug: "journal" },
     { icon: "L", key: "privacy", label: "Privacy", short: "Privacy", slug: "privacy" }
   ]

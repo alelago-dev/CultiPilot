@@ -3,7 +3,7 @@
 import { type ChangeEvent, type Dispatch, type FormEvent, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
-import { Bug, CalendarDays, Camera, CloudSun, Download, Droplet, Eye, Home, LayoutGrid, Leaf, ListChecks, MoonStar, NotebookPen, ShieldCheck, Scissors, Sparkles, Sprout, Sun, Thermometer, type LucideIcon } from "lucide-react";
+import { Bug, CalendarDays, Camera, CloudSun, Download, Droplet, Eye, Home, LayoutGrid, Leaf, ListChecks, MoonStar, NotebookPen, Plus, ShieldCheck, Scissors, Sparkles, Sprout, Sun, Thermometer, type LucideIcon } from "lucide-react";
 
 import { Card } from "@/components/card";
 import { CopyValueButton } from "@/components/copy-button";
@@ -635,6 +635,8 @@ export function AppShell({
     setAccountStatus(nextStatus);
   }
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showQuickRegister, setShowQuickRegister] = useState(false);
+  const [showMobileMore, setShowMobileMore] = useState(false);
 
   useEffect(() => {
     setShowOnboarding(window.localStorage.getItem(storageKeys.onboarding) !== "true");
@@ -1856,6 +1858,7 @@ export function AppShell({
           </nav>
 
           <div className="header-actions flex items-center gap-2">
+            <button className="header-register-button" onClick={() => setShowQuickRegister(true)} type="button"><Plus aria-hidden="true" size={17} strokeWidth={2.5} /><span>{locale === "en" ? "Log" : "Registrar"}</span></button>
             <Link
               aria-label={dictionary.header.vpdAriaLabel}
               className="header-vpd-button"
@@ -1894,6 +1897,9 @@ export function AppShell({
           sharedViews={sharedViews}
         />
       ) : null}
+
+      {showQuickRegister ? <QuickRegisterSheet locale={locale} onClose={() => setShowQuickRegister(false)} /> : null}
+      {showMobileMore ? <MobileMoreSheet currentSection={currentSection} locale={locale} onClose={() => setShowMobileMore(false)} /> : null}
 
       {viewingShare ? (
         <div className={`shared-view-banner ${sharedNoticeCollapsed ? "is-collapsed" : ""}`} role="status">
@@ -2054,8 +2060,8 @@ export function AppShell({
         />
       ) : null}
 
-      <nav className="mobile-tab-bar" aria-label={dictionary.header.mobileNavAriaLabel}>
-        {navItems.map((item) => {
+      <nav className="mobile-tab-bar mobile-task-nav" aria-label={dictionary.header.mobileNavAriaLabel}>
+        {navItems.filter((item) => ["today", "spaces"].includes(item.key)).map((item) => {
           const NavIcon = NAV_ICONS[item.key];
           return (
             <Link className={currentSection === item.key ? "mobile-tab active" : "mobile-tab"} href={getInternalSectionHref(locale, item.key) as Route} key={item.key}>
@@ -2066,9 +2072,35 @@ export function AppShell({
             </Link>
           );
         })}
+        <button aria-expanded={showQuickRegister} className="mobile-register-action" onClick={() => { setShowMobileMore(false); setShowQuickRegister(true); }} type="button"><span><Plus aria-hidden="true" size={22} strokeWidth={2.5} /></span>{locale === "en" ? "Log" : "Registrar"}</button>
+        {navItems.filter((item) => item.key === "calendar").map((item) => { const NavIcon = NAV_ICONS[item.key]; return <Link className={currentSection === item.key ? "mobile-tab active" : "mobile-tab"} href={getInternalSectionHref(locale, item.key) as Route} key={item.key}><span className="nav-icon" aria-hidden="true"><NavIcon size={18} strokeWidth={2.2} /></span><span>{locale === "en" ? "Plan" : "Plan"}</span></Link>; })}
+        <button aria-expanded={showMobileMore} className={["mobile-tab", ["journal", "seeds", "privacy"].includes(currentSection) ? "active" : ""].filter(Boolean).join(" ")} onClick={() => { setShowQuickRegister(false); setShowMobileMore(true); }} type="button"><span className="nav-icon" aria-hidden="true"><LayoutGrid size={18} strokeWidth={2.2} /></span><span>{locale === "en" ? "More" : "Más"}</span></button>
       </nav>
     </main>
   );
+}
+
+function QuickRegisterSheet({ locale, onClose }: { locale: Locale; onClose: () => void }) {
+  useEffect(() => { const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); }; window.addEventListener("keydown", closeOnEscape); return () => window.removeEventListener("keydown", closeOnEscape); }, [onClose]);
+  const actions = locale === "en" ? [
+    { body: "Temperature, humidity, VPD, watering and other readings.", href: `${getInternalSectionHref(locale, "spaces")}#mediciones-ambientales`, icon: Thermometer, label: "Environmental measurement" },
+    { body: "Free note, observation or photo linked to a date.", href: `${getInternalSectionHref(locale, "calendar")}#registro-diario`, icon: Camera, label: "Note or photo" },
+    { body: "One-time or recurring work for your plan.", href: `${getInternalSectionHref(locale, "calendar")}#planificacion`, icon: CalendarDays, label: "Task or event" },
+    { body: "Open a pot to record an inspection or stage change.", href: getInternalSectionHref(locale, "spaces"), icon: Sprout, label: "Plant follow-up" }
+  ] : [
+    { body: "Temperatura, humedad, VPD, riego y otras lecturas.", href: `${getInternalSectionHref(locale, "spaces")}#mediciones-ambientales`, icon: Thermometer, label: "Medición ambiental" },
+    { body: "Nota libre, observación o foto vinculada a una fecha.", href: `${getInternalSectionHref(locale, "calendar")}#registro-diario`, icon: Camera, label: "Nota o foto" },
+    { body: "Trabajo puntual o recurrente para tu planificación.", href: `${getInternalSectionHref(locale, "calendar")}#planificacion`, icon: CalendarDays, label: "Tarea o evento" },
+    { body: "Abrí una maceta para registrar inspección o cambio de etapa.", href: getInternalSectionHref(locale, "spaces"), icon: Sprout, label: "Seguimiento de planta" }
+  ];
+  return <div className="quick-action-backdrop" onClick={onClose} role="presentation"><section aria-label={locale === "en" ? "Choose what to log" : "Elegir qué registrar"} aria-modal="true" className="quick-action-sheet" onClick={(event) => event.stopPropagation()} role="dialog"><header><div><p className="eyebrow">{locale === "en" ? "Quick action" : "Acción rápida"}</p><h2>{locale === "en" ? "What do you want to log?" : "¿Qué querés registrar?"}</h2><p>{locale === "en" ? "Choose the record type. You can select the pot in the next step." : "Elegí el tipo de registro. En el siguiente paso seleccionás la maceta."}</p></div><button aria-label={locale === "en" ? "Close" : "Cerrar"} autoFocus onClick={onClose} type="button">×</button></header><div className="quick-action-grid">{actions.map((action) => { const Icon = action.icon; return <Link href={action.href as Route} key={action.label} onClick={onClose}><span><Icon aria-hidden="true" size={20} /></span><div><strong>{action.label}</strong><small>{action.body}</small></div></Link>; })}</div></section></div>;
+}
+
+function MobileMoreSheet({ currentSection, locale, onClose }: { currentSection: AppSection; locale: Locale; onClose: () => void }) {
+  useEffect(() => { const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); }; window.addEventListener("keydown", closeOnEscape); return () => window.removeEventListener("keydown", closeOnEscape); }, [onClose]);
+  const keys: AppSection[] = ["journal", "seeds", "privacy"];
+  const descriptions: Record<Locale, Record<string, string>> = { es: { journal: "Notas y registros anteriores", seeds: "Finder, catálogo y calculadoras", privacy: "Cuenta, sincronización y datos" }, en: { journal: "Past notes and records", seeds: "Finder, catalog and calculators", privacy: "Account, sync and data" } };
+  return <div className="quick-action-backdrop" onClick={onClose} role="presentation"><section aria-label={locale === "en" ? "More sections" : "Más secciones"} aria-modal="true" className="quick-action-sheet mobile-more-sheet" onClick={(event) => event.stopPropagation()} role="dialog"><header><div><p className="eyebrow">CultiPilot</p><h2>{locale === "en" ? "More tools" : "Más herramientas"}</h2></div><button aria-label={locale === "en" ? "Close" : "Cerrar"} autoFocus onClick={onClose} type="button">×</button></header><div className="quick-action-grid">{keys.map((key) => { const item = navigationByLocale[locale].find((candidate) => candidate.key === key)!; const Icon = NAV_ICONS[key]; return <Link className={currentSection === key ? "is-current" : ""} href={getInternalSectionHref(locale, key) as Route} key={key} onClick={onClose}><span><Icon aria-hidden="true" size={20} /></span><div><strong>{item.label}</strong><small>{descriptions[locale][key]}</small></div></Link>; })}</div></section></div>;
 }
 
 function FirstCultivationScreen({
@@ -3638,13 +3670,8 @@ function PlantSpaceRow({
             </button>
             <PlantCycleControls onUpdatePlant={onUpdatePlant} plant={plant} />
           </div>
-          <TrichomeAnalyzer onAddJournalEntry={onAddJournalEntry} plant={plant} />
-          <PlantGeneticSummary genetic={plantGenetic} onOpenGenetic={onOpenGenetic} plant={plant} />
-          <PlantCalculationSummary genetic={plantGenetic} plant={plant} />
-          <PlantDataCalculations measurements={measurements} onUpdatePlant={onUpdatePlant} plant={plant} />
-          <PlantExportPanel alertSettings={environmentalAlertSettings} calendarEvents={calendarEvents} entries={entries} measurements={measurements} plant={plant} tasks={tasks} />
-          <PlantQrPanel locale={locale} plant={plant} />
-          <PlantPhotoTimeline entries={entries} inspections={inspections} measurements={measurements} plant={plant} />
+          <PlantAtAGlance measurements={measurements} plant={plant} tasks={tasks} />
+          <PlantStageProgress plant={plant} />
           <PlantEnvironmentPanel
             measurements={measurements}
             alertSettings={environmentalAlertSettings}
@@ -3653,25 +3680,7 @@ function PlantSpaceRow({
             onUpdateAlertSettings={onUpdateEnvironmentalAlerts}
             plant={plant}
           />
-          <PlantInspectionPanel inspections={inspections} onSaveInspection={onSaveInspection} plant={plant} />
-          <PlantStageHistoryPanel onSaveTransition={onSaveStageTransition} plant={plant} transitions={stageTransitions} />
-          <PlantWeeklySummary
-            calendarEvents={calendarEvents}
-            entries={entries}
-            measurements={measurements}
-            plant={plant}
-            tasks={tasks}
-          />
-          <PlantPeriodComparison measurements={measurements} plant={plant} />
-          <PlantDataCoverage measurements={measurements} plant={plant} />
-          <PlantSensorPanel
-            devices={sensorDevices}
-            onCreateSensorDevice={onCreateSensorDevice}
-            onRefreshSensors={onRefreshSensors}
-            onToggleSensorDevice={onToggleSensorDevice}
-            plant={plant}
-            status={sensorStatus}
-          />
+          <PlantQuickNote onAddJournalEntry={onAddJournalEntry} plant={plant} />
           <PlantSuggestionsPanel
             calendarEvents={calendarEvents}
             genetic={plantGenetic}
@@ -3680,21 +3689,38 @@ function PlantSpaceRow({
             plant={plant}
             stageTransitions={stageTransitions.filter((transition) => transition.plantId === plant.id)}
           />
-          <dl className="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-            <PlantFact label="Maceta" value={plant.pot} />
-            <PlantFact label="Sustrato" value={plant.substrate} />
-            <PlantFact label="Luz" value={plant.lighting} />
-            <PlantFact label="Modo" value={plant.mode} />
-          </dl>
+          <details className="plant-advanced-tools">
+            <summary><span><strong>Más herramientas e historial</strong><small>Genética, fotos, cálculos, inspecciones, sensores, exportación y línea de tiempo</small></span><span aria-hidden="true">＋</span></summary>
+            <div>
+              <TrichomeAnalyzer onAddJournalEntry={onAddJournalEntry} plant={plant} />
+              <PlantGeneticSummary genetic={plantGenetic} onOpenGenetic={onOpenGenetic} plant={plant} />
+              <PlantCalculationSummary genetic={plantGenetic} plant={plant} />
+              <PlantDataCalculations measurements={measurements} onUpdatePlant={onUpdatePlant} plant={plant} />
+              <PlantExportPanel alertSettings={environmentalAlertSettings} calendarEvents={calendarEvents} entries={entries} measurements={measurements} plant={plant} tasks={tasks} />
+              <PlantQrPanel locale={locale} plant={plant} />
+              <PlantPhotoTimeline entries={entries} inspections={inspections} measurements={measurements} plant={plant} />
+              <PlantInspectionPanel inspections={inspections} onSaveInspection={onSaveInspection} plant={plant} />
+              <PlantStageHistoryPanel onSaveTransition={onSaveStageTransition} plant={plant} transitions={stageTransitions} />
+              <PlantWeeklySummary calendarEvents={calendarEvents} entries={entries} measurements={measurements} plant={plant} tasks={tasks} />
+              <PlantPeriodComparison measurements={measurements} plant={plant} />
+              <PlantDataCoverage measurements={measurements} plant={plant} />
+              <PlantSensorPanel devices={sensorDevices} onCreateSensorDevice={onCreateSensorDevice} onRefreshSensors={onRefreshSensors} onToggleSensorDevice={onToggleSensorDevice} plant={plant} status={sensorStatus} />
+              <dl className="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4"><PlantFact label="Maceta" value={plant.pot} /><PlantFact label="Sustrato" value={plant.substrate} /><PlantFact label="Luz" value={plant.lighting} /><PlantFact label="Modo" value={plant.mode} /></dl>
+              <PlantUtilityPanel calendarEvents={calendarEvents} entries={entries} plant={plant} />
+              <PlantTimeline calendarEvents={calendarEvents} entries={entries} environmentalAlertSettings={environmentalAlertSettings} measurements={measurements} plant={plant} stageTransitions={stageTransitions} tasks={tasks} />
+            </div>
+          </details>
         </>
       )}
-
-      <PlantStageProgress plant={plant} />
-      <PlantQuickNote onAddJournalEntry={onAddJournalEntry} plant={plant} />
-      <PlantUtilityPanel calendarEvents={calendarEvents} entries={entries} plant={plant} />
-      <PlantTimeline calendarEvents={calendarEvents} entries={entries} environmentalAlertSettings={environmentalAlertSettings} measurements={measurements} plant={plant} stageTransitions={stageTransitions} tasks={tasks} />
     </details>
   );
+}
+
+function PlantAtAGlance({ measurements, plant, tasks }: { measurements: PlantMeasurement[]; plant: Plant; tasks: Task[] }) {
+  const latest = [...measurements].sort((first, second) => second.measuredAt.localeCompare(first.measuredAt))[0];
+  const assessment = assessPlantEnvironment(plant, latest);
+  const openTasks = tasks.filter((task) => task.plantId === plant.id && task.status === "open").length;
+  return <section className="plant-at-a-glance" aria-label={`Resumen de ${plant.name}`}><div><span>Etapa declarada</span><strong>{plant.stage}</strong></div><div><span>Última medición</span><strong>{latest ? formatMeasurementDate(latest.measuredAt) : "Sin registros"}</strong></div><div><span>VPD calculado</span><strong>{assessment.vpdKpa === undefined ? "Faltan temperatura y humedad" : `${assessment.vpdKpa} kPa`}</strong></div><div><span>Tareas abiertas</span><strong>{openTasks}</strong></div></section>;
 }
 
 function PlantStageHistoryPanel({ onSaveTransition, plant, transitions }: { onSaveTransition: (transition: PlantStageTransition) => void; plant: Plant; transitions: PlantStageTransition[] }) {
@@ -6341,7 +6367,7 @@ function CalendarSection({
   }
 
   return (
-    <section className="calendar-page mx-auto mt-5 max-w-[1500px] px-3 sm:px-5 lg:px-6">
+    <section className="calendar-page mx-auto mt-5 max-w-[1500px] px-3 sm:px-5 lg:px-6" id="planificacion">
       <div className="calendar-header">
         <div className="calendar-title-block">
           <p className="eyebrow text-emerald-800">Calendario</p>
@@ -6622,7 +6648,7 @@ function CalendarDayJournal({
   }
 
   return (
-    <section className="calendar-journal-card mt-4" aria-labelledby="calendar-journal-title">
+    <section className="calendar-journal-card mt-4" aria-labelledby="calendar-journal-title" id="registro-diario">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="eyebrow text-emerald-800">Bitacora</p>

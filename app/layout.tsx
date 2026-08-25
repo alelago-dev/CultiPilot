@@ -61,7 +61,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html className={`${manrope.variable} ${plexMono.variable} ${instrumentSans.variable}`} lang="es" suppressHydrationWarning>
+    <html className={`${manrope.variable} ${plexMono.variable} ${instrumentSans.variable}`} data-scroll-behavior="smooth" lang="es" suppressHydrationWarning>
       <head>
         <ThemeScript />
       </head>

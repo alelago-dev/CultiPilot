@@ -4,6 +4,8 @@ CultiPilot es una PWA mobile-first para seguimiento, gestion, calculo y asistenc
 
 La interfaz utiliza un sistema visual propio inspirado en patrones shadcn y en la jerarquia tipografica de Geist: tokens unificados para superficies, bordes, radios, sombras, foco, tipografia y metricas. La navegacion movil mantiene todas las secciones accesibles mediante una barra inferior desplazable, el encabezado prioriza VPD y cuenta, y Hoy funciona como panel operativo con contexto de fecha, metricas y superficies diferenciadas. Estos cambios son visuales y de accesibilidad; no modifican calculos, datos ni reglas de cultivo.
 
+La navegación operativa móvil prioriza `Hoy`, `Cultivos`, `Registrar` y `Plan`; Diario, Semillas y Privacidad permanecen agrupados bajo `Más`. `Registrar` abre desde cualquier sección un selector único para medición ambiental, nota/foto, tarea/evento o seguimiento de planta. La ficha de cada maceta presenta primero etapa, última medición, VPD, tareas, progreso, ambiente, nota rápida y sugerencias; genética, fotos, cálculos, exportación, QR, inspecciones, sensores y línea de tiempo siguen disponibles bajo `Más herramientas e historial`. Es una reorganización progresiva: no elimina funciones ni transforma datos existentes.
+
 ## Incluye
 
 - Registro e inicio de sesion preparado para Supabase Auth.
