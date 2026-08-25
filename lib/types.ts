@@ -677,6 +677,7 @@ export type Plant = {
   substrate: string;
   lighting: string;
   photoperiodHours?: number;
+  lightsOnTime?: string;
   bank?: string;
   legalRecordStatus?: string;
   setup?: string;

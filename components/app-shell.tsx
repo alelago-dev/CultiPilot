@@ -3715,8 +3715,10 @@ function PlantSpaceRow({
             onAddMeasurement={onAddMeasurement}
             onDeleteMeasurement={onDeleteMeasurement}
             onUpdateAlertSettings={onUpdateEnvironmentalAlerts}
+            onUpdatePlant={onUpdatePlant}
             plant={plant}
           />
+          <FoliarObservationAssistant measurements={measurements} onSaveInspection={onSaveInspection} plant={plant} />
           <PlantQuickNote onAddJournalEntry={onAddJournalEntry} plant={plant} />
           <PlantSuggestionsPanel
             calendarEvents={calendarEvents}
@@ -4322,6 +4324,50 @@ function BatchIrrigationPanel({ inventoryItems, onAddMeasurement, onSaveInventor
   return <Card as="section" className="batch-irrigation-panel mt-5 p-4 sm:p-5"><SectionHeader eyebrow="Acción múltiple" title="Registrar riego por lote" /><p>Elegí macetas y cargá únicamente los valores realmente aplicados o medidos. Se crea una medición separada para cada maceta.</p><form onSubmit={registerBatch}><fieldset><legend>Macetas</legend><div className="batch-plant-picker">{plants.map((plant) => <label key={plant.id}><input checked={selectedPlantIds.includes(plant.id)} onChange={() => togglePlant(plant.id)} type="checkbox" /> {plant.name} · {plant.pot}</label>)}</div></fieldset><div className="batch-irrigation-fields"><label>Fecha y hora<input className="form-control" onChange={(event) => setMeasuredAt(event.target.value)} type="datetime-local" value={measuredAt} /></label><label>Agua (ml)<input className="form-control" min="0" onChange={(event) => setWater(event.target.value)} type="number" value={water} /></label><label>pH medido<input className="form-control" max="14" min="0" onChange={(event) => setPh(event.target.value)} step="0.01" type="number" value={ph} /></label><label>EC (mS/cm)<input className="form-control" min="0" onChange={(event) => setEc(event.target.value)} step="0.01" type="number" value={ec} /></label><label>PPM medidos<input className="form-control" min="0" onChange={(event) => setPpm(event.target.value)} type="number" value={ppm} /></label><label>Observación<input className="form-control" onChange={(event) => setObservations(event.target.value)} value={observations} /></label></div><div className="batch-inventory-row"><label>Insumo a descontar<select className="form-control" onChange={(event) => setInventoryItemId(event.target.value)} value={inventoryItemId}><option value="">No descontar</option>{inventoryItems.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.quantity} {item.unit}</option>)}</select></label><label>Cantidad por maceta<input className="form-control" disabled={!inventoryItemId} min="0" onChange={(event) => setInventoryAmountPerPlant(event.target.value)} step="0.01" type="number" value={inventoryAmountPerPlant} /></label><span>Total a descontar: {previewTotal === undefined ? "—" : `${Number(previewTotal.toFixed(2))} ${selectedInventoryItem?.unit ?? ""}`}<br />Costo del consumo: {previewCost === undefined ? "No calculable con los datos disponibles" : `${selectedProduct?.currency ?? ""} ${previewCost.toFixed(2)}`}</span></div><div className="batch-recipe-row"><label>Usar receta<select className="form-control" defaultValue="" onChange={(event) => loadRecipe(event.target.value)}><option value="">Seleccionar</option>{recipes.map((recipe) => <option key={recipe.id} value={recipe.id}>{recipe.name}</option>)}</select></label><label>Guardar valores como receta<input className="form-control" onChange={(event) => setRecipeName(event.target.value)} placeholder="Nombre propio" value={recipeName} /></label><button className="secondary-button" onClick={saveRecipe} type="button">Guardar receta</button><button className="primary-button" type="submit">Registrar y confirmar consumo</button></div>{status ? <p role="status">{status}</p> : null}</form></Card>;
 }
 
+function FoliarObservationAssistant({ measurements, onSaveInspection, plant }: { measurements: PlantMeasurement[]; onSaveInspection: (inspection: PlantInspection) => void; plant: Plant }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [location, setLocation] = useState("Hojas inferiores / antiguas");
+  const [pattern, setPattern] = useState("Amarilleo uniforme");
+  const [substrateState, setSubstrateState] = useState("No comprobado");
+  const [severity, setSeverity] = useState<PlantInspection["severity"]>("low");
+  const [note, setNote] = useState("");
+  const [followUpDate, setFollowUpDate] = useState("");
+  const [status, setStatus] = useState("");
+  const evidence = getFoliarEvidence(measurements, plant);
+  const hypotheses = getFoliarHypotheses(location, pattern, substrateState);
+  const missing = [evidence.ph === undefined ? "pH de entrada o drenaje" : "", evidence.ec === undefined ? "EC de entrada o drenaje" : "", evidence.vpd === undefined ? "temperatura y humedad para VPD" : "", evidence.ppfd === undefined ? "PPFD" : ""].filter(Boolean);
+
+  function save() {
+    const observation = [`Asistente foliar: ${pattern} en ${location.toLowerCase()}.`, `Sustrato declarado al observar: ${substrateState}.`, note.trim() ? `Nota: ${note.trim()}.` : "", `Hipótesis compatibles para revisar: ${hypotheses.join("; ")}.`, missing.length ? `Datos faltantes: ${missing.join(", ")}.` : "Se encontraron pH/EC/VPD/PPFD recientes como contexto."].filter(Boolean).join(" ");
+    onSaveInspection({ area: location, category: "symptom", followUpDate: followUpDate || undefined, id: createEventId("inspection-foliar"), inspectedAt: new Date().toISOString(), observation, plantId: plant.id, severity, status: "open" });
+    setStatus("Observación foliar guardada como inspección de esta maceta."); setNote(""); setIsOpen(false);
+  }
+
+  return <section className="foliar-assistant"><header><div><p className="plant-calculation-eyebrow">Observación guiada</p><h4>Revisar hojas sin adivinar un diagnóstico</h4><p>Ordena lo observado y lo cruza con mediciones existentes antes de sugerir qué comprobar.</p></div><button className="secondary-button" onClick={() => setIsOpen((current) => !current)} type="button">{isOpen ? "Cerrar" : "Revisar hojas"}</button></header>{isOpen ? <div className="foliar-assistant-form"><label>Dónde aparece<select className="form-control" onChange={(event) => setLocation(event.target.value)} value={location}><option>Hojas inferiores / antiguas</option><option>Hojas superiores / nuevas</option><option>Toda la planta</option></select></label><label>Patrón principal<select className="form-control" onChange={(event) => setPattern(event.target.value)} value={pattern}><option>Amarilleo uniforme</option><option>Amarilleo entre nervaduras</option><option>Bordes secos o quemados</option><option>Manchas o puntos</option><option>Hojas caídas o marchitas</option><option>Color muy oscuro o forma de garra</option></select></label><label>Estado del sustrato<select className="form-control" onChange={(event) => setSubstrateState(event.target.value)} value={substrateState}><option>No comprobado</option><option>Húmedo / maceta pesada</option><option>Seco / maceta liviana</option><option>Intermedio</option></select></label><label>Severidad observada<select className="form-control" onChange={(event) => setSeverity(event.target.value as PlantInspection["severity"])} value={severity}><option value="low">Baja</option><option value="medium">Media</option><option value="high">Alta</option></select></label><label>Revisar nuevamente<input className="form-control" min={getTodayIso()} onChange={(event) => setFollowUpDate(event.target.value)} type="date" value={followUpDate} /></label><label className="foliar-wide">Detalle propio<textarea className="form-control" onChange={(event) => setNote(event.target.value)} rows={2} value={note} /></label><div className="foliar-assistant-result foliar-wide"><strong>Compatible con revisar</strong><ul>{hypotheses.map((item) => <li key={item}>{item}</li>)}</ul><p>{missing.length ? `Antes de concluir faltan: ${missing.join(", ")}.` : `Contexto reciente disponible: pH ${evidence.ph}, EC ${evidence.ec}, VPD ${evidence.vpd} kPa y PPFD ${evidence.ppfd}.`}</p><small>Son hipótesis de comprobación, no un diagnóstico ni una indicación de aplicar productos.</small></div><button className="primary-button" onClick={save} type="button">Guardar observación</button></div> : null}{status ? <p role="status">{status}</p> : null}</section>;
+}
+
+function getFoliarEvidence(measurements: PlantMeasurement[], plant: Plant) {
+  const sorted = [...measurements].sort((first, second) => second.measuredAt.localeCompare(first.measuredAt));
+  const latestVpd = sorted.find((measurement) => assessPlantEnvironment(plant, measurement).vpdKpa !== undefined);
+  const latestEc = sorted.find((item) => item.irrigationEcMsCm !== undefined || item.runoffEcMsCm !== undefined);
+  const latestPh = sorted.find((item) => item.irrigationPh !== undefined || item.runoffPh !== undefined);
+  return { ec: latestEc?.irrigationEcMsCm ?? latestEc?.runoffEcMsCm, ph: latestPh?.irrigationPh ?? latestPh?.runoffPh, ppfd: sorted.find((item) => item.ppfdUmolM2S !== undefined)?.ppfdUmolM2S, vpd: latestVpd ? assessPlantEnvironment(plant, latestVpd).vpdKpa : undefined };
+}
+
+function getFoliarHypotheses(location: string, pattern: string, substrateState: string) {
+  const result = new Set<string>();
+  if (substrateState.startsWith("Húmedo")) result.add("exceso de agua o baja oxigenación radicular");
+  if (substrateState.startsWith("Seco")) result.add("déficit hídrico observado y ritmo de dryback");
+  if (pattern === "Amarilleo uniforme" && location.includes("inferiores")) result.add("movilidad de nutrientes o progresión natural de la etapa");
+  if (pattern === "Amarilleo entre nervaduras") result.add(location.includes("superiores") ? "disponibilidad de micronutrientes y pH" : "disponibilidad de magnesio y pH");
+  if (pattern === "Bordes secos o quemados") result.add("EC/sales, intensidad de luz, viento o estrés hídrico");
+  if (pattern === "Manchas o puntos") result.add("plaga, daño físico, humedad foliar o disponibilidad mineral");
+  if (pattern === "Hojas caídas o marchitas") result.add("estado real del sustrato antes de distinguir exceso y falta de agua");
+  if (pattern === "Color muy oscuro o forma de garra") result.add("exceso nutricional declarado, EC y frecuencia de riego");
+  result.add("comparar evolución con una nueva foto o inspección");
+  return [...result];
+}
+
 function PlantInspectionPanel({ inspections, onSaveInspection, plant }: { inspections: PlantInspection[]; onSaveInspection: (inspection: PlantInspection) => void; plant: Plant }) {
   const [isAdding, setIsAdding] = useState(false); const [category, setCategory] = useState<PlantInspection["category"]>("symptom"); const [area, setArea] = useState("Hojas"); const [severity, setSeverity] = useState<PlantInspection["severity"]>("low"); const [observation, setObservation] = useState(""); const [followUpDate, setFollowUpDate] = useState(""); const [photoDataUrl, setPhotoDataUrl] = useState("");
   function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); if (!observation.trim()) return; onSaveInspection({ area, category, followUpDate: followUpDate || undefined, id: `inspection-${plant.id}-${Date.now()}`, inspectedAt: new Date().toISOString(), observation: observation.trim(), photoDataUrl: photoDataUrl || undefined, plantId: plant.id, severity, status: "open" }); setObservation(""); setFollowUpDate(""); setPhotoDataUrl(""); setIsAdding(false); }
@@ -4528,7 +4574,7 @@ function ArchivedCycleCard({ entries, measurements, onClone, onReopen, plant }: 
 
 function CloneCycleForm({ onClone, plant }: { onClone: (plant: Plant) => void; plant: Plant }) {
   const [isOpen, setIsOpen] = useState(false); const [name, setName] = useState(`${plant.name} nuevo ciclo`); const [startDate, setStartDate] = useState(getTodayIso()); const [stage, setStage] = useState(plantStageOptions[0]); const [message, setMessage] = useState("");
-  function clone(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const cloned: Plant = { cyclePlanNotes: plant.nextCyclePlan ?? plant.cyclePlanNotes, id: `plant-clone-${Date.now()}`, lifecycle: "active", lighting: plant.lighting, mode: plant.mode, name: name.trim() || `${plant.name} nuevo ciclo`, photoperiodHours: plant.photoperiodHours, pot: plant.pot, setup: plant.setup, spaceId: plant.spaceId, stage, startedAt: startDate, substrate: plant.substrate, targetCycleDays: plant.targetCycleDays, targetDryWeightG: plant.targetDryWeightG, variety: plant.variety }; onClone(cloned); setMessage("Nueva maceta creada con la configuración y el próximo cambio como plan; no se copiaron historiales ni resultados."); setIsOpen(false); }
+  function clone(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const cloned: Plant = { cyclePlanNotes: plant.nextCyclePlan ?? plant.cyclePlanNotes, id: `plant-clone-${Date.now()}`, lifecycle: "active", lighting: plant.lighting, lightsOnTime: plant.lightsOnTime, mode: plant.mode, name: name.trim() || `${plant.name} nuevo ciclo`, photoperiodHours: plant.photoperiodHours, pot: plant.pot, setup: plant.setup, spaceId: plant.spaceId, stage, startedAt: startDate, substrate: plant.substrate, targetCycleDays: plant.targetCycleDays, targetDryWeightG: plant.targetDryWeightG, variety: plant.variety }; onClone(cloned); setMessage("Nueva maceta creada con la configuración y el próximo cambio como plan; no se copiaron historiales ni resultados."); setIsOpen(false); }
   return <div className="clone-cycle-control"><button className="text-button" onClick={() => setIsOpen((current) => !current)} type="button">{isOpen ? "Cancelar clonación" : "Nuevo ciclo con esta configuración"}</button>{isOpen ? <form onSubmit={clone}><label>Nombre de la nueva maceta<input className="form-control" onChange={(event) => setName(event.target.value)} required value={name} /></label><label>Fecha de inicio<input className="form-control" onChange={(event) => setStartDate(event.target.value)} required type="date" value={startDate} /></label><label>Etapa inicial declarada<select className="form-control" onChange={(event) => setStage(event.target.value)} value={stage}>{plantStageOptions.map((option) => <option key={option}>{option}</option>)}</select></label><p>Se copian variedad, espacio, maceta, sustrato, luz y setup. No se copian tareas, mediciones, fotos, inspecciones ni resultados.</p><button className="secondary-button" type="submit">Crear ciclo independiente</button></form> : null}{message ? <p role="status">{message}</p> : null}</div>;
 }
 
@@ -4980,7 +5026,7 @@ function buildExcelXmlWorkbook({ alertSettings, bounds, calendarEvents, entries,
   const latestAssessment = assessPlantEnvironment(plant, latestMeasurement);
   const alertRows = getConfiguredEnvironmentalAlerts(alertSettings, latestMeasurement, latestAssessment.vpdKpa).map((alert) => [latestMeasurement?.measuredAt, alert.label, alert.value, alert.unit.trim(), alert.direction === "below" ? "Debajo del mínimo" : "Encima del máximo", alert.limit, "Calculado desde última medición y límite del usuario"]);
   const sheets = [
-    { name: "Resumen", rows: [[{ value: "Campo" }, { value: "Valor" }, { value: "Origen" }], ...[["Maceta", plant.name, "usuario"], ["Variedad", plant.variety, "usuario"], ["Etapa", plant.stage, "usuario"], ["Inicio", plant.startedAt, "usuario"], ["Cierre", plant.completedAt, plant.completedAt ? "usuario" : "faltante"], ["Período exportado", `${bounds.start} a ${bounds.end}`, "selección de usuario"], ["Fotoperiodo horas", plant.photoperiodHours, plant.photoperiodHours === undefined ? "faltante" : "usuario"], ["Registros de medición", measurements.length, "calculado"]].map((row) => row.map((value) => ({ type: typeof value === "number" ? "Number" : "String", value }) satisfies ExportCell))] },
+    { name: "Resumen", rows: [[{ value: "Campo" }, { value: "Valor" }, { value: "Origen" }], ...[["Maceta", plant.name, "usuario"], ["Variedad", plant.variety, "usuario"], ["Etapa", plant.stage, "usuario"], ["Inicio", plant.startedAt, "usuario"], ["Cierre", plant.completedAt, plant.completedAt ? "usuario" : "faltante"], ["Período exportado", `${bounds.start} a ${bounds.end}`, "selección de usuario"], ["Fotoperiodo horas", plant.photoperiodHours, plant.photoperiodHours === undefined ? "faltante" : "usuario"], ["Luces encendidas", plant.lightsOnTime, plant.lightsOnTime ? "usuario" : "faltante"], ["Registros de medición", measurements.length, "calculado"]].map((row) => row.map((value) => ({ type: typeof value === "number" ? "Number" : "String", value }) satisfies ExportCell))] },
     { name: "Mediciones", rows: measurementRows },
     { name: "Riegos", rows: irrigationRows },
     { name: "Comparaciones", rows: exportRows(["Ventana días", "Métrica", "Período actual", "Muestras actuales", "Período anterior", "Muestras anteriores", "Diferencia calculada", "Unidad"], comparisonRows) },
@@ -5194,6 +5240,7 @@ function PlantEnvironmentPanel({
   onAddMeasurement,
   onDeleteMeasurement,
   onUpdateAlertSettings,
+  onUpdatePlant,
   plant
 }: {
   alertSettings?: PlantEnvironmentalAlertSettings;
@@ -5201,10 +5248,12 @@ function PlantEnvironmentPanel({
   onAddMeasurement: (measurement: PlantMeasurement) => void;
   onDeleteMeasurement: (measurementId: string) => void;
   onUpdateAlertSettings: (settings: PlantEnvironmentalAlertSettings) => void;
+  onUpdatePlant: (plantId: string, updates: Partial<Plant>) => void;
   plant: Plant;
 }) {
   const sortedMeasurements = [...measurements].sort((first, second) => second.measuredAt.localeCompare(first.measuredAt));
-  const latestMeasurement = sortedMeasurements[0];
+  const latestMeasurement = sortedMeasurements.find((measurement) => measurement.temperatureC !== undefined && measurement.ambientHumidityPercent !== undefined);
+  const latestPpfdMeasurement = sortedMeasurements.find((measurement) => measurement.ppfdUmolM2S !== undefined);
   const assessment = assessPlantEnvironment(plant, latestMeasurement);
   const vpdTrend = getVpdTrend(plant, sortedMeasurements);
   const [isAdding, setIsAdding] = useState(false);
@@ -5242,7 +5291,7 @@ function PlantEnvironmentPanel({
         <EnvironmentMetric
           label="PPFD"
           status={assessment.ppfdStatus}
-          value={latestMeasurement?.ppfdUmolM2S === undefined ? "Sin dato" : `${latestMeasurement.ppfdUmolM2S} umol/m2/s`}
+          value={latestPpfdMeasurement?.ppfdUmolM2S === undefined ? "Sin dato" : `${latestPpfdMeasurement.ppfdUmolM2S} umol/m2/s`}
           target={
             assessment.target.ppfdMin === undefined
               ? "Sin referencia para esta etapa"
@@ -5267,8 +5316,10 @@ function PlantEnvironmentPanel({
       </p>
 
       <div className="environment-analysis-grid">
+        <DayNightEnvironmentAnalysis measurements={sortedMeasurements} onUpdatePlant={onUpdatePlant} plant={plant} />
         <EnvironmentalTimeInBand measurements={sortedMeasurements} plant={plant} />
         <DrybackAnalysis measurements={sortedMeasurements} />
+        <PpfdCanopyMap measurements={sortedMeasurements} onAddMeasurement={onAddMeasurement} plant={plant} />
       </div>
 
       {assessment.messages.length > 0 ? (
@@ -5346,6 +5397,85 @@ function EnvironmentalTimeInBand({ measurements, plant }: { measurements: PlantM
       <small>Asigna cada intervalo a la lectura anterior; no extrapola después de la última lectura ni atraviesa huecos mayores a 6 horas.</small>
     </section>
   );
+}
+
+function DayNightEnvironmentAnalysis({ measurements, onUpdatePlant, plant }: { measurements: PlantMeasurement[]; onUpdatePlant: (plantId: string, updates: Partial<Plant>) => void; plant: Plant }) {
+  const [hours, setHours] = useState(plant.photoperiodHours?.toString() ?? "");
+  const [lightsOn, setLightsOn] = useState(plant.lightsOnTime ?? "");
+  const [status, setStatus] = useState("");
+  const parsedHours = parseOptionalNumber(hours);
+  const scheduleValid = Boolean(lightsOn) && parsedHours !== undefined && parsedHours > 0 && parsedHours <= 24;
+  const recent = measurements.filter((measurement) => measurement.measuredAt.slice(0, 10) >= offsetDate(getTodayIso(), -29));
+  const periods = recent.reduce((result, measurement) => {
+    const vpd = assessPlantEnvironment(plant, measurement).vpdKpa;
+    if (vpd === undefined || !scheduleValid) return result;
+    const bucket = isMeasurementDuringLightsOn(measurement.measuredAt, lightsOn, parsedHours!) ? result.day : result.night;
+    bucket.push(vpd);
+    return result;
+  }, { day: [] as number[], night: [] as number[] });
+  const dayAverage = averageNumbers(periods.day);
+  const nightAverage = averageNumbers(periods.night);
+  const difference = dayAverage !== undefined && nightAverage !== undefined ? Number((dayAverage - nightAverage).toFixed(2)) : undefined;
+
+  function saveSchedule() {
+    if (!scheduleValid) { setStatus("Indicá una hora de encendido y entre 0 y 24 horas de luz."); return; }
+    onUpdatePlant(plant.id, { lightsOnTime: lightsOn, photoperiodHours: parsedHours });
+    setStatus("Horario declarado guardado para esta maceta.");
+  }
+
+  return <section className="environment-analysis-card"><header><div><p className="plant-calculation-eyebrow">Fotoperíodo declarado</p><h5>Ambiente de día y de noche</h5></div><span className="pill pill-blue">30 días</span></header><div className="day-night-schedule"><label>Luces encendidas<input className="form-control" onChange={(event) => { setLightsOn(event.target.value); setStatus(""); }} type="time" value={lightsOn} /></label><label>Horas de luz<input className="form-control" max="24" min="0.25" onChange={(event) => { setHours(event.target.value); setStatus(""); }} step="0.25" type="number" value={hours} /></label><button className="secondary-button" onClick={saveSchedule} type="button">Guardar</button></div>{status ? <p role="status">{status}</p> : null}{!scheduleValid ? <p>Falta declarar el horario para separar las lecturas sin adivinar cuándo estaban encendidas las luces.</p> : <dl><PlantFact label="VPD con luz" value={dayAverage === undefined ? "Sin lecturas" : `${dayAverage} kPa (${periods.day.length})`} /><PlantFact label="VPD sin luz" value={nightAverage === undefined ? "Sin lecturas" : `${nightAverage} kPa (${periods.night.length})`} /><PlantFact label="Diferencia luz − oscuridad" value={difference === undefined ? "Faltan ambos períodos" : `${formatSignedNumber(difference)} kPa`} /><PlantFact label="Horario declarado" value={`${lightsOn} · ${parsedHours} h`} /></dl>}<small>Clasifica por fecha y hora registradas. No completa períodos sin mediciones ni supone el estado de la luminaria. <a href="https://dutch-passion.blog/es/deficit-de-presion-de-vapor-para-cannabis-tabla-vdp/" rel="noopener noreferrer" target="_blank">Referencia VPD</a>.</small></section>;
+}
+
+function isMeasurementDuringLightsOn(measuredAt: string, lightsOn: string, hours: number) {
+  const date = new Date(measuredAt);
+  const [startHour, startMinute] = lightsOn.split(":").map(Number);
+  const currentMinutes = date.getHours() * 60 + date.getMinutes();
+  const startMinutes = startHour * 60 + startMinute;
+  const elapsed = (currentMinutes - startMinutes + 1440) % 1440;
+  return elapsed < hours * 60;
+}
+
+function averageNumbers(values: number[]) {
+  return values.length === 0 ? undefined : Number((values.reduce((total, value) => total + value, 0) / values.length).toFixed(2));
+}
+
+function PpfdCanopyMap({ measurements, onAddMeasurement, plant }: { measurements: PlantMeasurement[]; onAddMeasurement: (measurement: PlantMeasurement) => void; plant: Plant }) {
+  const [size, setSize] = useState<4 | 9>(4);
+  const [values, setValues] = useState<string[]>(Array(4).fill(""));
+  const [measuredAt, setMeasuredAt] = useState(getLocalDateTimeValue());
+  const [status, setStatus] = useState("");
+  const parsed = values.map(parseOptionalNumber);
+  const complete = parsed.every((value) => value !== undefined && value >= 0);
+  const currentValues = parsed.flatMap((value) => value === undefined ? [] : [value]);
+  const latestMap = getLatestPpfdMap(measurements);
+  const preview = complete ? summarizePpfdMap(currentValues) : latestMap ? summarizePpfdMap(latestMap.values) : undefined;
+
+  function changeSize(next: 4 | 9) { setSize(next); setValues(Array(next).fill("")); setStatus(""); }
+  function saveMap() {
+    if (!complete) { setStatus("Completá todos los puntos del mapa con lecturas medidas."); return; }
+    const iso = new Date(measuredAt).toISOString();
+    const mapId = createEventId("ppfd-map");
+    parsed.forEach((value, index) => onAddMeasurement({ id: `measurement-${mapId}-${index}`, measuredAt: iso, observations: `Mapa PPFD ${size === 4 ? "2x2" : "3x3"} · punto ${index + 1}/${size}`, plantId: plant.id, ppfdUmolM2S: value, source: "manual" }));
+    setStatus(`Mapa ${size === 4 ? "2×2" : "3×3"} guardado como ${size} mediciones independientes.`);
+    setValues(Array(size).fill(""));
+  }
+
+  return <section className="environment-analysis-card ppfd-map-card"><header><div><p className="plant-calculation-eyebrow">Distribución de luz</p><h5>Mapa PPFD de la copa</h5></div><select aria-label="Tamaño del mapa PPFD" className="form-control" onChange={(event) => changeSize(Number(event.target.value) as 4 | 9)} value={size}><option value="4">2 × 2</option><option value="9">3 × 3</option></select></header><label>Fecha y hora<input className="form-control" onChange={(event) => setMeasuredAt(event.target.value)} type="datetime-local" value={measuredAt} /></label><div className={size === 4 ? "ppfd-map-grid grid-2" : "ppfd-map-grid grid-3"}>{values.map((value, index) => <label key={index}><span>P{index + 1}</span><input aria-label={`PPFD punto ${index + 1}`} className="form-control" min="0" onChange={(event) => setValues((current) => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} placeholder="PPFD" type="number" value={value} /></label>)}</div>{preview ? <dl><PlantFact label="Promedio" value={`${preview.average} µmol/m²/s`} /><PlantFact label="Mínimo / máximo" value={`${preview.minimum} / ${preview.maximum}`} /><PlantFact label="Uniformidad mín./prom." value={`${preview.uniformity}%`} /><PlantFact label="Base" value={complete ? `${size} puntos sin guardar` : `${latestMap!.values.length} puntos · ${formatMeasurementDate(latestMap!.measuredAt)}`} /></dl> : <p>Completá todos los puntos para calcular distribución y uniformidad.</p>}<button className="primary-button" onClick={saveMap} type="button">Guardar mapa medido</button>{status ? <p role="status">{status}</p> : null}<small>La uniformidad es mínimo ÷ promedio × 100. Cada punto conserva el valor medido; no se interpolan zonas intermedias. <a href="https://dutch-passion.blog/es/una-guia-para-luces-de-cultivo-rfa-ppfd-dli-y-vataje/" rel="noopener noreferrer" target="_blank">Referencia PPFD/DLI</a>.</small></section>;
+}
+
+function getLatestPpfdMap(measurements: PlantMeasurement[]) {
+  const candidates = measurements.filter((measurement) => measurement.observations?.startsWith("Mapa PPFD") && measurement.ppfdUmolM2S !== undefined);
+  const latestAt = candidates.sort((first, second) => second.measuredAt.localeCompare(first.measuredAt))[0]?.measuredAt;
+  if (!latestAt) return undefined;
+  const points = candidates.filter((measurement) => measurement.measuredAt === latestAt).sort((first, second) => (first.observations ?? "").localeCompare(second.observations ?? "", undefined, { numeric: true }));
+  return { measuredAt: latestAt, values: points.map((measurement) => measurement.ppfdUmolM2S!) };
+}
+
+function summarizePpfdMap(values: number[]) {
+  const average = averageNumbers(values)!;
+  const minimum = Math.min(...values);
+  const maximum = Math.max(...values);
+  return { average, maximum, minimum, uniformity: average > 0 ? Math.round((minimum / average) * 100) : 0 };
 }
 
 function DrybackAnalysis({ measurements }: { measurements: PlantMeasurement[] }) {
