@@ -5251,6 +5251,12 @@ function PlantEnvironmentPanel({
         />
       </div>
 
+      <VpdReferenceScale
+        isEnglish={false}
+        plantStage={plant.stage}
+        vpdKpa={assessment.vpdKpa}
+      />
+
       <p className="plant-environment-basis">
         {assessment.vpdBasis === "leaf-measured"
           ? "Se uso la temperatura foliar medida."
