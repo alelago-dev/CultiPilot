@@ -398,6 +398,10 @@ const careScore = 86;
 const assetBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const manualPlantId = "plant-manual-regulated";
 const geneticsCatalogAlphabetically = getGeneticsCatalogAlphabetically();
+const uniqueGeneticsForQuickReference = geneticsCatalogAlphabetically.filter((genetic, index, catalog) => {
+  const key = `${normalizeLookupText(genetic.name)}|${normalizeLookupText(genetic.type)}`;
+  return catalog.findIndex((candidate) => `${normalizeLookupText(candidate.name)}|${normalizeLookupText(candidate.type)}` === key) === index;
+});
 const legalSetupOptions = [
   "40 x 40 cm",
   "60 x 60 cm",
@@ -3228,7 +3232,7 @@ function SpacesSection({
   // acordeon ni de conocer la sigla VPD.
   const [measurementsExpanded, setMeasurementsExpanded] = useState(true);
   const normalizedQuery = query.trim().toLowerCase();
-  const selectedReferenceGenetic = geneticsCatalogAlphabetically.find((genetic) => genetic.id === referenceGeneticId);
+  const selectedReferenceGenetic = uniqueGeneticsForQuickReference.find((genetic) => genetic.id === referenceGeneticId);
   const visibleSpaces = spaces
     .map((space) => {
       const matchingPlants = plants.filter((plant) => {
@@ -3331,7 +3335,7 @@ function SpacesSection({
                 onChange={(event) => setReferenceGeneticId(event.target.value)}
               >
                 <option value="">{spacesText.genReferenceSelectPlaceholder}</option>
-                {geneticsCatalogAlphabetically.map((genetic) => (
+                {uniqueGeneticsForQuickReference.map((genetic) => (
                   <option key={genetic.id} value={genetic.id}>
                     {genetic.name} - {formatGeneticType(genetic.type, dictionary)}
                   </option>
@@ -3719,6 +3723,7 @@ function PlantSpaceRow({
             plant={plant}
           />
           <FoliarObservationAssistant measurements={measurements} onSaveInspection={onSaveInspection} plant={plant} />
+          <HarvestReadinessPanel entries={entries} inspections={inspections} measurements={measurements} onAddJournalEntry={onAddJournalEntry} plant={plant} />
           <PlantQuickNote onAddJournalEntry={onAddJournalEntry} plant={plant} />
           <PlantSuggestionsPanel
             calendarEvents={calendarEvents}
@@ -3731,7 +3736,7 @@ function PlantSpaceRow({
           <details className="plant-advanced-tools">
             <summary><span><strong>Más herramientas e historial</strong><small>Genética, fotos, cálculos, inspecciones, sensores, exportación y línea de tiempo</small></span><span aria-hidden="true">＋</span></summary>
             <div>
-              <TrichomeAnalyzer onAddJournalEntry={onAddJournalEntry} plant={plant} />
+              {!isHarvestRelevantStage(plant.stage) ? <TrichomeAnalyzer onAddJournalEntry={onAddJournalEntry} plant={plant} /> : null}
               <PlantGeneticSummary genetic={plantGenetic} onOpenGenetic={onOpenGenetic} plant={plant} />
               <PlantCalculationSummary genetic={plantGenetic} plant={plant} />
               <PlantDataCalculations measurements={measurements} onUpdatePlant={onUpdatePlant} plant={plant} />
@@ -3760,6 +3765,22 @@ function PlantAtAGlance({ measurements, plant, tasks }: { measurements: PlantMea
   const assessment = assessPlantEnvironment(plant, latest);
   const openTasks = tasks.filter((task) => task.plantId === plant.id && task.status === "open").length;
   return <section className="plant-at-a-glance" aria-label={`Resumen de ${plant.name}`}><div><span>Etapa declarada</span><strong>{plant.stage}</strong></div><div><span>Última medición</span><strong>{latest ? formatMeasurementDate(latest.measuredAt) : "Sin registros"}</strong></div><div><span>VPD calculado</span><strong>{assessment.vpdKpa === undefined ? "Faltan temperatura y humedad" : `${assessment.vpdKpa} kPa`}</strong></div><div><span>Tareas abiertas</span><strong>{openTasks}</strong></div></section>;
+}
+
+function isHarvestRelevantStage(stage: string) {
+  const normalized = normalizeLookupText(stage);
+  return normalized.includes("flor") || normalized.includes("cosecha");
+}
+
+function HarvestReadinessPanel({ entries, inspections, measurements, onAddJournalEntry, plant }: { entries: CareEntry[]; inspections: PlantInspection[]; measurements: PlantMeasurement[]; onAddJournalEntry: (entry: CareEntry) => void; plant: Plant }) {
+  if (!isHarvestRelevantStage(plant.stage)) return null;
+  const plantEntries = entries.filter((entry) => entry.plantId === plant.id);
+  const lastTrichome = [...plantEntries].filter((entry) => entry.tags.some((tag) => normalizeLookupText(tag).includes("tricoma"))).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  const lastInspection = [...inspections].filter((inspection) => inspection.plantId === plant.id).sort((a, b) => b.inspectedAt.localeCompare(a.inspectedAt))[0];
+  const openInspection = inspections.find((inspection) => inspection.plantId === plant.id && inspection.status === "open" && (inspection.category === "pest" || inspection.category === "symptom"));
+  const lastEnvironment = [...measurements].filter((measurement) => measurement.plantId === plant.id && measurement.temperatureC !== undefined && measurement.ambientHumidityPercent !== undefined).sort((a, b) => b.measuredAt.localeCompare(a.measuredAt))[0];
+  const evidenceCount = [lastTrichome, lastInspection, lastEnvironment].filter(Boolean).length;
+  return <section className="harvest-readiness-panel"><header><div><p className="plant-calculation-eyebrow">Cosecha integrada</p><h4>Evidencias para revisar la ventana</h4><p>Reúne observaciones reales de esta maceta; no decide una fecha ni declara que esté lista.</p></div><span className="pill pill-blue">{evidenceCount}/3 evidencias</span></header><dl><PlantFact label="Etapa declarada" value={plant.stage} /><PlantFact label="Última lectura de tricomas" value={lastTrichome ? formatMeasurementDate(lastTrichome.createdAt) : "Sin registrar"} /><PlantFact label="Última inspección" value={lastInspection ? formatMeasurementDate(lastInspection.inspectedAt) : "Sin registrar"} /><PlantFact label="Ambiente medido" value={lastEnvironment ? formatMeasurementDate(lastEnvironment.measuredAt) : "Sin registrar"} /></dl>{openInspection ? <p className="plant-environment-missing">Hay una observación abierta ({openInspection.area}, severidad {openInspection.severity === "high" ? "alta" : openInspection.severity === "medium" ? "media" : "baja"}). Revisala antes de interpretar el conjunto; no equivale a un diagnóstico.</p> : null}<details><summary>Registrar y comparar tricomas</summary><TrichomeAnalyzer onAddJournalEntry={onAddJournalEntry} plant={plant} /></details><small>La madurez se evalúa con observaciones fechadas, etapa declarada y contexto ambiental. La ausencia de una inspección no demuestra que no haya problemas.</small></section>;
 }
 
 function PlantStageHistoryPanel({ onSaveTransition, plant, transitions }: { onSaveTransition: (transition: PlantStageTransition) => void; plant: Plant; transitions: PlantStageTransition[] }) {
@@ -3979,7 +4000,7 @@ function PeriodComparisonMetric({ current, label, previous, unit }: { current: P
 function PlantDataCoverage({ measurements, plant }: { measurements: PlantMeasurement[]; plant: Plant }) {
   const startDate = offsetDate(getTodayIso(), -29);
   const recent = measurements.filter((measurement) => measurement.measuredAt.slice(0, 10) >= startDate);
-  const coverage = [["Temperatura", recent.filter((item) => item.temperatureC !== undefined).length], ["Humedad ambiental", recent.filter((item) => item.ambientHumidityPercent !== undefined).length], ["Temperatura foliar", recent.filter((item) => item.leafTemperatureC !== undefined).length], ["PPFD", recent.filter((item) => item.ppfdUmolM2S !== undefined).length], ["Sustrato", recent.filter((item) => item.substrateMoisturePercent !== undefined).length], ["Altura", recent.filter((item) => item.heightCm !== undefined).length], ["Riego", recent.filter((item) => item.waterAmountMl !== undefined).length], ["Fotos", recent.filter((item) => item.photoDataUrl).length]] as const;
+  const coverage = [["Temperatura", recent.filter((item) => item.temperatureC !== undefined).length], ["Humedad ambiental", recent.filter((item) => item.ambientHumidityPercent !== undefined).length], ["Temperatura foliar", recent.filter((item) => item.leafTemperatureC !== undefined).length], ["PPFD", recent.filter((item) => item.ppfdUmolM2S !== undefined).length], ["Sustrato", recent.filter((item) => item.substrateMoisturePercent !== undefined).length], ["Peso maceta", recent.filter((item) => item.potWeightG !== undefined).length], ["Altura", recent.filter((item) => item.heightCm !== undefined).length], ["Riego", recent.filter((item) => item.waterAmountMl !== undefined).length], ["Fotos", recent.filter((item) => item.photoDataUrl).length]] as const;
   const covered = coverage.filter(([, count]) => count > 0).length;
   return <section className="plant-data-coverage" aria-label={`Cobertura de datos de ${plant.name}`}><header><div><p className="plant-calculation-eyebrow">Calidad del historial</p><h4>Cobertura de los últimos 30 días</h4><span>Cuenta solamente campos realmente registrados desde {formatDisplayDate(startDate)}.</span></div><span className="pill pill-blue">{covered} de {coverage.length} variables</span></header><dl>{coverage.map(([label, count]) => <div className={count === 0 ? "is-missing" : ""} key={label}><dt>{label}</dt><dd>{count === 0 ? "Sin datos" : `${count} registro${count === 1 ? "" : "s"}`}</dd></div>)}</dl><p>La ausencia de una variable no implica un problema de cultivo; solo indica que no fue registrada durante esta ventana.</p></section>;
 }
@@ -5008,9 +5029,9 @@ function getExportPeriodBounds(period: ExportPeriod, plant: Plant) {
 function isDateInExportBounds(value: string, bounds: { end: string; start: string }) { const date = value.slice(0, 10); return date >= bounds.start && date <= bounds.end; }
 
 function buildMeasurementExportRows(measurements: PlantMeasurement[], plant: Plant): Array<Array<number | string | undefined>> {
-  return [["Fecha/hora", "Origen", "Temperatura °C", "Temperatura foliar °C", "Humedad %", "VPD calculado kPa", "Base VPD", "Sustrato %", "PPFD µmol/m²/s", "Altura cm", "Observaciones", "Foto presente"], ...measurements.map((measurement) => {
+  return [["Fecha/hora", "Origen", "Temperatura °C", "Temperatura foliar °C", "Humedad %", "VPD calculado kPa", "Base VPD", "Sustrato %", "Peso total maceta g", "PPFD µmol/m²/s", "Altura cm", "Observaciones", "Foto presente"], ...measurements.map((measurement) => {
     const assessment = assessPlantEnvironment(plant, measurement);
-    return [measurement.measuredAt, formatMeasurementSource(measurement.source), measurement.temperatureC, measurement.leafTemperatureC, measurement.ambientHumidityPercent, assessment.vpdKpa, assessment.vpdBasis === "leaf-measured" ? "foliar medida" : "foliar estimada (-2,8 °C)", measurement.substrateMoisturePercent, measurement.ppfdUmolM2S, measurement.heightCm, measurement.observations, measurement.photoDataUrl ? "Sí" : "No"];
+    return [measurement.measuredAt, formatMeasurementSource(measurement.source), measurement.temperatureC, measurement.leafTemperatureC, measurement.ambientHumidityPercent, assessment.vpdKpa, assessment.vpdBasis === "leaf-measured" ? "foliar medida" : "foliar estimada (-2,8 °C)", measurement.substrateMoisturePercent, measurement.potWeightG, measurement.ppfdUmolM2S, measurement.heightCm, measurement.observations, measurement.photoDataUrl ? "Sí" : "No"];
   })];
 }
 
@@ -5316,6 +5337,7 @@ function PlantEnvironmentPanel({
       </p>
 
       <div className="environment-analysis-grid">
+        <DewPointAnalysis measurement={latestMeasurement} />
         <DayNightEnvironmentAnalysis measurements={sortedMeasurements} onUpdatePlant={onUpdatePlant} plant={plant} />
         <EnvironmentalTimeInBand measurements={sortedMeasurements} plant={plant} />
         <DrybackAnalysis measurements={sortedMeasurements} />
@@ -5478,6 +5500,20 @@ function summarizePpfdMap(values: number[]) {
   return { average, maximum, minimum, uniformity: average > 0 ? Math.round((minimum / average) * 100) : 0 };
 }
 
+function DewPointAnalysis({ measurement }: { measurement?: PlantMeasurement }) {
+  const temperature = measurement?.temperatureC;
+  const humidity = measurement?.ambientHumidityPercent;
+  if (temperature === undefined || humidity === undefined || humidity <= 0) return <section className="environment-analysis-card"><header><div><p className="plant-calculation-eyebrow">Condensación</p><h5>Punto de rocío</h5></div><span className="pill pill-soft">Faltan datos</span></header><p>Registrá temperatura y humedad ambiental para calcularlo.</p><small>No se completa ningún valor ausente.</small></section>;
+  const currentMeasurement = measurement!;
+  const gamma = Math.log(humidity / 100) + (17.62 * temperature) / (243.12 + temperature);
+  const dewPoint = Number(((243.12 * gamma) / (17.62 - gamma)).toFixed(1));
+  const leafMeasured = currentMeasurement.leafTemperatureC !== undefined;
+  const leafTemperature = currentMeasurement.leafTemperatureC ?? temperature - DEFAULT_LEAF_TEMPERATURE_OFFSET_C;
+  const margin = Number((leafTemperature - dewPoint).toFixed(1));
+  const status = margin <= 0 ? "Condensación posible" : margin <= 2 ? "Margen estrecho" : "Con margen";
+  return <section className="environment-analysis-card"><header><div><p className="plant-calculation-eyebrow">Condensación</p><h5>Punto de rocío y hoja</h5></div><span className={margin <= 0 ? "pill pill-red" : margin <= 2 ? "pill pill-amber" : "pill pill-green"}>{status}</span></header><dl><PlantFact label="Punto de rocío calculado" value={`${dewPoint} °C`} /><PlantFact label={leafMeasured ? "Hoja medida" : "Hoja estimada"} value={`${Number(leafTemperature.toFixed(1))} °C`} /><PlantFact label="Margen hoja − rocío" value={`${formatSignedNumber(margin)} °C`} /><PlantFact label="Base" value={formatMeasurementDate(currentMeasurement.measuredAt)} /></dl><small>Fórmula Magnus (a 17,62; b 243,12 °C). {leafMeasured ? "Usa la temperatura foliar medida." : `Sin medición foliar, estima la hoja ${DEFAULT_LEAF_TEMPERATURE_OFFSET_C} °C más fría que el aire.`} Indica proximidad física a condensación, no diagnostica hongos ni enfermedades.</small></section>;
+}
+
 function DrybackAnalysis({ measurements }: { measurements: PlantMeasurement[] }) {
   const chronological = [...measurements].sort((first, second) => first.measuredAt.localeCompare(second.measuredAt));
   const irrigationIndexes = chronological.flatMap((measurement, index) => measurement.waterAmountMl !== undefined && measurement.waterAmountMl > 0 ? [index] : []);
@@ -5491,12 +5527,20 @@ function DrybackAnalysis({ measurements }: { measurements: PlantMeasurement[] })
   const drop = first?.substrateMoisturePercent !== undefined && latest?.substrateMoisturePercent !== undefined ? Number((first.substrateMoisturePercent - latest.substrateMoisturePercent).toFixed(1)) : undefined;
   const rate = drop !== undefined && durationHours !== undefined && durationHours > 0 ? Number((drop / durationHours).toFixed(2)) : undefined;
   const points = windowMeasurements.map((measurement) => ({ label: formatMeasurementDate(measurement.measuredAt), value: measurement.substrateMoisturePercent! }));
+  const weightMeasurements = lastIrrigationIndex === undefined ? [] : chronological.slice(lastIrrigationIndex).filter((measurement) => measurement.potWeightG !== undefined);
+  const firstWeight = weightMeasurements[0];
+  const latestWeight = weightMeasurements.at(-1);
+  const weightHours = firstWeight && latestWeight ? (new Date(latestWeight.measuredAt).getTime() - new Date(firstWeight.measuredAt).getTime()) / 3_600_000 : undefined;
+  const weightDrop = firstWeight?.potWeightG !== undefined && latestWeight?.potWeightG !== undefined ? Number((firstWeight.potWeightG - latestWeight.potWeightG).toFixed(0)) : undefined;
+  const weightRate = weightDrop !== undefined && weightHours !== undefined && weightHours > 0 ? Number((weightDrop / weightHours).toFixed(1)) : undefined;
+  const weightPoints = weightMeasurements.map((measurement) => ({ label: formatMeasurementDate(measurement.measuredAt), value: measurement.potWeightG! }));
 
   return (
     <section className="environment-analysis-card">
-      <header><div><p className="plant-calculation-eyebrow">Después del último riego</p><h5>Dryback del sustrato</h5></div><span className="pill pill-blue">{windowMeasurements.length} lecturas</span></header>
-      {windowMeasurements.length < 2 ? <p>Faltan al menos dos mediciones de humedad de sustrato posteriores al mismo riego.</p> : <><MeasurementSparkline color="#5b8fc9" label="Humedad de sustrato" points={points} unit="%" /><dl><PlantFact label="Descenso observado" value={drop === undefined ? "Sin dato" : `${formatSignedNumber(-drop)} puntos`} /><PlantFact label="Duración observada" value={durationHours === undefined ? "Sin dato" : `${Number(durationHours.toFixed(1))} h`} /><PlantFact label="Velocidad media" value={rate === undefined ? "Sin dato" : `${rate} puntos/h`} /><PlantFact label="Último valor" value={latest?.substrateMoisturePercent === undefined ? "Sin dato" : `${latest.substrateMoisturePercent}%`} /></dl></>}
-      <small>Describe únicamente la caída registrada entre lecturas. No define un objetivo de riego ni completa períodos sin medición.</small>
+      <header><div><p className="plant-calculation-eyebrow">Después del último riego</p><h5>Dryback medido</h5></div><span className="pill pill-blue">humedad o peso</span></header>
+      {windowMeasurements.length >= 2 ? <><MeasurementSparkline color="#5b8fc9" label="Humedad de sustrato" points={points} unit="%" /><dl><PlantFact label="Descenso observado" value={drop === undefined ? "Sin dato" : `${formatSignedNumber(-drop)} puntos`} /><PlantFact label="Duración observada" value={durationHours === undefined ? "Sin dato" : `${Number(durationHours.toFixed(1))} h`} /><PlantFact label="Velocidad media" value={rate === undefined ? "Sin dato" : `${rate} puntos/h`} /><PlantFact label="Último valor" value={latest?.substrateMoisturePercent === undefined ? "Sin dato" : `${latest.substrateMoisturePercent}%`} /></dl></> : <p>Faltan dos mediciones de humedad de sustrato posteriores al mismo riego.</p>}
+      {weightMeasurements.length >= 2 ? <><MeasurementSparkline color="#a07845" label="Peso total de maceta" points={weightPoints} unit=" g" /><dl><PlantFact label="Pérdida de peso" value={weightDrop === undefined ? "Sin dato" : `${weightDrop} g`} /><PlantFact label="Duración" value={weightHours === undefined ? "Sin dato" : `${Number(weightHours.toFixed(1))} h`} /><PlantFact label="Velocidad media" value={weightRate === undefined ? "Sin dato" : `${weightRate} g/h`} /><PlantFact label="Último peso" value={latestWeight?.potWeightG === undefined ? "Sin dato" : `${latestWeight.potWeightG} g`} /></dl></> : <p>Para analizar por peso, registrá al menos dos pesos totales después del mismo riego.</p>}
+      <small>Describe únicamente cambios registrados. La pérdida de peso puede combinar evaporación y transpiración; no define por sí sola cuándo regar ni completa períodos sin medición.</small>
     </section>
   );
 }
@@ -5506,7 +5550,7 @@ function formatObservedMinutes(minutes: number) {
   return `${Number((minutes / 60).toFixed(1))} h`;
 }
 
-type CsvMeasurementField = "measuredAt" | "temperatureC" | "ambientHumidityPercent" | "leafTemperatureC" | "substrateMoisturePercent" | "ppfdUmolM2S" | "heightCm" | "waterAmountMl";
+type CsvMeasurementField = "measuredAt" | "temperatureC" | "ambientHumidityPercent" | "leafTemperatureC" | "substrateMoisturePercent" | "potWeightG" | "ppfdUmolM2S" | "heightCm" | "waterAmountMl";
 type CsvMeasurementMapping = Record<CsvMeasurementField, string>;
 
 const csvMeasurementFields: Array<{ field: CsvMeasurementField; label: string; aliases: string[] }> = [
@@ -5515,6 +5559,7 @@ const csvMeasurementFields: Array<{ field: CsvMeasurementField; label: string; a
   { field: "ambientHumidityPercent", label: "Humedad %", aliases: ["humidity", "humedad", "rh"] },
   { field: "leafTemperatureC", label: "Temperatura foliar °C", aliases: ["leaf temperature", "leaf temp", "temperatura foliar"] },
   { field: "substrateMoisturePercent", label: "Humedad de sustrato %", aliases: ["soil moisture", "substrate moisture", "humedad sustrato", "vwc"] },
+  { field: "potWeightG", label: "Peso total de maceta g", aliases: ["pot weight", "peso maceta", "peso total", "weight g"] },
   { field: "ppfdUmolM2S", label: "PPFD", aliases: ["ppfd", "par"] },
   { field: "heightCm", label: "Altura cm", aliases: ["height", "altura"] },
   { field: "waterAmountMl", label: "Agua ml", aliases: ["water", "riego", "agua", "volume"] }
@@ -5557,13 +5602,14 @@ function CsvMeasurementImporter({ measurements, onImportMeasurement, plant }: { 
         leafTemperatureC: parseImportedNumber(value("leafTemperatureC")),
         measuredAt: measuredAt ?? "",
         plantId: plant.id,
+        potWeightG: parseImportedNumber(value("potWeightG")),
         ppfdUmolM2S: parseImportedNumber(value("ppfdUmolM2S")),
         source: "sensor",
         substrateMoisturePercent: parseImportedNumber(value("substrateMoisturePercent")),
         temperatureC: parseImportedNumber(value("temperatureC")),
         waterAmountMl: parseImportedNumber(value("waterAmountMl"))
       };
-      const hasData = [candidate.temperatureC, candidate.ambientHumidityPercent, candidate.leafTemperatureC, candidate.substrateMoisturePercent, candidate.ppfdUmolM2S, candidate.heightCm, candidate.waterAmountMl].some((item) => item !== undefined);
+      const hasData = [candidate.temperatureC, candidate.ambientHumidityPercent, candidate.leafTemperatureC, candidate.substrateMoisturePercent, candidate.potWeightG, candidate.ppfdUmolM2S, candidate.heightCm, candidate.waterAmountMl].some((item) => item !== undefined);
       const validRanges = isImportedMeasurementValid(candidate);
       if (!measuredAt || !hasData || !validRanges) { invalid += 1; return; }
       const key = buildMeasurementDeduplicationKey(candidate);
@@ -5612,8 +5658,8 @@ function parseCsvText(text: string) {
 function guessCsvColumn(headers: string[], aliases: string[]) { return headers.find((header) => aliases.some((alias) => normalizeLookupText(header).includes(normalizeLookupText(alias)))) ?? ""; }
 function parseImportedNumber(value?: string) { if (!value?.trim()) return undefined; const parsed = Number(value.trim().replace(/\s/g, "").replace(",", ".")); return Number.isFinite(parsed) ? parsed : undefined; }
 function parseImportedDate(value?: string) { if (!value?.trim()) return undefined; const normalized = value.trim().replace(" ", "T"); if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(normalized)) return normalized.slice(0, 16); const date = new Date(normalized); return Number.isNaN(date.getTime()) ? undefined : date.toISOString().slice(0, 16); }
-function isImportedMeasurementValid(measurement: PlantMeasurement) { return (measurement.temperatureC === undefined || (measurement.temperatureC >= -50 && measurement.temperatureC <= 100)) && (measurement.leafTemperatureC === undefined || (measurement.leafTemperatureC >= -50 && measurement.leafTemperatureC <= 100)) && (measurement.ambientHumidityPercent === undefined || (measurement.ambientHumidityPercent >= 0 && measurement.ambientHumidityPercent <= 100)) && (measurement.substrateMoisturePercent === undefined || (measurement.substrateMoisturePercent >= 0 && measurement.substrateMoisturePercent <= 100)) && (measurement.ppfdUmolM2S === undefined || measurement.ppfdUmolM2S >= 0) && (measurement.heightCm === undefined || measurement.heightCm >= 0) && (measurement.waterAmountMl === undefined || measurement.waterAmountMl >= 0); }
-function buildMeasurementDeduplicationKey(measurement: PlantMeasurement) { return [measurement.plantId, measurement.measuredAt, measurement.temperatureC, measurement.ambientHumidityPercent, measurement.leafTemperatureC, measurement.substrateMoisturePercent, measurement.ppfdUmolM2S, measurement.heightCm, measurement.waterAmountMl].join("|"); }
+function isImportedMeasurementValid(measurement: PlantMeasurement) { return (measurement.temperatureC === undefined || (measurement.temperatureC >= -50 && measurement.temperatureC <= 100)) && (measurement.leafTemperatureC === undefined || (measurement.leafTemperatureC >= -50 && measurement.leafTemperatureC <= 100)) && (measurement.ambientHumidityPercent === undefined || (measurement.ambientHumidityPercent >= 0 && measurement.ambientHumidityPercent <= 100)) && (measurement.substrateMoisturePercent === undefined || (measurement.substrateMoisturePercent >= 0 && measurement.substrateMoisturePercent <= 100)) && (measurement.potWeightG === undefined || measurement.potWeightG >= 0) && (measurement.ppfdUmolM2S === undefined || measurement.ppfdUmolM2S >= 0) && (measurement.heightCm === undefined || measurement.heightCm >= 0) && (measurement.waterAmountMl === undefined || measurement.waterAmountMl >= 0); }
+function buildMeasurementDeduplicationKey(measurement: PlantMeasurement) { return [measurement.plantId, measurement.measuredAt, measurement.temperatureC, measurement.ambientHumidityPercent, measurement.leafTemperatureC, measurement.substrateMoisturePercent, measurement.potWeightG, measurement.ppfdUmolM2S, measurement.heightCm, measurement.waterAmountMl].join("|"); }
 
 function MeasurementHistoryCard({
   measurement,
@@ -5634,6 +5680,7 @@ function MeasurementHistoryCard({
     [assessment.vpdBasis === "leaf-measured" ? "VPD foliar (hoja medida)" : "VPD foliar estimado (-2,8 °C)", formatOptionalMeasurement(assessment.vpdKpa, " kPa", "Calculado")],
     ["Temperatura foliar", formatOptionalMeasurement(measurement.leafTemperatureC, "°C")],
     ["Sustrato", formatOptionalMeasurement(measurement.substrateMoisturePercent, "%")],
+    ["Peso total maceta", formatOptionalMeasurement(measurement.potWeightG, " g")],
     ["PPFD", formatOptionalMeasurement(measurement.ppfdUmolM2S, " µmol/m²/s")],
     ["Altura", formatOptionalMeasurement(measurement.heightCm, " cm")]
   ];
@@ -6116,6 +6163,7 @@ function PlantMeasurementForm({
   const [substrateMoisture, setSubstrateMoisture] = useState(() => field(initialMeasurement?.substrateMoisturePercent));
   const [ppfd, setPpfd] = useState(() => field(initialMeasurement?.ppfdUmolM2S));
   const [height, setHeight] = useState(() => field(initialMeasurement?.heightCm));
+  const [potWeight, setPotWeight] = useState(() => field(initialMeasurement?.potWeightG));
   const [waterAmount, setWaterAmount] = useState(() => field(initialMeasurement?.waterAmountMl));
   const [irrigationPh, setIrrigationPh] = useState(() => field(initialMeasurement?.irrigationPh));
   const [irrigationEc, setIrrigationEc] = useState(() => field(initialMeasurement?.irrigationEcMsCm));
@@ -6143,7 +6191,7 @@ function PlantMeasurementForm({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!temperature && !leafTemperature && !humidity && !substrateMoisture && !ppfd && !height && !waterAmount && !irrigationPh && !irrigationEc && !irrigationPpm && !runoffAmount && !runoffPh && !runoffEc && !observations && !photoDataUrl) return;
+    if (!temperature && !leafTemperature && !humidity && !substrateMoisture && !ppfd && !height && !potWeight && !waterAmount && !irrigationPh && !irrigationEc && !irrigationPpm && !runoffAmount && !runoffPh && !runoffEc && !observations && !photoDataUrl) return;
 
     onAddMeasurement({
       ambientHumidityPercent: parseOptionalNumber(humidity),
@@ -6153,6 +6201,7 @@ function PlantMeasurementForm({
       observations: observations.trim() || undefined,
       photoDataUrl: photoDataUrl || undefined,
       plantId: plant.id,
+      potWeightG: parseOptionalNumber(potWeight),
       ppfdUmolM2S: parseOptionalNumber(ppfd),
       source,
       substrateMoisturePercent: parseOptionalNumber(substrateMoisture),
@@ -6168,7 +6217,7 @@ function PlantMeasurementForm({
     });
     if (resetAfterSave) {
       setMeasuredAt(getLocalDateTimeValue()); setTemperature(""); setLeafTemperature(""); setHumidity("");
-      setSubstrateMoisture(""); setPpfd(""); setHeight(""); setWaterAmount(""); setIrrigationPh(""); setIrrigationEc("");
+      setSubstrateMoisture(""); setPpfd(""); setHeight(""); setPotWeight(""); setWaterAmount(""); setIrrigationPh(""); setIrrigationEc("");
       setIrrigationPpm(""); setRunoffAmount(""); setRunoffPh(""); setRunoffEc(""); setObservations(""); setPhotoDataUrl("");
     } else onDone();
   }
@@ -6209,6 +6258,10 @@ function PlantMeasurementForm({
       <label>
         {t?.heightLabel ?? "Altura (cm, opcional)"}
         <input className="form-control" inputMode="decimal" min="0" onChange={(event) => setHeight(event.target.value)} step="0.1" type="number" value={height} />
+      </label>
+      <label>
+        Peso total de maceta (g, opcional)
+        <input className="form-control" inputMode="decimal" min="0" onChange={(event) => setPotWeight(event.target.value)} step="1" type="number" value={potWeight} />
       </label>
       <fieldset className="measurement-irrigation-fields">
         <legend>{t?.irrigationLegend ?? "Registro de riego (opcional)"}</legend>

@@ -735,6 +735,7 @@ export type PlantMeasurement = {
   ambientHumidityPercent?: number;
   substrateMoisturePercent?: number;
   heightCm?: number;
+  potWeightG?: number;
   waterAmountMl?: number;
   irrigationPh?: number;
   irrigationEcMsCm?: number;

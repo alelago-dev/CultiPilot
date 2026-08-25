@@ -7414,6 +7414,13 @@ textarea {
   .environment-analysis-card > small a { color: var(--pc-primary); text-decoration: underline; text-underline-offset: 2px; }
   .environment-analysis-card > dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem; }
   .environment-analysis-card .environment-sparkline { margin: 0; }
+  .harvest-readiness-panel { display: grid; gap: 0.8rem; margin-top: 0.9rem; border: 1px solid color-mix(in srgb, var(--pc-primary) 35%, var(--pc-border)); border-radius: 12px; background: var(--pc-surface); padding: 1rem; }
+  .harvest-readiness-panel > header { display: flex; align-items: start; justify-content: space-between; gap: 0.8rem; }
+  .harvest-readiness-panel h4 { color: var(--pc-foreground); font-size: 1rem; font-weight: 900; }
+  .harvest-readiness-panel header p:not(.plant-calculation-eyebrow), .harvest-readiness-panel > small { color: var(--pc-muted); font-size: 0.72rem; font-weight: 700; line-height: 1.5; }
+  .harvest-readiness-panel > dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+  .harvest-readiness-panel > details { border-top: 1px solid var(--pc-border); padding-top: 0.7rem; }
+  .harvest-readiness-panel > details > summary { cursor: pointer; color: var(--pc-primary); font-size: 0.78rem; font-weight: 900; }
   .day-night-schedule { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
   .day-night-schedule button { grid-column: 1 / -1; justify-self: start; }
   .ppfd-map-card > header .form-control { width: auto; min-width: 5.5rem; }
