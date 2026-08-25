@@ -4420,12 +4420,65 @@ function ArchivedCyclesPanel({
         <CycleSelector label="Primer ciclo" onChange={setFirstId} plants={plants} value={first.id} />
         <CycleSelector label="Segundo ciclo" onChange={setSecondId} plants={plants} value={second.id} />
       </div>
+      <CycleComparisonSummary entries={entries} first={first} measurements={measurements} second={second} />
       <div className="archived-cycle-comparison">
         <ArchivedCycleCard entries={entries} measurements={measurements} onClone={onCreatePlant} onReopen={() => onUpdatePlant(first.id, { closingNotes: undefined, completedAt: undefined, cycleOutcome: undefined, finalDryWeightG: undefined, finalWetWeightG: undefined, lessonsLearned: undefined, lifecycle: "active", nextCyclePlan: undefined })} plant={first} />
         <ArchivedCycleCard entries={entries} measurements={measurements} onClone={onCreatePlant} onReopen={() => onUpdatePlant(second.id, { closingNotes: undefined, completedAt: undefined, cycleOutcome: undefined, finalDryWeightG: undefined, finalWetWeightG: undefined, lessonsLearned: undefined, lifecycle: "active", nextCyclePlan: undefined })} plant={second} />
       </div>
     </Card>
   );
+}
+
+function CycleComparisonSummary({ entries, first, measurements, second }: { entries: CareEntry[]; first: Plant; measurements: PlantMeasurement[]; second: Plant }) {
+  const firstSummary = summarizeArchivedCycle(first, measurements, entries);
+  const secondSummary = summarizeArchivedCycle(second, measurements, entries);
+  const comparisons = [
+    { first: first.variety || undefined, label: "Genética / variedad", second: second.variety || undefined },
+    { first: first.pot || undefined, label: "Maceta", second: second.pot || undefined },
+    { first: first.substrate || undefined, label: "Sustrato", second: second.substrate || undefined },
+    { first: first.lighting || undefined, label: "Iluminación", second: second.lighting || undefined },
+    { first: first.setup || undefined, label: "Espacio / setup", second: second.setup || undefined },
+    { first: firstSummary.durationDays, label: "Duración", second: secondSummary.durationDays, unit: " días" },
+    { first: first.finalDryWeightG, label: "Peso seco declarado", second: second.finalDryWeightG, unit: " g" },
+    { first: firstSummary.waterMl, label: "Agua registrada", second: secondSummary.waterMl, unit: " ml" },
+    { first: firstSummary.averageVpd, label: "VPD promedio calculado", second: secondSummary.averageVpd, unit: " kPa" },
+    { first: firstSummary.measurementCount, label: "Mediciones", second: secondSummary.measurementCount, unit: "" },
+    { first: firstSummary.noteCount, label: "Notas", second: secondSummary.noteCount, unit: "" }
+  ];
+  const comparable = comparisons.filter((item) => item.first !== undefined && item.second !== undefined).length;
+  const configurationChanges = comparisons.slice(0, 5).filter((item) => item.first !== undefined && item.second !== undefined && item.first !== item.second).map((item) => item.label);
+
+  return (
+    <section className="cycle-comparison-summary" aria-label={`Comparación entre ${first.name} y ${second.name}`}>
+      <header><div><p className="plant-calculation-eyebrow">Comparación integral</p><h3>Qué cambió entre ciclos</h3></div><span className="pill pill-blue">{comparable} de {comparisons.length} campos comparables</span></header>
+      <div className="cycle-comparison-table" role="table">
+        <div className="cycle-comparison-row cycle-comparison-head" role="row"><strong role="columnheader">Dato</strong><strong role="columnheader">{first.name}</strong><strong role="columnheader">{second.name}</strong><strong role="columnheader">Diferencia</strong></div>
+        {comparisons.map((item) => {
+          const firstNumber = typeof item.first === "number" ? item.first : undefined;
+          const secondNumber = typeof item.second === "number" ? item.second : undefined;
+          const difference = firstNumber !== undefined && secondNumber !== undefined ? Number((secondNumber - firstNumber).toFixed(2)) : undefined;
+          return <div className="cycle-comparison-row" role="row" key={item.label}><span role="cell">{item.label}</span><span role="cell">{formatCycleComparisonValue(item.first, item.unit)}</span><span role="cell">{formatCycleComparisonValue(item.second, item.unit)}</span><span role="cell">{difference === undefined ? item.first !== undefined && item.second !== undefined ? (item.first === item.second ? "Sin cambio" : "Cambió") : "Faltan datos" : `${formatSignedNumber(difference)}${item.unit}`}</span></div>;
+        })}
+      </div>
+      <p>{configurationChanges.length > 0 ? `Cambios declarados detectados: ${configurationChanges.join(", ")}.` : "No hay cambios de configuración comparables declarados entre estos ciclos."} La tabla describe diferencias; no atribuye resultados a una causa.</p>
+    </section>
+  );
+}
+
+function summarizeArchivedCycle(plant: Plant, measurements: PlantMeasurement[], entries: CareEntry[]) {
+  const cycleMeasurements = measurements.filter((measurement) => measurement.plantId === plant.id);
+  const vpd = cycleMeasurements.flatMap((measurement) => { const value = assessPlantEnvironment(plant, measurement).vpdKpa; return value === undefined ? [] : [value]; });
+  return {
+    averageVpd: vpd.length > 0 ? Number((vpd.reduce((total, value) => total + value, 0) / vpd.length).toFixed(2)) : undefined,
+    durationDays: plant.completedAt ? getDaysBetween(plant.startedAt, plant.completedAt) : undefined,
+    measurementCount: cycleMeasurements.length,
+    noteCount: entries.filter((entry) => entry.plantId === plant.id).length,
+    waterMl: cycleMeasurements.some((measurement) => measurement.waterAmountMl !== undefined) ? Number(cycleMeasurements.reduce((total, measurement) => total + (measurement.waterAmountMl ?? 0), 0).toFixed(1)) : undefined
+  };
+}
+
+function formatCycleComparisonValue(value: number | string | undefined, unit = "") {
+  return value === undefined || value === "" ? "Sin dato" : `${value}${unit}`;
 }
 
 function CycleSelector({ label, onChange, plants, value }: { label: string; onChange: (value: string) => void; plants: Plant[]; value: string }) {
@@ -5207,6 +5260,11 @@ function PlantEnvironmentPanel({
         Fórmula: presión de vapor saturado (Tetens) menos presión real de vapor. Resultado calculado, no medido. Tendencia: {vpdTrend}.
       </p>
 
+      <div className="environment-analysis-grid">
+        <EnvironmentalTimeInBand measurements={sortedMeasurements} plant={plant} />
+        <DrybackAnalysis measurements={sortedMeasurements} />
+      </div>
+
       {assessment.messages.length > 0 ? (
         <div className="plant-environment-alerts">
           {assessment.messages.map((message) => (
@@ -5252,6 +5310,64 @@ function PlantEnvironmentPanel({
       ) : null}
     </section>
   );
+}
+
+function EnvironmentalTimeInBand({ measurements, plant }: { measurements: PlantMeasurement[]; plant: Plant }) {
+  const chronological = [...measurements]
+    .filter((measurement) => measurement.measuredAt.slice(0, 10) >= offsetDate(getTodayIso(), -29))
+    .sort((first, second) => first.measuredAt.localeCompare(second.measuredAt));
+  let assessedMinutes = 0;
+  let inRangeMinutes = 0;
+  let unknownGapMinutes = 0;
+
+  chronological.slice(0, -1).forEach((measurement, index) => {
+    const next = chronological[index + 1];
+    const intervalMinutes = Math.max(0, Math.round((new Date(next.measuredAt).getTime() - new Date(measurement.measuredAt).getTime()) / 60_000));
+    if (intervalMinutes === 0) return;
+    if (intervalMinutes > 360) { unknownGapMinutes += intervalMinutes; return; }
+    const status = assessPlantEnvironment(plant, measurement).vpdStatus;
+    if (status === "missing") return;
+    assessedMinutes += intervalMinutes;
+    if (status === "in-range") inRangeMinutes += intervalMinutes;
+  });
+
+  const percentage = assessedMinutes > 0 ? Math.round((inRangeMinutes / assessedMinutes) * 100) : undefined;
+
+  return (
+    <section className="environment-analysis-card">
+      <header><div><p className="plant-calculation-eyebrow">Estabilidad ambiental</p><h5>Tiempo observado dentro de banda</h5></div><span className={percentage === undefined ? "pill pill-soft" : percentage >= 75 ? "pill pill-green" : "pill pill-amber"}>{percentage === undefined ? "Sin cobertura" : `${percentage}%`}</span></header>
+      {percentage === undefined ? <p>Se necesitan lecturas calculables separadas por no más de 6 horas para estimar duración.</p> : <><div className="time-in-band-bar"><i style={{ width: `${percentage}%` }} /></div><dl><PlantFact label="Dentro de banda" value={formatObservedMinutes(inRangeMinutes)} /><PlantFact label="Tiempo evaluado" value={formatObservedMinutes(assessedMinutes)} /><PlantFact label="Lecturas disponibles" value={chronological.length.toString()} /><PlantFact label="Huecos mayores a 6 h" value={unknownGapMinutes > 0 ? formatObservedMinutes(unknownGapMinutes) : "Ninguno"} /></dl></>}
+      <small>Asigna cada intervalo a la lectura anterior; no extrapola después de la última lectura ni atraviesa huecos mayores a 6 horas.</small>
+    </section>
+  );
+}
+
+function DrybackAnalysis({ measurements }: { measurements: PlantMeasurement[] }) {
+  const chronological = [...measurements].sort((first, second) => first.measuredAt.localeCompare(second.measuredAt));
+  const irrigationIndexes = chronological.flatMap((measurement, index) => measurement.waterAmountMl !== undefined && measurement.waterAmountMl > 0 ? [index] : []);
+  const lastIrrigationIndex = irrigationIndexes.at(-1);
+  const windowMeasurements = lastIrrigationIndex === undefined ? [] : chronological
+    .slice(lastIrrigationIndex)
+    .filter((measurement) => measurement.substrateMoisturePercent !== undefined);
+  const first = windowMeasurements[0];
+  const latest = windowMeasurements.at(-1);
+  const durationHours = first && latest ? (new Date(latest.measuredAt).getTime() - new Date(first.measuredAt).getTime()) / 3_600_000 : undefined;
+  const drop = first?.substrateMoisturePercent !== undefined && latest?.substrateMoisturePercent !== undefined ? Number((first.substrateMoisturePercent - latest.substrateMoisturePercent).toFixed(1)) : undefined;
+  const rate = drop !== undefined && durationHours !== undefined && durationHours > 0 ? Number((drop / durationHours).toFixed(2)) : undefined;
+  const points = windowMeasurements.map((measurement) => ({ label: formatMeasurementDate(measurement.measuredAt), value: measurement.substrateMoisturePercent! }));
+
+  return (
+    <section className="environment-analysis-card">
+      <header><div><p className="plant-calculation-eyebrow">Después del último riego</p><h5>Dryback del sustrato</h5></div><span className="pill pill-blue">{windowMeasurements.length} lecturas</span></header>
+      {windowMeasurements.length < 2 ? <p>Faltan al menos dos mediciones de humedad de sustrato posteriores al mismo riego.</p> : <><MeasurementSparkline color="#5b8fc9" label="Humedad de sustrato" points={points} unit="%" /><dl><PlantFact label="Descenso observado" value={drop === undefined ? "Sin dato" : `${formatSignedNumber(-drop)} puntos`} /><PlantFact label="Duración observada" value={durationHours === undefined ? "Sin dato" : `${Number(durationHours.toFixed(1))} h`} /><PlantFact label="Velocidad media" value={rate === undefined ? "Sin dato" : `${rate} puntos/h`} /><PlantFact label="Último valor" value={latest?.substrateMoisturePercent === undefined ? "Sin dato" : `${latest.substrateMoisturePercent}%`} /></dl></>}
+      <small>Describe únicamente la caída registrada entre lecturas. No define un objetivo de riego ni completa períodos sin medición.</small>
+    </section>
+  );
+}
+
+function formatObservedMinutes(minutes: number) {
+  if (minutes < 60) return `${minutes} min`;
+  return `${Number((minutes / 60).toFixed(1))} h`;
 }
 
 type CsvMeasurementField = "measuredAt" | "temperatureC" | "ambientHumidityPercent" | "leafTemperatureC" | "substrateMoisturePercent" | "ppfdUmolM2S" | "heightCm" | "waterAmountMl";
