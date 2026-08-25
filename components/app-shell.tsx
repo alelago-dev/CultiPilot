@@ -2117,12 +2117,12 @@ export function AppShell({
 function QuickRegisterSheet({ locale, onClose }: { locale: Locale; onClose: () => void }) {
   useEffect(() => { const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); }; window.addEventListener("keydown", closeOnEscape); return () => window.removeEventListener("keydown", closeOnEscape); }, [onClose]);
   const actions = locale === "en" ? [
-    { body: "Temperature, humidity, VPD, watering and other readings.", href: `${getInternalSectionHref(locale, "spaces")}#mediciones-ambientales`, icon: Thermometer, label: "Environmental measurement" },
+    { body: "Enter temperature and humidity. CultiPilot calculates VPD automatically.", href: `${getInternalSectionHref(locale, "spaces")}#mediciones-ambientales`, icon: Thermometer, label: "Temperature and humidity" },
     { body: "Free note, observation or photo linked to a date.", href: `${getInternalSectionHref(locale, "calendar")}#registro-diario`, icon: Camera, label: "Note or photo" },
     { body: "One-time or recurring work for your plan.", href: `${getInternalSectionHref(locale, "calendar")}#planificacion`, icon: CalendarDays, label: "Task or event" },
     { body: "Open a pot to record an inspection or stage change.", href: getInternalSectionHref(locale, "spaces"), icon: Sprout, label: "Plant follow-up" }
   ] : [
-    { body: "Temperatura, humedad, VPD, riego y otras lecturas.", href: `${getInternalSectionHref(locale, "spaces")}#mediciones-ambientales`, icon: Thermometer, label: "Medición ambiental" },
+    { body: "Ingresá temperatura y humedad. CultiPilot calcula el VPD automáticamente.", href: `${getInternalSectionHref(locale, "spaces")}#mediciones-ambientales`, icon: Thermometer, label: "Temperatura y humedad" },
     { body: "Nota libre, observación o foto vinculada a una fecha.", href: `${getInternalSectionHref(locale, "calendar")}#registro-diario`, icon: Camera, label: "Nota o foto" },
     { body: "Trabajo puntual o recurrente para tu planificación.", href: `${getInternalSectionHref(locale, "calendar")}#planificacion`, icon: CalendarDays, label: "Tarea o evento" },
     { body: "Abrí una maceta para registrar inspección o cambio de etapa.", href: getInternalSectionHref(locale, "spaces"), icon: Sprout, label: "Seguimiento de planta" }
@@ -2401,6 +2401,7 @@ function TodaySection({
     <div className="today-page">
       <section className="executive-home mx-auto max-w-7xl px-4 pb-5 pt-4 sm:px-6 lg:px-8 lg:pt-6">
         <TodayHeader dictionary={dictionary} openTasks={openTasks} streakCount={streakCount} todayIso={todayIso} />
+        <EnvironmentalQuickAccess dictionary={dictionary} locale={locale} measurements={measurements} plants={plants} />
         <WeekStrip habitDates={habitDates} locale={locale} todayIso={todayIso} />
         <ToolboxRow dictionary={dictionary} />
         <AttentionCard
@@ -2452,7 +2453,6 @@ function TodaySection({
           />
           <PushNotificationsPanel accountStatus={accountStatus} dictionary={dictionary} />
         </div>
-        <EnvironmentalQuickAccess dictionary={dictionary} locale={locale} measurements={measurements} plants={plants} />
         <TodayStageSummary dictionary={dictionary} locale={locale} plants={plants} transitions={stageTransitions} />
         <TodayEnvironmentalAlerts acknowledgedAlerts={acknowledgedEnvironmentalAlerts} dictionary={dictionary} environmentalAlerts={environmentalAlerts} locale={locale} measurements={measurements} onAcknowledge={onAcknowledgeEnvironmentalAlert} plants={plants} />
         <TodayInspectionFollowUps dictionary={dictionary} inspections={inspections} locale={locale} plants={plants} />
@@ -3223,7 +3223,10 @@ function SpacesSection({
   const activePlants = plants.filter((plant) => plant.lifecycle !== "archived");
   const archivedPlants = plants.filter((plant) => plant.lifecycle === "archived");
   const [measurementPlantId, setMeasurementPlantId] = useState(activePlants[0]?.id ?? "");
-  const [measurementsExpanded, setMeasurementsExpanded] = useState(false);
+  // Es una de las acciones principales de la app: el formulario queda abierto
+  // de entrada para que temperatura y humedad no dependan de descubrir un
+  // acordeon ni de conocer la sigla VPD.
+  const [measurementsExpanded, setMeasurementsExpanded] = useState(true);
   const normalizedQuery = query.trim().toLowerCase();
   const selectedReferenceGenetic = geneticsCatalogAlphabetically.find((genetic) => genetic.id === referenceGeneticId);
   const visibleSpaces = spaces
