@@ -3,7 +3,7 @@
 import { type ChangeEvent, type Dispatch, type FormEvent, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
-import { Bug, CalendarDays, Camera, CloudSun, Download, Droplet, Eye, Home, LayoutGrid, Leaf, ListChecks, MoonStar, NotebookPen, Plus, ShieldCheck, Scissors, Sparkles, Sprout, Sun, Thermometer, type LucideIcon } from "lucide-react";
+import { Bug, CalendarDays, Camera, CloudSun, Download, Droplet, Eye, Home, LayoutGrid, Leaf, ListChecks, MoonStar, NotebookPen, Plus, Settings2, ShieldCheck, Scissors, Sparkles, Sprout, Sun, Thermometer, type LucideIcon } from "lucide-react";
 
 import { Card } from "@/components/card";
 import { CopyValueButton } from "@/components/copy-button";
@@ -510,6 +510,26 @@ const calendarQuickActions: Array<{
     title: "Fotoperiodo 12/12"
   }
 ];
+
+const calendarActionLabelsEn: Record<EventIconKey, string> = {
+  watering: "Watering",
+  photo: "Photo",
+  cleaning: "Cleaning",
+  prune: "Pruning",
+  defoliate: "Defoliation",
+  spray: "Spraying",
+  photoperiod: "12/12 photoperiod"
+};
+
+function getCalendarActionLabel(action: (typeof calendarQuickActions)[number], locale: Locale) {
+  return locale === "en" ? calendarActionLabelsEn[action.iconKey] : action.label;
+}
+
+function getLocalizedEventKindLabel(kind: CalendarEventKind, locale: Locale) {
+  if (locale !== "en") return getEventKindLabel(kind);
+
+  return { watering: "Watering", photo: "Photo", cleaning: "Cleaning", review: "Review" }[kind];
+}
 const storageKeys = {
   acknowledgedEnvironmentalAlerts: "plantcare-acknowledged-environmental-alerts",
   calendarDate: "plantcare-calendar-selected-date",
@@ -1868,9 +1888,21 @@ export function AppShell({
               <span className="sm:hidden">{dictionary.header.vpdShort}</span>
               <span className="hidden sm:inline">{dictionary.header.vpdLong}</span>
             </Link>
-            <InstallAppButton dictionary={dictionary} />
-            <LocaleSwitcher currentSection={currentSection} locale={locale} />
-            <ThemeToggle dictionary={dictionary} />
+            <div className="header-secondary-actions">
+              <InstallAppButton dictionary={dictionary} />
+              <LocaleSwitcher currentSection={currentSection} locale={locale} />
+              <ThemeToggle dictionary={dictionary} />
+            </div>
+            <details className="mobile-header-tools">
+              <summary aria-label={locale === "en" ? "Open display and language settings" : "Abrir ajustes de pantalla e idioma"}>
+                <Settings2 aria-hidden="true" size={18} strokeWidth={2.3} />
+              </summary>
+              <div className="mobile-header-tools-panel">
+                <InstallAppButton dictionary={dictionary} />
+                <LocaleSwitcher currentSection={currentSection} locale={locale} />
+                <ThemeToggle dictionary={dictionary} />
+              </div>
+            </details>
             <div className="hidden items-center gap-2 rounded-lg border border-emerald-700/15 bg-white/88 px-3 py-2 text-sm font-bold text-moss-900 shadow-sm sm:flex">
               <span className="status-dot" aria-hidden="true" />
               {dictionary.header.demoBadge}
@@ -2023,6 +2055,7 @@ export function AppShell({
       {!shouldShowFirstCultivation && currentSection === "journal" ? (
         <JournalSection
           entries={entryState}
+          locale={locale}
           onCreateQuickPlant={handleCreateQuickPlant}
           onDeleteJournalEntry={handleDeleteJournalEntry}
           onUpdateJournalEntry={handleUpdateJournalEntry}
@@ -2032,6 +2065,7 @@ export function AppShell({
       {currentSection === "privacy" ? (
         <PrivacySection
           accountStatus={accountStatus}
+          locale={locale}
           onClearCultivationData={handleClearCultivationData}
           onExportData={handleExportData}
           onSaveRemoteSnapshot={() => saveRemoteSnapshot(undefined, { manual: true })}
@@ -6180,24 +6214,29 @@ function CalendarSection({
   plants: Plant[];
 }) {
   const todayIso = getTodayIso();
+  const isEnglish = locale === "en";
   const [anchorDate, setAnchorDate] = useState(() => getStoredCalendarDate(todayIso));
-  const [viewMode, setViewMode] = useState<"month" | "week">(() =>
-    typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? "week" : "month"
-  );
+  const [viewMode, setViewMode] = useState<"month" | "week">("month");
   const [selectedDate, setSelectedDate] = useState(() => getStoredCalendarDate(todayIso));
-  const [isCompactGrid, setIsCompactGrid] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches
-  );
+  const [isCompactGrid, setIsCompactGrid] = useState(false);
 
   useEffect(() => {
     const compactQuery = window.matchMedia("(max-width: 639px)");
+    const mobileQuery = window.matchMedia("(max-width: 767px)");
     const handleCompactChange = (event: MediaQueryListEvent) => setIsCompactGrid(event.matches);
+    const initialResponsiveUpdate = window.setTimeout(() => {
+      setIsCompactGrid(compactQuery.matches);
+      if (mobileQuery.matches) setViewMode("week");
+    }, 0);
 
     compactQuery.addEventListener("change", handleCompactChange);
-    return () => compactQuery.removeEventListener("change", handleCompactChange);
+    return () => {
+      window.clearTimeout(initialResponsiveUpdate);
+      compactQuery.removeEventListener("change", handleCompactChange);
+    };
   }, []);
   const calendarPeriodLabel =
-    viewMode === "month" ? formatMonthPeriod(anchorDate) : `${formatDisplayDate(firstVisibleWeekDate(anchorDate))} - ${formatDisplayDate(addDays(firstVisibleWeekDate(anchorDate), 6))}`;
+    viewMode === "month" ? formatMonthPeriod(anchorDate, locale) : `${formatDisplayDate(firstVisibleWeekDate(anchorDate), locale)} - ${formatDisplayDate(addDays(firstVisibleWeekDate(anchorDate), 6), locale)}`;
 
   const days = useMemo(
     () => (viewMode === "month" ? buildMonthGrid(anchorDate) : buildWeekGrid(anchorDate)),
@@ -6370,53 +6409,53 @@ function CalendarSection({
     <section className="calendar-page mx-auto mt-5 max-w-[1500px] px-3 sm:px-5 lg:px-6" id="planificacion">
       <div className="calendar-header">
         <div className="calendar-title-block">
-          <p className="eyebrow text-emerald-800">Calendario</p>
+          <p className="eyebrow text-emerald-800">{isEnglish ? "Calendar" : "Calendario"}</p>
           <h1>{calendarPeriodLabel}</h1>
-          <p className="calendar-context-copy">Planificá tareas, revisá el historial y registrá acciones por maceta.</p>
+          <p className="calendar-context-copy">{isEnglish ? "Plan tasks, review history, and log actions for each pot." : "Planificá tareas, revisá el historial y registrá acciones por maceta."}</p>
         </div>
-        <div className="calendar-toolbar" aria-label="Navegacion del calendario">
+        <div className="calendar-toolbar" aria-label={isEnglish ? "Calendar navigation" : "Navegacion del calendario"}>
           <div className="calendar-history-controls">
-            <button className="calendar-icon-button" aria-label="Un ano atras" onClick={() => navigateYear(-1)} type="button">
+            <button className="calendar-icon-button" aria-label={isEnglish ? "Previous year" : "Un ano atras"} onClick={() => navigateYear(-1)} type="button">
               <span aria-hidden="true">&laquo;</span>
             </button>
             <button
               className="calendar-icon-button"
-              aria-label={viewMode === "month" ? "Mes anterior" : "Semana anterior"}
+              aria-label={viewMode === "month" ? (isEnglish ? "Previous month" : "Mes anterior") : (isEnglish ? "Previous week" : "Semana anterior")}
               onClick={() => navigateCalendar(-1)}
               type="button"
             >
               <span aria-hidden="true">&lsaquo;</span>
             </button>
             <button className="today-control" onClick={goToToday} type="button">
-              Hoy
+              {isEnglish ? "Today" : "Hoy"}
             </button>
             <button
               className="calendar-icon-button"
-              aria-label={viewMode === "month" ? "Mes siguiente" : "Semana siguiente"}
+              aria-label={viewMode === "month" ? (isEnglish ? "Next month" : "Mes siguiente") : (isEnglish ? "Next week" : "Semana siguiente")}
               onClick={() => navigateCalendar(1)}
               type="button"
             >
               <span aria-hidden="true">&rsaquo;</span>
             </button>
-            <button className="calendar-icon-button" aria-label="Un ano adelante" onClick={() => navigateYear(1)} type="button">
+            <button className="calendar-icon-button" aria-label={isEnglish ? "Next year" : "Un ano adelante"} onClick={() => navigateYear(1)} type="button">
               <span aria-hidden="true">&raquo;</span>
             </button>
           </div>
           <label className="calendar-month-picker">
-            <span>Mes / ano</span>
+            <span>{isEnglish ? "Month / year" : "Mes / ano"}</span>
             <input
-              aria-label="Elegir mes y ano"
+              aria-label={isEnglish ? "Choose month and year" : "Elegir mes y ano"}
               onChange={(event) => handleMonthPickerChange(event.target.value)}
               type="month"
               value={getYearMonthValue(anchorDate)}
             />
           </label>
-          <div className="view-toggle" aria-label="Vista de calendario" role="group">
+          <div className="view-toggle" aria-label={isEnglish ? "Calendar view" : "Vista de calendario"} role="group">
             <button aria-pressed={viewMode === "month"} className={viewMode === "month" ? "active" : ""} onClick={() => setViewMode("month")} type="button">
-              Mes
+              {isEnglish ? "Month" : "Mes"}
             </button>
             <button aria-pressed={viewMode === "week"} className={viewMode === "week" ? "active" : ""} onClick={() => setViewMode("week")} type="button">
-              Semana
+              {isEnglish ? "Week" : "Semana"}
             </button>
           </div>
         </div>
@@ -6431,12 +6470,12 @@ function CalendarSection({
             type="button"
           >
             <span aria-hidden="true">+</span>
-            Crear
+            {isEnglish ? "Create" : "Crear"}
           </button>
           <label className="calendar-plant-picker">
-            <span>Maceta</span>
+            <span>{isEnglish ? "Pot" : "Maceta"}</span>
             <select
-              aria-label="Elegir planta o maceta para agregar tarea"
+              aria-label={isEnglish ? "Choose a plant or pot for the task" : "Elegir planta o maceta para agregar tarea"}
               value={quickEventPlantValue}
               onChange={(event) => setQuickEventPlantId(event.target.value)}
             >
@@ -6447,11 +6486,11 @@ function CalendarSection({
                   </option>
                 ))
               ) : (
-                <option value={manualPlantId}>Cultivo manual</option>
+                <option value={manualPlantId}>{isEnglish ? "Manual crop" : "Cultivo manual"}</option>
               )}
             </select>
           </label>
-          <div className="calendar-action-stack" aria-label="Agregar evento rapido">
+          <div className="calendar-action-stack" aria-label={isEnglish ? "Add quick event" : "Agregar evento rapido"}>
             {calendarQuickActions.map((action) => {
               const ActionIcon = eventIconComponents[action.iconKey];
 
@@ -6463,7 +6502,7 @@ function CalendarSection({
                   type="button"
                 >
                   <ActionIcon aria-hidden="true" size={15} strokeWidth={2.25} />
-                  <span>{action.label}</span>
+                  <span>{getCalendarActionLabel(action, locale)}</span>
                 </button>
               );
             })}
@@ -6471,7 +6510,7 @@ function CalendarSection({
           <input
             ref={photoInputRef}
             accept="image/*"
-            aria-label="Tomar o elegir foto del cultivo"
+            aria-label={isEnglish ? "Take or choose a crop photo" : "Tomar o elegir foto del cultivo"}
             capture="environment"
             className="sr-only"
             onChange={handlePhotoSelected}
@@ -6502,7 +6541,7 @@ function CalendarSection({
                 ...dayEntries.map((entry) => ({
                   className: "event-note",
                   id: `journal-${entry.id}`,
-                  label: entry.title?.trim() || "Nota de bitacora",
+                  label: entry.title?.trim() || (isEnglish ? "Journal note" : "Nota de bitacora"),
                   type: "entry" as const,
                   entry
                 }))
@@ -6523,7 +6562,7 @@ function CalendarSection({
                 >
                   <div className="flex items-center justify-between gap-1">
                     <span className="calendar-day-number">{day.label}</span>
-                    {day.isToday ? <span className="today-dot" aria-label="Hoy" /> : null}
+                    {day.isToday ? <span className="today-dot" aria-label={isEnglish ? "Today" : "Hoy"} /> : null}
                   </div>
                   {isCompactGrid ? (
                     <div className="calendar-event-icons">
@@ -6555,7 +6594,7 @@ function CalendarSection({
                     <div className="calendar-event-list">
                       {visibleDayItems.slice(0, 3).map((item) => (
                         <span className={`calendar-event ${item.className}`} key={item.id}>
-                          {item.type === "entry" ? "Nota: " : ""}{item.label}
+                          {item.type === "entry" ? (isEnglish ? "Note: " : "Nota: ") : ""}{item.label}
                         </span>
                       ))}
                       {visibleDayItems.length > 3 ? <span className="calendar-event event-review">+{visibleDayItems.length - 3}</span> : null}
@@ -6568,8 +6607,8 @@ function CalendarSection({
         </div>
 
         <aside className="calendar-day-panel" aria-live="polite">
-          <p className="eyebrow text-emerald-800">Detalle del dia</p>
-          <h3 className="mt-1 text-lg font-black tracking-tight text-moss-950">{formatDisplayDate(selectedDate)}</h3>
+          <p className="eyebrow text-emerald-800">{isEnglish ? "Day details" : "Detalle del dia"}</p>
+          <h3 className="mt-1 text-lg font-black tracking-tight text-moss-950">{formatDisplayDate(selectedDate, locale)}</h3>
           <div className="mt-4 grid gap-3">
             {selectedOccurrences.length > 0 ? (
               selectedOccurrences.map((occurrence) => (
@@ -6587,17 +6626,18 @@ function CalendarSection({
               <p className="calendar-journal-day-summary">
                 <NotebookPen aria-hidden="true" size={16} strokeWidth={2.25} />
                 {selectedEntries.length === 1
-                  ? "Hay 1 nota de bitacora en este dia."
-                  : `Hay ${selectedEntries.length} notas de bitacora en este dia.`}
+                  ? (isEnglish ? "There is 1 journal note on this day." : "Hay 1 nota de bitacora en este dia.")
+                  : (isEnglish ? `There are ${selectedEntries.length} journal notes on this day.` : `Hay ${selectedEntries.length} notas de bitacora en este dia.`)}
               </p>
             ) : (
               <p className="rounded-lg border border-moss-950/10 bg-white/70 p-3 text-sm font-bold text-stone-600">
-                No hay eventos ni notas para este dia.
+                {isEnglish ? "There are no events or notes for this day." : "No hay eventos ni notas para este dia."}
               </p>
             )}
           </div>
           <CalendarDayJournal
             entries={selectedEntries}
+            locale={locale}
             onAddJournalEntry={onAddJournalEntry}
             onDeleteJournalEntry={onDeleteJournalEntry}
             onUpdateJournalEntry={onUpdateJournalEntry}
@@ -6612,6 +6652,7 @@ function CalendarSection({
 
 function CalendarDayJournal({
   entries,
+  locale,
   onAddJournalEntry,
   onDeleteJournalEntry,
   onUpdateJournalEntry,
@@ -6619,12 +6660,14 @@ function CalendarDayJournal({
   selectedDate
 }: {
   entries: CareEntry[];
+  locale: Locale;
   onAddJournalEntry: (entry: CareEntry) => void;
   onDeleteJournalEntry: (entryId: string) => void;
   onUpdateJournalEntry: (entryId: string, updates: JournalEntryUpdates) => void;
   plants: Plant[];
   selectedDate: string;
 }) {
+  const isEnglish = locale === "en";
   const [plantId, setPlantId] = useState(plants[0]?.id ?? "");
   const [title, setTitle] = useState("Revision del dia");
   const [note, setNote] = useState("");
@@ -6651,9 +6694,9 @@ function CalendarDayJournal({
     <section className="calendar-journal-card mt-4" aria-labelledby="calendar-journal-title" id="registro-diario">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="eyebrow text-emerald-800">Bitacora</p>
+          <p className="eyebrow text-emerald-800">{isEnglish ? "Journal" : "Bitacora"}</p>
           <h4 className="mt-1 font-black text-moss-950" id="calendar-journal-title">
-            Anotar lo que hiciste
+            {isEnglish ? "Log what you did" : "Anotar lo que hiciste"}
           </h4>
         </div>
         <span className="pill pill-soft">Manual</span>
@@ -6661,31 +6704,31 @@ function CalendarDayJournal({
 
       <div className="mt-3 grid gap-2">
         <FormSelect
-          label="Planta"
+          label={isEnglish ? "Plant" : "Planta"}
           onChange={setPlantId}
           options={plants.length > 0 ? plants.map((plant) => plant.id) : [""]}
           value={plantId}
           valueLabels={Object.fromEntries(plants.map((plant) => [plant.id, plant.name]))}
         />
         <FormSelect
-          label="Tipo de registro"
+          label={isEnglish ? "Entry type" : "Tipo de registro"}
           onChange={setTag}
           options={["Revision", "Riego", "Poda", "Nutricion", "Plagas", "Limpieza", "Foto", "Otro"]}
           value={tag}
         />
-        <FormField label="Titulo" onChange={setTitle} placeholder="Ej. Revision general" value={title} />
+        <FormField label={isEnglish ? "Title" : "Titulo"} onChange={setTitle} placeholder={isEnglish ? "E.g. General check" : "Ej. Revision general"} value={title} />
         <label className="grid gap-1 text-sm font-black text-moss-950">
-          Nota del dia
+          {isEnglish ? "Day note" : "Nota del dia"}
           <textarea
-            aria-label="Nota del dia"
+            aria-label={isEnglish ? "Day note" : "Nota del dia"}
             className="form-control min-h-28"
             onChange={(event) => setNote(event.target.value)}
-            placeholder="Ej. Revise humedad, hojas, plagas, riego realizado, poda, fertilizacion o cualquier observacion."
+            placeholder={isEnglish ? "E.g. Checked moisture, leaves, pests, watering, pruning, nutrition, or any observation." : "Ej. Revise humedad, hojas, plagas, riego realizado, poda, fertilizacion o cualquier observacion."}
             value={note}
           />
         </label>
         <button className="primary-button" onClick={handleSave} type="button">
-          Guardar en bitacora
+          {isEnglish ? "Save to journal" : "Guardar en bitacora"}
         </button>
       </div>
 
@@ -6695,6 +6738,7 @@ function CalendarDayJournal({
             <JournalEntryCard
               entry={entry}
               key={entry.id}
+              locale={locale}
               onDelete={onDeleteJournalEntry}
               onUpdate={onUpdateJournalEntry}
               plants={plants}
@@ -6703,7 +6747,7 @@ function CalendarDayJournal({
           ))
         ) : (
           <p className="rounded-lg border border-moss-950/10 bg-white/70 p-3 text-sm font-bold text-stone-600">
-            Todavia no hay notas guardadas para este dia.
+            {isEnglish ? "There are no saved notes for this day yet." : "Todavia no hay notas guardadas para este dia."}
           </p>
         )}
       </div>
@@ -6713,17 +6757,20 @@ function CalendarDayJournal({
 
 function JournalEntryCard({
   entry,
+  locale,
   onDelete,
   onUpdate,
   plants,
   variant = "timeline"
 }: {
   entry: CareEntry;
+  locale: Locale;
   onDelete: (entryId: string) => void;
   onUpdate: (entryId: string, updates: JournalEntryUpdates) => void;
   plants: Plant[];
   variant?: "compact" | "timeline";
 }) {
+  const isEnglish = locale === "en";
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [draftDate, setDraftDate] = useState(entry.createdAt);
@@ -6795,14 +6842,14 @@ function JournalEntryCard({
     <article className={articleClassName}>
       {entry.photoDataUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img className={imageClassName} src={entry.photoDataUrl} alt={`Foto de ${entry.title}`} />
+        <img className={imageClassName} src={entry.photoDataUrl} alt={isEnglish ? `Photo of ${entry.title}` : `Foto de ${entry.title}`} />
       ) : variant === "timeline" ? (
-        <div className={imageClassName} aria-label={`Foto pendiente de ${entry.title}`} />
+        <div className={imageClassName} aria-label={isEnglish ? `Photo pending for ${entry.title}` : `Foto pendiente de ${entry.title}`} />
       ) : null}
       <input
         ref={photoInputRef}
         accept="image/*"
-        aria-label={`Cambiar foto de ${entry.title}`}
+        aria-label={isEnglish ? `Change photo for ${entry.title}` : `Cambiar foto de ${entry.title}`}
         className="sr-only"
         onChange={handlePhotoChange}
         type="file"
@@ -6811,29 +6858,29 @@ function JournalEntryCard({
         {isEditing ? (
           <div className="journal-edit-form">
             <div className="grid gap-2 sm:grid-cols-2">
-              <FormField label="Fecha" onChange={setDraftDate} placeholder="AAAA-MM-DD" type="date" value={draftDate} />
+              <FormField label={isEnglish ? "Date" : "Fecha"} onChange={setDraftDate} placeholder={isEnglish ? "YYYY-MM-DD" : "AAAA-MM-DD"} type="date" value={draftDate} />
               <FormSelect
-                label="Planta"
+                label={isEnglish ? "Plant" : "Planta"}
                 onChange={setDraftPlantId}
                 options={plants.length > 0 ? ["", ...plants.map((item) => item.id)] : [""]}
                 value={draftPlantId}
                 valueLabels={{
-                  "": "Sin planta",
+                  "": isEnglish ? "No plant" : "Sin planta",
                   ...Object.fromEntries(plants.map((item) => [item.id, item.name]))
                 }}
               />
               <FormSelect
-                label="Tipo de registro"
+                label={isEnglish ? "Entry type" : "Tipo de registro"}
                 onChange={setDraftTag}
                 options={["Revision", "Riego", "Poda", "Nutricion", "Plagas", "Limpieza", "Foto", "Otro"]}
                 value={draftTag}
               />
-              <FormField label="Titulo" onChange={setDraftTitle} placeholder="Ej. Revision general" value={draftTitle} />
+              <FormField label={isEnglish ? "Title" : "Titulo"} onChange={setDraftTitle} placeholder={isEnglish ? "E.g. General check" : "Ej. Revision general"} value={draftTitle} />
             </div>
             <label className="grid gap-1 text-sm font-black text-moss-950">
-              Nota
+              {isEnglish ? "Note" : "Nota"}
               <textarea
-                aria-label="Editar nota de bitacora"
+                aria-label={isEnglish ? "Edit journal note" : "Editar nota de bitacora"}
                 className="form-control min-h-28"
                 onChange={(event) => setDraftNote(event.target.value)}
                 value={draftNote}
@@ -6841,7 +6888,7 @@ function JournalEntryCard({
             </label>
             <div className="journal-actions">
               <button className="primary-button" onClick={handleSave} type="button">
-                Guardar cambios
+                {isEnglish ? "Save changes" : "Guardar cambios"}
               </button>
               <button
                 className="secondary-button"
@@ -6851,18 +6898,18 @@ function JournalEntryCard({
                 }}
                 type="button"
               >
-                Cancelar
+                {isEnglish ? "Cancel" : "Cancelar"}
               </button>
               <button className="secondary-button" onClick={() => photoInputRef.current?.click()} type="button">
-                Cambiar foto
+                {isEnglish ? "Change photo" : "Cambiar foto"}
               </button>
               {entry.photoDataUrl ? (
                 <button className="secondary-button" onClick={handleRemovePhoto} type="button">
-                  Quitar foto
+                  {isEnglish ? "Remove photo" : "Quitar foto"}
                 </button>
               ) : null}
               <button className="danger-button" onClick={handleDelete} type="button">
-                Eliminar
+                {isEnglish ? "Delete" : "Eliminar"}
               </button>
             </div>
           </div>
@@ -6870,27 +6917,27 @@ function JournalEntryCard({
           <>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[11px] font-black uppercase text-stone-500">{plant?.name ?? "Sin planta"}</p>
+                <p className="text-[11px] font-black uppercase text-stone-500">{plant?.name ?? (isEnglish ? "No plant" : "Sin planta")}</p>
                 <h5 className="mt-1 font-black text-moss-950">{entry.title}</h5>
                 <p className="mt-1 text-xs font-bold text-stone-500">{entry.createdAt}</p>
               </div>
-              <span className="pill pill-blue">{entry.tags[0] ?? "Nota"}</span>
+              <span className="pill pill-blue">{entry.tags[0] ?? (isEnglish ? "Note" : "Nota")}</span>
             </div>
             <p className="mt-2 text-sm font-bold leading-6 text-stone-700">{entry.note}</p>
             <div className="journal-actions mt-3">
               <button className="secondary-button" onClick={() => setIsEditing(true)} type="button">
-                Editar
+                {isEnglish ? "Edit" : "Editar"}
               </button>
               <button className="secondary-button" onClick={() => photoInputRef.current?.click()} type="button">
-                Cambiar foto
+                {isEnglish ? "Change photo" : "Cambiar foto"}
               </button>
               {entry.photoDataUrl ? (
                 <button className="secondary-button" onClick={handleRemovePhoto} type="button">
-                  Quitar foto
+                  {isEnglish ? "Remove photo" : "Quitar foto"}
                 </button>
               ) : null}
               <button className="danger-button" onClick={handleDelete} type="button">
-                Eliminar
+                {isEnglish ? "Delete" : "Eliminar"}
               </button>
             </div>
           </>
@@ -6915,6 +6962,7 @@ function CalendarOccurrenceCard({
   onToggle: () => void;
   plant?: Plant;
 }) {
+  const isEnglish = locale === "en";
   const googleCalendarUrl = buildGoogleCalendarUrl(occurrence, plant);
 
   return (
@@ -6923,33 +6971,33 @@ function CalendarOccurrenceCard({
         {plant ? <PlantAvatar plant={plant} /> : null}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={`event-legend ${getEventClass(occurrence.kind)}`}>{getEventKindLabel(occurrence.kind)}</span>
+            <span className={`event-legend ${getEventClass(occurrence.kind)}`}>{getLocalizedEventKindLabel(occurrence.kind, locale)}</span>
             <span className={occurrence.completed ? "pill pill-green" : "pill pill-amber"}>
-              {occurrence.completed ? "Hecho" : "Pendiente"}
+              {occurrence.completed ? (isEnglish ? "Done" : "Hecho") : (isEnglish ? "Pending" : "Pendiente")}
             </span>
           </div>
           <h4 className="mt-2 font-black text-moss-950">{displayEventTitle(occurrence.title)}</h4>
-          <p className="mt-1 text-sm font-semibold text-stone-600">{plant?.name ?? "Planta sin detalle"}</p>
+          <p className="mt-1 text-sm font-semibold text-stone-600">{plant?.name ?? (isEnglish ? "Plant details unavailable" : "Planta sin detalle")}</p>
           <p className="mt-2 text-sm leading-6 text-stone-700">{occurrence.description}</p>
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         <button className="secondary-button" onClick={onToggle} type="button">
-          {occurrence.completed ? "Marcar pendiente" : "Marcar hecho"}
+          {occurrence.completed ? (isEnglish ? "Mark pending" : "Marcar pendiente") : (isEnglish ? "Mark done" : "Marcar hecho")}
         </button>
         <button className="secondary-button" onClick={onEdit} type="button">
-          Editar
+          {isEnglish ? "Edit" : "Editar"}
         </button>
         <button className="danger-button" onClick={onDelete} type="button">
-          Eliminar
+          {isEnglish ? "Delete" : "Eliminar"}
         </button>
         {plant ? (
           <Link className="secondary-button" href={`${getInternalSectionHref(locale, "spaces")}#${plant.id}` as Route}>
-            Ver planta
+            {isEnglish ? "View plant" : "Ver planta"}
           </Link>
         ) : null}
         <a className="secondary-button" href={googleCalendarUrl} rel="noopener noreferrer" target="_blank">
-          Agregar a Google Calendar
+          {isEnglish ? "Add to Google Calendar" : "Agregar a Google Calendar"}
         </a>
       </div>
     </article>
@@ -6958,23 +7006,26 @@ function CalendarOccurrenceCard({
 
 function JournalSection({
   entries,
+  locale,
   onCreateQuickPlant,
   onDeleteJournalEntry,
   onUpdateJournalEntry,
   plants
 }: {
   entries: CareEntry[];
+  locale: Locale;
   onCreateQuickPlant: (input: QuickPlantInput) => void;
   onDeleteJournalEntry: (entryId: string) => void;
   onUpdateJournalEntry: (entryId: string, updates: JournalEntryUpdates) => void;
   plants: Plant[];
 }) {
+  const isEnglish = locale === "en";
   const groupedEntries = groupEntriesByPlantAndDate(entries, plants);
 
   return (
     <section className="mx-auto mt-7 grid max-w-7xl gap-5 px-4 sm:px-6 lg:grid-cols-[1fr_0.9fr] lg:px-8">
       <Card className="p-4 sm:p-5">
-        <SectionHeader eyebrow="Bitacora" title="Observaciones y fotos" />
+        <SectionHeader eyebrow={isEnglish ? "Journal" : "Bitacora"} title={isEnglish ? "Observations and photos" : "Observaciones y fotos"} />
         <div className="journal-timeline mt-5">
           {groupedEntries.length > 0 ? (
             groupedEntries.map((group) => (
@@ -6991,6 +7042,7 @@ function JournalSection({
                     <JournalEntryCard
                       entry={entry}
                       key={entry.id}
+                      locale={locale}
                       onDelete={onDeleteJournalEntry}
                       onUpdate={onUpdateJournalEntry}
                       plants={plants}
@@ -7001,20 +7053,20 @@ function JournalSection({
             ))
           ) : (
             <EmptyState
-              body="Las notas y fotos que guardes desde el calendario o el diario van a formar el historial de cada planta."
-              title="Todavia no hay bitacora"
+              body={isEnglish ? "Notes and photos saved from the calendar or journal will build each plant's history." : "Las notas y fotos que guardes desde el calendario o el diario van a formar el historial de cada planta."}
+              title={isEnglish ? "No journal entries yet" : "Todavia no hay bitacora"}
             />
           )}
         </div>
       </Card>
 
       <Card as="section" aria-labelledby="new-plant-title" className="p-4 sm:p-5">
-        <p className="eyebrow text-emerald-800">Alta rapida</p>
+        <p className="eyebrow text-emerald-800">{isEnglish ? "Quick setup" : "Alta rapida"}</p>
         <h2 className="mt-2 text-xl font-black tracking-tight text-moss-950 sm:text-2xl" id="new-plant-title">
-          Nueva planta
+          {isEnglish ? "New plant" : "Nueva planta"}
         </h2>
-        <DesktopQuickPlantForm onCreateQuickPlant={onCreateQuickPlant} />
-        <MobileQuickPlantWizard onCreateQuickPlant={onCreateQuickPlant} />
+        <DesktopQuickPlantForm locale={locale} onCreateQuickPlant={onCreateQuickPlant} />
+        <MobileQuickPlantWizard locale={locale} onCreateQuickPlant={onCreateQuickPlant} />
       </Card>
     </section>
   );
@@ -7022,6 +7074,7 @@ function JournalSection({
 
 function PrivacySection({
   accountStatus,
+  locale,
   onClearCultivationData,
   onExportData,
   onSaveRemoteSnapshot,
@@ -7029,18 +7082,20 @@ function PrivacySection({
   onSignOut
 }: {
   accountStatus: AccountStatus;
+  locale: Locale;
   onClearCultivationData: () => void;
   onExportData: () => void;
   onSaveRemoteSnapshot: () => void;
   onSendMagicLink: (email: string) => void;
   onSignOut: () => void;
 }) {
+  const isEnglish = locale === "en";
   const [cleared, setCleared] = useState(false);
   const [email, setEmail] = useState(accountStatus.email);
 
   function handleClearClick() {
     const confirmed = window.confirm(
-      "Esto elimina cultivos, tareas, eventos del calendario y racha guardados en esta demo. No se puede deshacer. ¿Continuar?"
+      isEnglish ? "This deletes the crops, tasks, calendar events, and streak saved in this demo. This cannot be undone. Continue?" : "Esto elimina cultivos, tareas, eventos del calendario y racha guardados en esta demo. No se puede deshacer. ¿Continuar?"
     );
 
     if (!confirmed) return;
@@ -7051,24 +7106,25 @@ function PrivacySection({
 
   return (
     <section className="mx-auto mt-8 max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
-      <SectionHeader eyebrow="Cumplimiento" title="Privacidad y uso legal" />
+      <SectionHeader eyebrow={isEnglish ? "Compliance" : "Cumplimiento"} title={isEnglish ? "Privacy and legal use" : "Privacidad y uso legal"} />
       <div className="mt-5 grid gap-4 lg:grid-cols-3">
         <InfoCard
-          title="Consentimiento"
-          body="El alta del usuario registra mayoria de edad, privacidad y uso exclusivo en jurisdicciones donde el cultivo sea legal."
+          title={isEnglish ? "Consent" : "Consentimiento"}
+          body={isEnglish ? "Account creation records legal age, privacy acceptance, and exclusive use in jurisdictions where cultivation is legal." : "El alta del usuario registra mayoria de edad, privacidad y uso exclusivo en jurisdicciones donde el cultivo sea legal."}
         />
         <InfoCard
-          title="Datos personales"
-          body="La ubicacion se guarda como region aproximada. La app incluye base para exportar o eliminar todos los datos del usuario."
+          title={isEnglish ? "Personal data" : "Datos personales"}
+          body={isEnglish ? "Location is stored as an approximate region. The app lets users export or delete all their data." : "La ubicacion se guarda como region aproximada. La app incluye base para exportar o eliminar todos los datos del usuario."}
         />
         <InfoCard
-          title="Limites del producto"
-          body="El contenido se limita a seguimiento horticola general, mantenimiento y registro. No incluye guias para maximizar sustancias controladas ni evadir controles."
+          title={isEnglish ? "Product scope" : "Limites del producto"}
+          body={isEnglish ? "Content covers general horticultural tracking, maintenance, and records. It does not provide guidance to evade legal controls." : "El contenido se limita a seguimiento horticola general, mantenimiento y registro. No incluye guias para maximizar sustancias controladas ni evadir controles."}
         />
       </div>
       <UserDataPanel
         accountStatus={accountStatus}
         email={email}
+        locale={locale}
         onEmailChange={setEmail}
         onSaveRemoteSnapshot={onSaveRemoteSnapshot}
         onSendMagicLink={onSendMagicLink}
@@ -7076,15 +7132,15 @@ function PrivacySection({
       />
       <div className="mt-5 flex flex-wrap gap-3">
         <button className="secondary-button" onClick={onExportData} type="button">
-          Exportar mis datos
+          {isEnglish ? "Export my data" : "Exportar mis datos"}
         </button>
         <button className="dark-button" onClick={handleClearClick} type="button">
-          Eliminar cultivos demo
+          {isEnglish ? "Delete demo crops" : "Eliminar cultivos demo"}
         </button>
       </div>
       {cleared ? (
         <p className="mt-3 rounded-lg border border-emerald-700/20 bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-900">
-          Cultivos, tareas y eventos eliminados de esta demo.
+          {isEnglish ? "Crops, tasks, and events deleted from this demo." : "Cultivos, tareas y eventos eliminados de esta demo."}
         </p>
       ) : null}
     </section>
@@ -7094,6 +7150,7 @@ function PrivacySection({
 function UserDataPanel({
   accountStatus,
   email,
+  locale,
   onEmailChange,
   onSaveRemoteSnapshot,
   onSendMagicLink,
@@ -7101,11 +7158,13 @@ function UserDataPanel({
 }: {
   accountStatus: AccountStatus;
   email: string;
+  locale: Locale;
   onEmailChange: (value: string) => void;
   onSaveRemoteSnapshot: () => void;
   onSendMagicLink: (email: string) => void;
   onSignOut: () => void;
 }) {
+  const isEnglish = locale === "en";
   const isBusy = accountStatus.tone === "pending";
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -7120,35 +7179,34 @@ function UserDataPanel({
   return (
     <section className="account-sync-panel mt-5 scroll-mt-28" id="cuenta" aria-labelledby="account-sync-title">
       <div className="min-w-0">
-        <p className="eyebrow text-emerald-800">Login y guardado por usuario</p>
+        <p className="eyebrow text-emerald-800">{isEnglish ? "Account login and cloud saving" : "Login y guardado por usuario"}</p>
         <h3 className="mt-1 text-xl font-black tracking-tight text-moss-950" id="account-sync-title">
-          Iniciar sesion para ver tus datos en otros navegadores
+          {isEnglish ? "Sign in to access your data in other browsers" : "Iniciar sesion para ver tus datos en otros navegadores"}
         </h3>
         <p className="mt-2 max-w-3xl text-sm font-bold leading-6 text-stone-700">
-          Para abrir la app desde otro celular o navegador y ver los mismos cultivos, hay que entrar con email. Te
-          llega un enlace de acceso al correo: no hace falta recordar ninguna contrasena.
+          {isEnglish ? "Sign in with email to open the same crops on another phone or browser. You will receive a secure access link, so there is no password to remember." : "Para abrir la app desde otro celular o navegador y ver los mismos cultivos, hay que entrar con email. Te llega un enlace de acceso al correo: no hace falta recordar ninguna contrasena."}
         </p>
       </div>
 
       <div className="account-sync-card">
         <span className={accountStatus.isSignedIn ? "pill pill-green" : "pill pill-amber"}>
-          {accountStatus.isSignedIn ? "Cuenta conectada" : accountStatus.isConfigured ? "Sin sesion" : "Demo local"}
+          {accountStatus.isSignedIn ? (isEnglish ? "Account connected" : "Cuenta conectada") : accountStatus.isConfigured ? (isEnglish ? "Signed out" : "Sin sesion") : (isEnglish ? "Local demo" : "Demo local")}
         </span>
         <AccountFeedback status={accountStatus} />
         {accountStatus.isSignedIn ? (
           <div className="mt-4 flex flex-wrap gap-2">
             <button className="primary-button" disabled={isBusy} onClick={onSaveRemoteSnapshot} type="button">
-              {isBusy ? "Guardando..." : "Guardar ahora"}
+              {isBusy ? (isEnglish ? "Saving..." : "Guardando...") : (isEnglish ? "Save now" : "Guardar ahora")}
             </button>
             <button className="secondary-button" onClick={onSignOut} type="button">
-              Cerrar sesion
+              {isEnglish ? "Sign out" : "Cerrar sesion"}
             </button>
             <span className="pill pill-soft">{accountStatus.email}</span>
           </div>
         ) : (
           <form className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]" onSubmit={handleSubmit}>
             <FormField
-              label="Email de usuario"
+              label={isEnglish ? "User email" : "Email de usuario"}
               onChange={onEmailChange}
               placeholder="tu@email.com"
               type="email"
@@ -7159,7 +7217,7 @@ function UserDataPanel({
               disabled={!accountStatus.isConfigured || isBusy}
               type="submit"
             >
-              {isBusy ? "Enviando..." : "Iniciar sesion"}
+              {isBusy ? (isEnglish ? "Sending..." : "Enviando...") : (isEnglish ? "Sign in" : "Iniciar sesion")}
             </button>
           </form>
         )}
@@ -7205,18 +7263,18 @@ function TaskCard({
   );
 }
 
-function DesktopQuickPlantForm({ onCreateQuickPlant }: { onCreateQuickPlant: (input: QuickPlantInput) => void }) {
+function DesktopQuickPlantForm({ locale, onCreateQuickPlant }: { locale: Locale; onCreateQuickPlant: (input: QuickPlantInput) => void }) {
   return (
-    <QuickPlantForm className="quick-plant-desktop mt-5 grid gap-3" onCreateQuickPlant={onCreateQuickPlant} />
+    <QuickPlantForm className="quick-plant-desktop mt-5 grid gap-3" locale={locale} onCreateQuickPlant={onCreateQuickPlant} />
   );
 }
 
-function MobileQuickPlantWizard({ onCreateQuickPlant }: { onCreateQuickPlant: (input: QuickPlantInput) => void }) {
+function MobileQuickPlantWizard({ locale, onCreateQuickPlant }: { locale: Locale; onCreateQuickPlant: (input: QuickPlantInput) => void }) {
   return (
     <div className="quick-plant-mobile mt-5 grid gap-3">
       <details className="reference-details" open>
-        <summary>Alta guiada en 3 pasos</summary>
-        <QuickPlantForm className="mt-3 grid gap-3" onCreateQuickPlant={onCreateQuickPlant} />
+        <summary>{locale === "en" ? "Guided setup in 3 steps" : "Alta guiada en 3 pasos"}</summary>
+        <QuickPlantForm className="mt-3 grid gap-3" locale={locale} onCreateQuickPlant={onCreateQuickPlant} />
       </details>
     </div>
   );
@@ -7224,11 +7282,14 @@ function MobileQuickPlantWizard({ onCreateQuickPlant }: { onCreateQuickPlant: (i
 
 function QuickPlantForm({
   className,
+  locale,
   onCreateQuickPlant
 }: {
   className: string;
+  locale: Locale;
   onCreateQuickPlant: (input: QuickPlantInput) => void;
 }) {
+  const isEnglish = locale === "en";
   const todayIso = getTodayIso();
   const horticultureSeeds = seedCatalog.filter((seed) => seed.recommendationEnabled);
   const [name, setName] = useState("");
@@ -7250,10 +7311,10 @@ function QuickPlantForm({
         onCreateQuickPlant({ name, seedId, startDate, region, mode, pot, potCount, substrate, reminderOffset, recurrenceDays });
       }}
     >
-      <FormField label="Nombre" onChange={setName} placeholder="Ej. Tomate patio" value={name} />
+      <FormField label={isEnglish ? "Name" : "Nombre"} onChange={setName} placeholder={isEnglish ? "E.g. Patio tomato" : "Ej. Tomate patio"} value={name} />
       <SeedSelect onChange={setSeedId} value={seedId} />
-      <FormField label="Fecha de inicio" onChange={setStartDate} placeholder={todayIso} type="date" value={startDate} />
-      <FormSelect label="Region aproximada" onChange={setRegion} options={["Buenos Aires, AR", "Region metropolitana", "Otra region"]} value={region} />
+      <FormField label={isEnglish ? "Start date" : "Fecha de inicio"} onChange={setStartDate} placeholder={todayIso} type="date" value={startDate} />
+      <FormSelect label={isEnglish ? "Approximate region" : "Region aproximada"} onChange={setRegion} options={["Buenos Aires, AR", "Region metropolitana", "Otra region"]} value={region} />
       <div className="grid gap-3 sm:grid-cols-2">
         <FormSelect label="Maceta" onChange={setPot} options={["5 L", "10 L", "15 L", "20 L", "25 L"]} value={pot} />
         <FormSelect
@@ -8108,16 +8169,16 @@ function getDaysUntilLabel(targetIso: string, todayIso: string) {
   return `en ${days} dias`;
 }
 
-function formatDisplayDate(isoDate: string) {
-  return new Intl.DateTimeFormat("es-AR", {
+function formatDisplayDate(isoDate: string, locale: Locale = "es") {
+  return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "es-AR", {
     day: "numeric",
     month: "long",
     year: "numeric"
   }).format(new Date(`${isoDate}T00:00:00`));
 }
 
-function formatMonthPeriod(isoDate: string) {
-  return new Intl.DateTimeFormat("es-AR", {
+function formatMonthPeriod(isoDate: string, locale: Locale = "es") {
+  return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "es-AR", {
     month: "long",
     year: "numeric"
   }).format(parseIsoDate(getMonthStartIso(isoDate)));

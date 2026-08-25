@@ -164,6 +164,37 @@ header.app-header.sticky {
 .desktop-navigation .desktop-nav-item.active { background: var(--pc-primary) !important; box-shadow: none !important; }
 .desktop-navigation .desktop-nav-item:focus-visible { outline: 3px solid var(--pc-ring); outline-offset: 2px; }
 .header-actions { flex-shrink: 0; }
+.header-secondary-actions { display: flex; align-items: center; gap: 0.5rem; }
+.mobile-header-tools { display: none; position: relative; }
+.mobile-header-tools > summary {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  cursor: pointer;
+  list-style: none;
+  place-items: center;
+  border: 1px solid var(--pc-border);
+  border-radius: 0.65rem;
+  background: var(--pc-surface);
+  color: var(--pc-text);
+}
+.mobile-header-tools > summary::-webkit-details-marker { display: none; }
+.mobile-header-tools[open] > summary { border-color: var(--pc-border-strong); background: var(--pc-surface-subtle); }
+.mobile-header-tools-panel {
+  position: absolute;
+  top: calc(100% + 0.65rem);
+  right: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: max-content;
+  padding: 0.65rem;
+  border: 1px solid var(--pc-border);
+  border-radius: 0.85rem;
+  background: var(--pc-surface);
+  box-shadow: 0 14px 35px rgba(26, 46, 34, 0.18);
+}
 .header-vpd-button { min-height: 2.5rem; border-radius: 0.65rem !important; box-shadow: none !important; }
 .header-theme-button {
   display: inline-flex;
@@ -652,6 +683,8 @@ label:has(> .form-control) {
   .brand-lockup > span > span:first-child { display: none; }
   .brand-lockup > span > span:last-child { font-size: 0.96rem; }
   .header-actions { gap: 0.3rem !important; }
+  .header-secondary-actions { display: none; }
+  .mobile-header-tools { display: block; }
   /*
    * En mobile el header ya no tenia lugar para el boton de VPD con su
    * etiqueta de texto: junto con el logo, el selector de idioma, el
