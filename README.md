@@ -157,6 +157,8 @@ Una alerta de Hoy puede marcarse como revisada. La confirmacion queda vinculada 
 
 El esquema `plant_measurements` y la Edge Function `supabase/functions/ingest-sensor` permiten que un ESP32, Raspberry Pi u otro gateway escriba mediciones con `source = 'sensor'`. Cada dispositivo usa un token propio revocable cuyo hash se guarda en `sensor_devices`; nunca se expone una clave `service_role` en el sensor o en el navegador. La activacion y el ejemplo de peticion estan documentados junto a la funcion.
 
+Cada espacio muestra un mapa operativo visible que enlaza espacio, macetas y dispositivos. Resume la ultima lectura de cada maceta, la conectividad observada de cada sensor, la cantidad de reglas ambientales configuradas y el motivo de un limite superado. `Reportando ahora` significa exclusivamente que el dispositivo envio una señal durante los ultimos 15 minutos; no describe la salud de la planta. El panel de cada sensor usa la misma clasificacion (`reportando`, `sin señal reciente`, `esperando primera señal`, `desactivado`) y ya no muestra un estado verde por el solo hecho de estar creado. Las reglas siguen siendo de monitoreo y alerta: no accionan bombas, luminarias ni valvulas.
+
 ## Analisis asistido por IA
 
 La arquitectura queda preparada para incorporar funciones futuras de inteligencia artificial sin agregar todavia APIs pagas, secretos ni llamadas a modelos.

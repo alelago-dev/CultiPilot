@@ -843,6 +843,36 @@ label:has(> .form-control) {
   background: rgba(244, 249, 247, 0.86);
 }
 
+.space-operational-map { display: grid; gap: 0.8rem; margin: 0.8rem; border: 1px solid var(--pc-border); border-radius: 12px; background: var(--pc-surface-subtle); padding: 0.9rem; }
+.space-operational-map > header { display: flex; align-items: start; justify-content: space-between; gap: 0.75rem; }
+.space-operational-map > header h4 { color: var(--pc-foreground); font-size: 0.95rem; font-weight: 900; }
+.space-operational-map > header span, .space-operational-map > small { color: var(--pc-muted); font-size: 0.68rem; font-weight: 700; line-height: 1.5; }
+.space-operational-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: hidden; border: 1px solid var(--pc-border); border-radius: 9px; background: var(--pc-surface); }
+.space-operational-summary span { padding: 0.55rem; color: var(--pc-muted); font-size: 0.65rem; font-weight: 750; text-align: center; }
+.space-operational-summary span + span { border-left: 1px solid var(--pc-border); }
+.space-operational-summary strong { display: block; color: var(--pc-foreground); font-size: 0.9rem; font-weight: 950; }
+.space-operational-nodes { display: grid; gap: 0.6rem; }
+.space-operational-nodes > article { display: grid; gap: 0.5rem; border: 1px solid var(--pc-border); border-radius: 10px; background: var(--pc-surface); padding: 0.7rem; }
+.space-operational-plant { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.5rem; }
+.space-operational-plant > span { color: var(--pc-primary); font-size: 0.8rem; }
+.space-operational-plant strong, .space-operational-plant small { display: block; }
+.space-operational-plant strong { color: var(--pc-foreground); font-size: 0.78rem; font-weight: 900; }
+.space-operational-plant small { margin-top: 0.1rem; color: var(--pc-muted); font-size: 0.63rem; font-weight: 700; }
+.space-operational-plant a { color: var(--pc-primary); font-size: 0.65rem; font-weight: 900; }
+.space-operational-devices { display: grid; gap: 0.35rem; padding-left: 1.15rem; }
+.sensor-connection { display: flex; align-items: center; gap: 0.45rem; border-left: 1px solid var(--pc-border); padding-left: 0.65rem; }
+.sensor-connection i { width: 0.48rem; height: 0.48rem; flex: 0 0 auto; border-radius: 999px; background: #9ca3af; }
+.sensor-connection.is-reporting i { background: #22c55e; box-shadow: 0 0 0 3px rgb(34 197 94 / 14%); }
+.sensor-connection.is-stale i { background: #f59e0b; }
+.sensor-connection.is-disabled i { background: #78716c; }
+.sensor-connection strong, .sensor-connection small { display: block; }
+.sensor-connection strong { color: var(--pc-foreground); font-size: 0.7rem; font-weight: 850; }
+.sensor-connection small { color: var(--pc-muted); font-size: 0.61rem; font-weight: 700; }
+.space-operational-rule { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.35rem; border-top: 1px dashed var(--pc-border); padding-top: 0.5rem; color: var(--pc-muted); font-size: 0.62rem; font-weight: 750; }
+.space-operational-rule strong { color: var(--pc-foreground); }
+.space-operational-nodes > article > p { color: var(--pc-danger); font-size: 0.64rem; font-weight: 750; line-height: 1.45; }
+@media (max-width: 480px) { .space-operational-map > header { display: grid; } .space-operational-map > header button { width: 100%; } }
+
 .plant-sensor-panel > summary {
   display: flex;
   align-items: center;

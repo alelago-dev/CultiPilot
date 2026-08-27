@@ -3405,6 +3405,14 @@ function SpacesSection({
                 space={space}
                 totalPlantCount={space.totalPlantCount}
               />
+              <SpaceOperationalMap
+                alertSettings={environmentalAlerts}
+                measurements={measurements}
+                onRefreshSensors={onRefreshSensors}
+                plants={space.plants}
+                sensorDevices={sensorDevices}
+                space={space}
+              />
               <div className="grid gap-0 divide-y divide-moss-950/10 p-4">
                 {space.plants.map((plant) => (
                     <PlantSpaceRow
@@ -3629,6 +3637,48 @@ function SpaceManageControls({
       ) : null}
     </div>
   );
+}
+
+function SpaceOperationalMap({ alertSettings, measurements, onRefreshSensors, plants, sensorDevices, space }: { alertSettings: PlantEnvironmentalAlertSettings[]; measurements: PlantMeasurement[]; onRefreshSensors: () => Promise<void>; plants: Plant[]; sensorDevices: SensorDevice[]; space: GrowSpace }) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const spaceDevices = sensorDevices.filter((device) => plants.some((plant) => plant.id === device.plantId));
+  const activeDevices = spaceDevices.filter((device) => device.active);
+  const reportingDevices = activeDevices.filter((device) => getSensorConnectionState(device).key === "reporting");
+
+  async function refresh() {
+    setIsRefreshing(true);
+    await onRefreshSensors();
+    setIsRefreshing(false);
+  }
+
+  return <section className="space-operational-map" aria-label={`Mapa operativo de ${space.name}`}><header><div><p className="plant-calculation-eyebrow">Vista operativa</p><h4>Mapa de sala y señales</h4><span>Espacio → maceta → dispositivo, lectura y regla configurada.</span></div><button className="secondary-button" disabled={isRefreshing} onClick={() => void refresh()} type="button">{isRefreshing ? "Actualizando…" : "Actualizar señales"}</button></header><div className="space-operational-summary"><span><strong>{plants.length}</strong> macetas activas</span><span><strong>{spaceDevices.length}</strong> dispositivos</span><span><strong>{reportingDevices.length}/{activeDevices.length}</strong> reportando ahora</span></div>{plants.length ? <div className="space-operational-nodes">{plants.map((plant) => {
+    const plantMeasurements = measurements.filter((measurement) => measurement.plantId === plant.id).sort((a, b) => b.measuredAt.localeCompare(a.measuredAt));
+    const latest = plantMeasurements[0];
+    const devices = spaceDevices.filter((device) => device.plantId === plant.id);
+    const settings = alertSettings.find((item) => item.plantId === plant.id);
+    const configuredRules = countConfiguredAlertRules(settings);
+    const assessment = assessPlantEnvironment(plant, latest);
+    const activeAlerts = buildConfiguredEnvironmentalAlerts(settings, latest, assessment.vpdKpa);
+    return <article key={plant.id}><div className="space-operational-plant"><span aria-hidden="true">●</span><div><strong>{plant.name}</strong><small>{plant.stage} · {latest ? `última lectura ${formatMeasurementDate(latest.measuredAt)}` : "sin lecturas"}</small></div><a href={`#${plant.id}`}>Abrir maceta</a></div><div className="space-operational-devices">{devices.length ? devices.map((device) => { const connection = getSensorConnectionState(device); return <div className={`sensor-connection is-${connection.key}`} key={device.id}><i aria-hidden="true" /><span><strong>{device.name}</strong><small>{connection.label}</small></span></div>; }) : <div className="sensor-connection is-manual"><i aria-hidden="true" /><span><strong>Carga manual</strong><small>Sin dispositivo vinculado</small></span></div>}</div><div className="space-operational-rule"><span>{configuredRules ? `${configuredRules} regla${configuredRules === 1 ? "" : "s"} de monitoreo` : "Sin reglas personalizadas"}</span><strong>{activeAlerts.length ? `${activeAlerts.length} fuera de límite` : configuredRules ? "Sin desvíos en la última lectura" : "Sin evaluación personalizada"}</strong></div>{activeAlerts.length ? <p>{activeAlerts[0]}</p> : null}</article>;
+  })}</div> : <p className="plant-environment-missing">Este espacio todavía no tiene macetas activas.</p>}<small>“Reportando ahora” describe conectividad: última señal dentro de 15 minutos. No evalúa la salud de la planta. Una regla solo observa y alerta; CultiPilot no acciona bombas, luces o válvulas desde este panel.</small></section>;
+}
+
+function getSensorConnectionState(device: SensorDevice): { key: "disabled" | "reporting" | "stale" | "waiting"; label: string } {
+  if (!device.active) return { key: "disabled", label: "Desactivado por el usuario" };
+  if (!device.lastSeenAt) return { key: "waiting", label: "Esperando la primera señal" };
+  const elapsedMinutes = Math.max(0, Math.round((Date.now() - new Date(device.lastSeenAt).getTime()) / 60_000));
+  if (elapsedMinutes <= 15) return { key: "reporting", label: `Reportando · hace ${elapsedMinutes} min` };
+  return { key: "stale", label: `Sin señal reciente · hace ${formatObservedMinutes(elapsedMinutes)}` };
+}
+
+function countConfiguredAlertRules(settings?: PlantEnvironmentalAlertSettings) {
+  if (!settings) return 0;
+  return [
+    [settings.temperatureMinC, settings.temperatureMaxC],
+    [settings.humidityMinPercent, settings.humidityMaxPercent],
+    [settings.vpdMinKpa, settings.vpdMaxKpa],
+    [settings.substrateMoistureMinPercent, settings.substrateMoistureMaxPercent]
+  ].filter(([minimum, maximum]) => minimum !== undefined || maximum !== undefined).length;
 }
 
 function PlantSpaceRow({
@@ -5986,6 +6036,9 @@ function PlantSensorPanel({
   const [deviceName, setDeviceName] = useState(`Sensor ${plant.name}`);
   const [newToken, setNewToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const connectionStates = devices.map(getSensorConnectionState);
+  const reportingCount = connectionStates.filter((connection) => connection.key === "reporting").length;
+  const connectionSummary = devices.length === 0 ? { className: "pill pill-soft", label: "Sin conectar" } : reportingCount > 0 ? { className: "pill pill-green", label: `${reportingCount} en línea` } : devices.some((device) => device.active) ? { className: "pill pill-amber", label: "Sin señal" } : { className: "pill pill-soft", label: "Desactivado" };
 
   async function createDevice() {
     setIsCreating(true);
@@ -6008,18 +6061,19 @@ function PlantSensorPanel({
           <strong>Sensores conectados</strong>
           <small>{devices.length > 0 ? `${devices.length} dispositivo${devices.length === 1 ? "" : "s"}` : "Sin dispositivos"}</small>
         </span>
-        <span className="pill pill-green">IoT</span>
+        <span className={connectionSummary.className}>{connectionSummary.label}</span>
       </summary>
       <div className="plant-sensor-content">
         <p>Vincula esta maceta con un ESP32 o gateway. Las lecturas se actualizan cada minuto mientras la app esta abierta.</p>
 
         {devices.length > 0 ? (
           <div className="plant-sensor-devices">
-            {devices.map((device) => (
-              <article key={device.id}>
+            {devices.map((device) => {
+              const connection = getSensorConnectionState(device);
+              return <article className={`is-${connection.key}`} key={device.id}>
                 <div>
                   <strong>{device.name}</strong>
-                  <small>{device.lastSeenAt ? `Ultima lectura: ${formatMeasurementDate(device.lastSeenAt)}` : "Esperando primera lectura"}</small>
+                  <small>{connection.label}{device.lastSeenAt ? ` · ${formatMeasurementDate(device.lastSeenAt)}` : ""}</small>
                 </div>
                 <button
                   className="secondary-button"
@@ -6028,8 +6082,8 @@ function PlantSensorPanel({
                 >
                   {device.active ? "Desactivar" : "Activar"}
                 </button>
-              </article>
-            ))}
+              </article>;
+            })}
           </div>
         ) : null}
 
